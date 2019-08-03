@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.optim as optim
 import time
 import matplotlib.pyplot as plt
-
+import os
 from symbolic_RLC import fxu_ODE, fxu_ODE_mod
 from neuralode import  NeuralODE, RunningAverageMeter
 
@@ -20,9 +20,7 @@ if __name__ == '__main__':
     COL_U = ['V_IN']
     COL_Y = ['V_C']
 
-    #df_X = pd.read_csv("RLC_data_sat.csv")
-    #df_X = pd.read_csv("RLC_data_FE.csv")
-    df_X = pd.read_csv("RLC_data_sat_FE.csv")
+    df_X = pd.read_csv("data/RLC_data_sat_FE.csv")
 
     time_data = np.array(df_X[COL_T], dtype=np.float32)
     y = np.array(df_X[COL_Y],dtype=np.float32)
@@ -69,7 +67,7 @@ if __name__ == '__main__':
                 ii += 1
         end = time.time()
 
-    torch.save(nn_solution.state_dict(), 'model_ARX_FE_sat.pkl')
+    torch.save(nn_solution.state_dict(), os.path.join("models", "model_ARX_FE_sat.pkl"))
 
     x_0 = state_data[0,:]
 

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import control
 import control.matlab
 import pandas as pd
-
+import os
 
 from symbolic_RLC import fxu_ODE, fxu_ODE_mod
 
@@ -91,6 +91,10 @@ if __name__ == '__main__':
     ax[1].grid(True)
     ax[2].grid(True)
 
+
+    if not os.path.exists("data"):
+        os.makedirs("data")
+
     X = np.hstack((t_sim.reshape(-1, 1), x1, u.reshape(-1, 1), x1[:, 0].reshape(-1, 1)))
     COL_T = ['time']
     COL_X = ['V_C', 'I_L']
@@ -98,7 +102,7 @@ if __name__ == '__main__':
     COL_Y = ['V_C']
     COL = COL_T + COL_X + COL_U + COL_Y
     df_X = pd.DataFrame(X, columns=COL)
-    df_X.to_csv("RLC_data_FE.csv", index=False)
+    df_X.to_csv(os.path.join("data", "RLC_data_FE.csv"), index=False)
 
     X = np.hstack((t_sim.reshape(-1, 1), x2, u.reshape(-1, 1), x2[:, 0].reshape(-1, 1)))
     COL_T = ['time']
@@ -107,4 +111,5 @@ if __name__ == '__main__':
     COL_Y = ['V_C']
     COL = COL_T + COL_X + COL_U + COL_Y
     df_X = pd.DataFrame(X, columns=COL)
-    df_X.to_csv("RLC_data_sat_FE.csv", index=False)
+
+    df_X.to_csv(os.path.join("data", "RLC_data_sat_FE.csv"), index=False)
