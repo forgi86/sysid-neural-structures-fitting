@@ -32,10 +32,10 @@ if __name__ == '__main__':
 
     Ts = t[1] - t[0]
     t_fit = 5e-3
-    n_fit = int(t_fit//Ts)#x.shape[0]
-    num_iter = 1000
-    seq_len = 400
-    batch_size = 128
+    n_fit = int(t_fit/Ts)#x.shape[0]
+    num_iter = 20000
+    seq_len = 200
+    batch_size = 1000
     test_freq = 10
 
     # Get fit data #
@@ -62,9 +62,9 @@ if __name__ == '__main__':
     
     
     nn_solution = NeuralODE()
-    nn_solution.load_state_dict(torch.load(os.path.join("models", "model_ARX_FE_sat.pkl")))
+#    nn_solution.load_state_dict(torch.load(os.path.join("models", "model_ARX_FE_sat.pkl")))
 
-    optimizer = optim.Adam(nn_solution.parameters(), lr=1e-5)
+    optimizer = optim.Adam(nn_solution.parameters(), lr=1e-4)
     end = time.time()
     time_meter = RunningAverageMeter(0.97)
     loss_meter = RunningAverageMeter(0.97)
@@ -72,25 +72,26 @@ if __name__ == '__main__':
 
 
     ii = 0
+    x_pred_torch = nn_solution.f_OE(x0_torch, u_torch_fit)
+    loss = torch.mean((x_pred_torch - x_true_torch_fit)**2)
     for itr in range(0, num_iter):
 
 
         if itr % test_freq == 0:
             with torch.no_grad():
-                x_pred_torch = nn_solution.f_OE(x0_torch, u_torch_fit)
-                loss = torch.mean(torch.abs(x_pred_torch - x_true_torch_fit))
+                #x_pred_torch = nn_solution.f_OE(x0_torch, u_torch_fit)
+                #loss = torch.mean(torch.abs(x_pred_torch - x_true_torch_fit))
                 print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
                 ii += 1
 
         optimizer.zero_grad()
-        batch_t, batch_x0, batch_u, batch_x = get_batch(batch_size, seq_len)
-        #batch_size = 256
-        #N = x_true_torch_fit.shape[0]
-        #N = int(N // batch_size) * batch_size
-        #seq_len = int(N // batch_size)
-        #batch_x = x_true_torch_fit[0:N].view(batch_size, seq_len, -1)
-        #batch_u = u_torch_fit[0:N].view(batch_size, seq_len, -1)
-        #batch_x0 = batch_x[:, 0, :]
+        #batch_t, batch_x0, batch_u, batch_x = get_batch(batch_size, seq_len)
+        N = x_true_torch_fit.shape[0]
+        N = int(N // seq_len) * seq_len
+        batch_size = int(N // seq_len)
+        batch_x = x_true_torch_fit[0:N].view(batch_size, seq_len, -1)
+        batch_u = u_torch_fit[0:N].view(batch_size, seq_len, -1)
+        batch_x0 = batch_x[:, 0, :]
 
         batch_x_pred = nn_solution.f_OE_minibatch(batch_x0, batch_u)
 #        err = torch.abs(batch_x[:, 1:, :] - batch_x_pred[:, 1:, :])

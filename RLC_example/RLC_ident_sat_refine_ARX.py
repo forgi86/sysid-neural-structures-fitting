@@ -41,7 +41,7 @@ if __name__ == '__main__':
     nn_solution = NeuralODE()
     nn_solution.load_state_dict(torch.load(os.path.join("models", "model_ARX_FE_sat.pkl")))
 
-    optimizer = optim.Adam(nn_solution.parameters(), lr=1e-4)
+    optimizer = optim.Adam(nn_solution.parameters(), lr=1e-5)
     end = time.time()
     time_meter = RunningAverageMeter(0.97)
     loss_meter = RunningAverageMeter(0.97)
@@ -62,7 +62,7 @@ if __name__ == '__main__':
         if itr % test_freq == 0:
             with torch.no_grad():
                 x_pred_torch = nn_solution.f_ARX(x_true_torch, u_torch) #func(x_true_torch, u_torch)
-                loss = torch.mean((x_pred_torch - x_true_torch) ** 2)
+                loss = torch.mean(torch.abs(x_pred_torch - x_true_torch))
                 print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
                 ii += 1
         end = time.time()

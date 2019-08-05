@@ -1,7 +1,7 @@
 import pandas as pd
 from scipy.integrate import odeint, solve_ivp
 from scipy.interpolate import interp1d
-import os
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -20,7 +20,7 @@ if __name__ == '__main__':
     COL_U = ['V_IN']
     COL_Y = ['V_C']
 
-    df_X = pd.read_csv(os.path.join("data", "RLC_data_sat_FE.csv"))
+    df_X = pd.read_csv("data/RLC_data_sat_FE.csv")
 
     time_data = np.array(df_X[COL_T], dtype=np.float32)
     y = np.array(df_X[COL_Y],dtype=np.float32)
@@ -32,14 +32,25 @@ if __name__ == '__main__':
     t_fit = 2e-3
     n_fit = int(t_fit//Ts)#x.shape[0]
     num_iter = 20000
-    test_freq = 100
+    test_freq = 10
 
     input_data = u[0:n_fit]
     state_data = x[0:n_fit]
+    output_data = y[0:n_fit]
     u_torch = torch.from_numpy(input_data)
-    x_true_torch = torch.from_numpy(state_data)
+    
+    y_torch = torch.tensor(output_data)
+    #x_hidden_torch = torch.zeros(state_data.shape, requires_grad=True)
+    #x_hidden_torch[:,0] = y_torch[:,0] # initialize first state as the output
+    #x_hidden_torch[:,0] = torch.tensor(output_data)
+    
+    state_estimate = np.copy(state_data)
+    state_estimate[:,1] = state_data[:,1] + np.random.randn(n_fit) #1e1*np.random.randn(n_fit) #state_data[:,1] + np.random.randn(n_fit)
+    x_hidden_torch = torch.tensor(state_estimate, requires_grad=True) 
+    
+
     nn_solution = NeuralODE()
-    nn_solution.load_state_dict(torch.load(os.path.join("models", "model_ARX_FE_sat.pkl")))
+    #nn_solution.load_state_dict(torch.load('model_ARX_FE_sat.pkl'))
 
     optimizer = optim.Adam(nn_solution.parameters(), lr=1e-4)
     end = time.time()
@@ -50,9 +61,10 @@ if __name__ == '__main__':
     ii = 0
     for itr in range(1, num_iter + 1):
         optimizer.zero_grad()
-        x_pred_torch = nn_solution.f_ARX(x_true_torch, u_torch)
+        #x_pred_torch = nn_solution.f_ARX(x_hidden_torch, u_torch)
         #loss = torch.mean(torch.abs(x_pred_torch - x_true_torch))
-        loss = torch.mean((x_pred_torch - x_true_torch) ** 2)
+        loss = nn_solution.f_ARX_consistency_loss(x_hidden_torch, u_torch) # consistency equation 
+        loss += torch.mean((y_torch[:,0]-x_hidden_torch[:,0] ) **2) # fit equation
         loss.backward()
         optimizer.step()
 
@@ -61,21 +73,21 @@ if __name__ == '__main__':
 
         if itr % test_freq == 0:
             with torch.no_grad():
-                x_pred_torch = nn_solution.f_ARX(x_true_torch, u_torch) #func(x_true_torch, u_torch)
-                loss = torch.mean((x_pred_torch - x_true_torch) ** 2)
+                x_pred_torch = nn_solution.f_ARX(x_hidden_torch, u_torch) #func(x_true_torch, u_torch)
+                loss = torch.mean(torch.abs(x_pred_torch - x_hidden_torch))
                 print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
                 ii += 1
         end = time.time()
 
-    torch.save(nn_solution.state_dict(), os.path.join("models", "model_ARX_FE_sat_v1.pkl"))
+    torch.save(nn_solution.state_dict(), os.path.join("models", "model_ARX_FE_sat.pkl"))
 
     x_0 = state_data[0,:]
 
     with torch.no_grad():
         x_sim = nn_solution.f_OE(torch.tensor(x_0), torch.tensor(input_data))
-        loss = torch.mean(torch.abs(x_sim - x_true_torch))
 
 
+    x_true_torch = torch.tensor(state_data)
     x_sim = np.array(x_sim)
     fig,ax = plt.subplots(2,1,sharex=True)
     ax[0].plot(np.array(x_true_torch[:,0]), 'k+',  label='True')
