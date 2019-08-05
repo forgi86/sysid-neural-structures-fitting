@@ -8,11 +8,10 @@ import torch.nn as nn
 import torch.optim as optim
 import time
 import matplotlib.pyplot as plt
-
-
-from symbolic_RLC import fxu_ODE, fxu_ODE_mod
+import os
+from symbolic_RLC import fxu_ODE, fxu_ODE_mod, A_nominal, B_nominal
 from neuralode import  NeuralODE, RunningAverageMeter
-
+from ssmodels import NeuralStateSpaceModelLin, NeuralStateSpaceModel
 
 if __name__ == '__main__':
 
@@ -21,7 +20,7 @@ if __name__ == '__main__':
     COL_U = ['V_IN']
     COL_Y = ['V_C']
 
-    df_X = pd.read_csv("RLC_data_sat_FE.csv")
+    df_X = pd.read_csv(os.path.join("data", "RLC_data_FE.csv"))
 
     time_data = np.array(df_X[COL_T], dtype=np.float32)
     y = np.array(df_X[COL_Y],dtype=np.float32)
@@ -30,7 +29,7 @@ if __name__ == '__main__':
     x0_torch = torch.from_numpy(x[0,:])
 
     Ts = time_data[1] - time_data[0]
-    t_fit = 5e-3
+    t_fit = 1e-3
     n_fit = int(t_fit//Ts)#x.shape[0]
     num_iter = 100
     test_freq = 10
@@ -41,10 +40,11 @@ if __name__ == '__main__':
     u_torch = torch.from_numpy(input_data)
     x_true_torch = torch.from_numpy(state_data)
 
-    nn_solution = NeuralODE()
-    #nn_solution.load_state_dict(torch.load('model_ARX_FE_sat.pkl'))
+    ss_model = NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
+    nn_solution = NeuralODE(ss_model)
 
-    optimizer = optim.Adam(nn_solution.parameters(), lr=1e-5)
+    params = list(nn_solution.ss_model.parameters())
+    optimizer = optim.Adam(params, lr=1e-5)
     end = time.time()
     time_meter = RunningAverageMeter(0.97)
     loss_meter = RunningAverageMeter(0.97)

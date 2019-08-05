@@ -6,7 +6,7 @@ Created on Tue Dec 25 12:27:55 2018
 @author: marco
 """
 import numba as nb
-from sympy import *
+from sympy import symbols, collect, cancel, init_printing, fraction
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -83,6 +83,13 @@ def fxu_ODE_mod(t,x,u):
     #dx = A @ x + B @ u
     return dx
 
+
+A_nominal = np.array([[0.0, 1.0/C_val],
+             [-1/(L_val), -R_val/L_val]
+            ])
+
+B_nominal = np.array([[0.0], [1.0/(L_val)]])
+    
 if __name__ == '__main__':
 
     init_printing(use_unicode=True)
@@ -111,4 +118,4 @@ if __name__ == '__main__':
     plt.plot(I, 100.*saturation_formula(I))
     plt.grid(True)
     plt.xlabel('Inductor current (A)')
-    plt.ylabel('Inductor value (%)')
+    plt.ylabel('Inductor value (%) of $I_o$')

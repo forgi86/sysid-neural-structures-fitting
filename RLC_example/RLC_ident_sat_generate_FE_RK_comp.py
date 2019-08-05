@@ -19,10 +19,6 @@ if __name__ == '__main__':
     omega_input = 150e3 # input power spectrum - cutoff frequency
     std_input = 80 # input power spectrum - amplitude
     
-    std_noise_V = 10
-    std_noise_I = 1
-    std_noise = np.array([std_noise_V, std_noise_I])
-    
     tau_input = 1/omega_input
     Hu = control.TransferFunction([1], [1 / omega_input, 1])
     Hu = Hu * Hu
@@ -49,7 +45,7 @@ if __name__ == '__main__':
         u = u_func(t).ravel()
         return fxu_ODE_mod(t, x, u)
 
-    # In[Integrate]
+
     x0 = np.zeros(2)
     t_span = (t_sim[0],t_sim[-1])
 
@@ -64,23 +60,26 @@ if __name__ == '__main__':
         x2[idx,:] = x2step
         x1step += f_ODE(time, x1step)*Ts
         x2step += f_ODE_mod(time, x2step)*Ts
+
+    y1_RK = solve_ivp(f_ODE, t_span, x0, t_eval = t_sim)
+    y2_RK = solve_ivp(f_ODE_mod, t_span, x0, t_eval = t_sim)
     
-    
-    # In[Add noise]
-    x1_noise = np.copy(x1) + np.random.randn(*x1.shape)*std_noise
-    x2_noise = np.copy(x2) + np.random.randn(*x2.shape)*std_noise
+    x1_RK = y1_RK.y.T
+    x2_RK = y2_RK.y.T
     
     # In[plot]
     fig, ax = plt.subplots(3,1, figsize=(10,10), sharex=True)
-    ax[0].plot(t_sim, x2[:,0],'b')
-    ax[0].plot(t_sim, x2_noise[:,0],'r')
-
+    ax[0].plot(t_sim, x1[:,0],'b')
+    ax[0].plot(t_sim, x1_RK[:,0],'b*')
+    ax[0].plot(t_sim, x2[:,0],'r')
+    ax[0].plot(t_sim, x2_RK[:,0],'r*')
     ax[0].set_xlabel('time (s')
     ax[0].set_ylabel('Capacitor voltage (V)')
     
-#    ax[1].plot(t_sim, x1[:,1],'b')
-    ax[1].plot(t_sim, x2[:,1],'b')
-    ax[1].plot(t_sim, x2_noise[:,1],'r')
+    ax[1].plot(t_sim, x1[:,1],'b')
+    ax[1].plot(t_sim, x1_RK[:,1],'b*')
+    ax[1].plot(t_sim, x2[:,1],'r')
+    ax[1].plot(t_sim, x2_RK[:,1],'r*')
     ax[1].set_xlabel('time (s)')
     ax[1].set_ylabel('Inductor current (A)')
     
@@ -92,7 +91,7 @@ if __name__ == '__main__':
     ax[1].grid(True)
     ax[2].grid(True)
 
-    # In[Save]
+
     if not os.path.exists("data"):
         os.makedirs("data")
 
