@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 from symbolic_RLC import fxu_ODE, fxu_ODE_mod, A_nominal, B_nominal
 from neuralode import  NeuralODE, RunningAverageMeter
-from ssmodels import NeuralStateSpaceModelLin
+from ssmodels import NeuralStateSpaceModelLin, NeuralStateSpaceModel
 
 
 if __name__ == '__main__':
@@ -41,10 +41,11 @@ if __name__ == '__main__':
     
     Ts = t[1] - t[0]
     t_fit = 5e-3
-    n_fit = int(t_fit//Ts)#x.shape[0]
+    n_fit = int(t_fit/Ts)#x.shape[0]
     num_iter = 10000
     seq_len = 100 #int(n_fit/10)
     batch_size = n_fit//seq_len
+#    batch_size = 128
     test_freq = 10
 
     # Get fit data #
@@ -59,32 +60,41 @@ if __name__ == '__main__':
     x_meas_torch_fit = torch.from_numpy(x_fit)
     time_torch_fit = torch.from_numpy(time_fit)
 
+    x_hidden_init = np.copy(x_fit)
+    x_hidden_init = x_hidden_init.astype(np.float32)
+    x_hidden_torch_fit = torch.tensor(x_hidden_init, requires_grad=True)
+
+
     def get_batch(batch_size, seq_len):
         num_train_samples = x_meas_torch_fit.shape[0]
         s = torch.from_numpy(np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False))
-        batch_x0 = x_meas_torch_fit[s, :]  # (M, D)
+        batch_x0_hidden = x_hidden_torch_fit[s, :]  # (M, D)
         batch_t = torch.stack([time_torch_fit[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
-        batch_x = torch.stack([x_meas_torch_fit[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
+        batch_x_meas = torch.stack([x_meas_torch_fit[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
+        batch_x_hidden = torch.stack([x_hidden_torch_fit[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
         batch_u = torch.stack([u_torch_fit[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
         
-        return batch_t, batch_x0, batch_u, batch_x 
+        return batch_t, batch_x0_hidden, batch_u, batch_x_meas, batch_x_hidden
     
 
-#    ss_model = NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
     ss_model = NeuralStateSpaceModel() #NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
     nn_solution = NeuralODE(ss_model)
-    #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_ARX_FE_sat.pkl")))
+    #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model.pkl")))
 
-    params = list(nn_solution.ss_model.parameters())
+    params = list(nn_solution.ss_model.parameters()) + [x_hidden_torch_fit]
     optimizer = optim.Adam(params, lr=1e-3)
     end = time.time()
     time_meter = RunningAverageMeter(0.97)
     loss_meter = RunningAverageMeter(0.97)
 
 
+#    scale_error = torch.tensor((std_noise).astype(np.float32))
+#    scale_error = torch.tensor((np.std(x_fit, axis=0)).astype(np.float32))
+
     scale_error = 1./np.std(x_fit, axis=0)
-    scale_error = scale_error/np.sum(scale_error)
-    scale_error = torch.tensor(scale_error.astype(np.float32))
+
+
+    
     ii = 0
     for itr in range(0, num_iter):
 
@@ -97,24 +107,21 @@ if __name__ == '__main__':
                 ii += 1
 
         optimizer.zero_grad()
-        batch_t, batch_x0, batch_u, batch_x = get_batch(batch_size, seq_len)
-        #batch_size = 256
-        #N = x_true_torch_fit.shape[0]
-        #N = int(N // batch_size) * batch_size
-        #seq_len = int(N // batch_size)
-        #batch_x = x_true_torch_fit[0:N].view(batch_size, seq_len, -1)
-        #batch_u = u_torch_fit[0:N].view(batch_size, seq_len, -1)
-        #batch_x0 = batch_x[:, 0, :]
-
-        batch_x_pred = nn_solution.f_OE_minibatch(batch_x0, batch_u)
-#        err = torch.abs(batch_x[:, 1:, :] - batch_x_pred[:, 1:, :])
-#        err[:,:,1] = err[:,:,1]*100.0
-#        loss = torch.mean(err)
-        err = batch_x[:,0:,:] - batch_x_pred[:,0:,:]
-        err_scaled = err * scale_error        
-        loss = torch.mean(err_scaled**2)
-#        loss = torch.mean((batch_x[:,1:,:] - batch_x_pred[:,1:,:])**2) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
+        
+        batch_t, batch_x0_hidden, batch_u, batch_x_meas, batch_x_hidden = get_batch(batch_size, seq_len)
+        batch_x_pred = nn_solution.f_OE_minibatch(batch_x0_hidden, batch_u)
+        err = batch_x_meas[:,0:,:] - batch_x_pred[:,0:,:]
+        err_scaled = err * scale_error
+        loss_pred = torch.mean((err_scaled)**2) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
+        
+        err_hidden = batch_x_hidden[:,1:,:] - batch_x_pred[:,1:,:]
+        err_scaled_hidden = err_hidden * scale_error
+        loss_hidden = torch.mean((err_scaled_hidden)**2)
+        
+        loss = 1/2*(loss_pred + loss_hidden)
+        
         loss.backward()
+        #params[-1].grad
         optimizer.step()
 
         time_meter.update(time.time() - end)
@@ -123,8 +130,37 @@ if __name__ == '__main__':
 
         end = time.time()
 
-    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", "model_minibatch_OE.pkl"))
+    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", "model_minibatch_OE_hidden.pkl"))
 
+    # In[Simulation performance]
+    x0_fit = np.zeros(2,dtype=np.float32)
+    x0_torch_fit = torch.from_numpy(x0_fit)
+    with torch.no_grad():
+        x_sim_torch_fit = nn_solution.f_OE(x0_torch_fit, u_torch_fit)
+
+    x_true_fit = x[0:n_fit]
+    # In[FIT]
+    
+
+    fig,ax = plt.subplots(3,1, sharex=True)
+    ax[0].plot(np.array(np.array(x_meas_torch_fit[:,0].detach())), 'k*', label='Measured')
+    ax[0].plot(np.array(np.array(x_hidden_torch_fit[:,0].detach())), 'b', label='Hidden')
+    ax[0].plot(x_true_fit[:,0], 'c', label='True')
+    ax[0].plot(np.array(np.array(x_sim_torch_fit[:,0].detach())), 'r', label='Sim')
+    ax[0].legend()
+    ax[0].grid(True)
+
+    ax[1].plot(np.array(np.array(x_meas_torch_fit[:,1].detach())), 'k*', label='Measured')
+    ax[1].plot(np.array(np.array(x_hidden_torch_fit[:,1].detach())), 'b', label='Hidden')
+    ax[1].plot(x_true_fit[:,1], 'c', label='True')
+    ax[1].plot(np.array(np.array(x_sim_torch_fit[:,1].detach())), 'r', label='Sim')
+    ax[1].legend()
+    ax[1].grid(True)
+
+    ax[2].plot(np.array(u_torch_fit), label='Input')
+    ax[2].grid(True)
+        
+    # In[Validation]
     t_val = 5e-3
     n_val = int(t_val//Ts)#x.shape[0]
 

@@ -31,8 +31,8 @@ if __name__ == '__main__':
     x0_torch = torch.from_numpy(x[0,:])
 
 
-    std_noise_V = 5.0
-    std_noise_I = 0.5
+    std_noise_V = 2*5.0
+    std_noise_I = 2*0.5
     std_noise = np.array([std_noise_V, std_noise_I])
     
     x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
@@ -119,7 +119,7 @@ if __name__ == '__main__':
 #        err = torch.abs(batch_x[:, 1:, :] - batch_x_pred[:, 1:, :])
 #        err[:,:,1] = err[:,:,1]*100.0
 #        loss = torch.mean(err)
-        err = batch_x_meas[:,:,:] - batch_x_pred[:,:,:]
+        err = batch_x_meas[:,1:,:] - batch_x_pred[:,1:,:]
         err_scaled = err * scale_error
         loss = torch.mean((err_scaled)**2) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
         loss.backward()
@@ -134,6 +134,32 @@ if __name__ == '__main__':
 
     #torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", "model.pkl")
 
+    # In[Simulation performance]
+    x0_fit = np.zeros(2,dtype=np.float32)
+    x0_torch_fit = torch.from_numpy(x0_fit)
+    with torch.no_grad():
+        x_sim_torch_fit = nn_solution.f_OE(x0_torch_fit, u_torch_fit)
+
+    # In[FIT]
+    
+
+    fig,ax = plt.subplots(3,1, sharex=True)
+    ax[0].plot(np.array(np.array(x_meas_torch_fit[:,0].detach())), 'k*', label='Measured')
+    ax[0].plot(np.array(np.array(x_hidden_torch_fit[:,0].detach())), 'b', label='Hidden')
+    ax[0].plot(np.array(np.array(x_sim_torch_fit[:,0].detach())), 'g', label='Sim')
+    ax[0].legend()
+    ax[0].grid(True)
+
+    ax[1].plot(np.array(np.array(x_meas_torch_fit[:,1].detach())), 'k*', label='Measured')
+    ax[1].plot(np.array(np.array(x_hidden_torch_fit[:,1].detach())), 'b', label='Hidden')
+    ax[1].plot(np.array(np.array(x_sim_torch_fit[:,1].detach())), 'g', label='Sim')
+
+    ax[1].legend()
+    ax[1].grid(True)
+
+    ax[2].plot(np.array(u_torch_fit), label='Input')
+    ax[2].grid(True)
+        
     # In[Validation]
     t_val = 5e-3
     n_val = int(t_val//Ts)#x.shape[0]
