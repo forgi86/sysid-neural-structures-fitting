@@ -55,7 +55,7 @@ DEFAULTS_PENDULUM_MPC = {
     'uref':  np.array([0.0]), # N
     'std_npos': 0.001,  # m
     'std_nphi': 0.001,  # rad
-    'std_dF': 0.001,  # N
+    'std_dF': 0*0.001,  # N
     'w_F': 10,  # rad
     'len_sim': 40, #s
 
@@ -470,4 +470,4 @@ if __name__ == '__main__':
 
     COL = COL_T + COL_X + COL_U + COL_Y
     df_X = pd.DataFrame(X, columns=COL)
-    df_X.to_csv("pendulum_data.csv", index=False)
+    df_X.to_csv(os.path.join("data", "pendulum_data_MPC.csv"), index=False)

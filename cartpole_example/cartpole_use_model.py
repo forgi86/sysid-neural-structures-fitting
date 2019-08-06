@@ -9,35 +9,31 @@ import torch.nn as nn
 import torch.optim as optim
 import time
 import matplotlib.pyplot as plt
-
-from symbolic_RLC import fxu_ODE, fxu_ODE_mod, A_nominal, B_nominal
+import sys
+sys.path.append(os.path.join(".."))
 from torchid.neuralode import NeuralODE, RunningAverageMeter
-from torchid.ssmodels import NeuralStateSpaceModelLin, NeuralStateSpaceModel
+from torchid.ssmodels import MechanicalStateSpaceModel
 
 
 if __name__ == '__main__':
 
     COL_T = ['time']
-    COL_X = ['V_C', 'I_L']
-    COL_U = ['V_IN']
-    COL_Y = ['V_C']
-    df_X = pd.read_csv(os.path.join("data", "RLC_data_sat_FE.csv"))
+    COL_Y = ['p_meas', 'theta_meas']
+    COL_X = ['p', 'v', 'theta', 'omega']
+    COL_U = ['u']
+    df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC.csv"))
 
-    time_data = np.array(df_X[COL_T], dtype=np.float32)
-    y = np.array(df_X[COL_Y], dtype=np.float32)
-    x = np.array(df_X[COL_X], dtype=np.float32)
-    u = np.array(df_X[COL_U], dtype=np.float32)
-    t =  np.array(df_X[COL_T], dtype=np.float32)
+    t = np.array(df_X[COL_T], dtype=np.float32)
+    y = np.array(df_X[COL_Y],dtype=np.float32)
+    x = np.array(df_X[COL_X],dtype=np.float32)
+    u = np.array(df_X[COL_U],dtype=np.float32)
+    Ts = t[1] - t[0]
+
     x0_torch = torch.from_numpy(x[0,:])
 
-    Ts = time_data[1] - time_data[0]
-
-    n_x = 2
-    n_u = 1
-    n_hidden = 64
-    ss_model = NeuralStateSpaceModel(n_x, n_u, n_hidden)
+    ss_model = MechanicalStateSpaceModel(Ts)
     nn_solution = NeuralODE(ss_model)
-    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_ARX_FE_sat.pkl")))
+    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_OE_minibatch.pkl")))
 
     x_torch = torch.tensor(x)
     x0_torch = torch.tensor(x[0,:])
@@ -53,14 +49,14 @@ if __name__ == '__main__':
     ax[0].plot(t[:n_plot], x[:n_plot, 0], label='True')
     ax[0].plot(t[:n_plot], x_sim[:n_plot, 0], label='Simulated')
     ax[0].set_xlabel("Time (s)")
-    ax[0].set_ylabel("Capacitor Voltage (V)")
+    ax[0].set_ylabel("Cart position (m)")
     ax[0].legend()
     ax[0].grid()
 
-    ax[1].plot(t[:n_plot], x[:n_plot, 1], label='True')
-    ax[1].plot(t[:n_plot], x_sim[:n_plot, 1], label='Simulated')
+    ax[1].plot(t[:n_plot], x[:n_plot, 2], label='True')
+    ax[1].plot(t[:n_plot], x_sim[:n_plot, 2], label='Simulated')
     ax[1].set_xlabel("Time (s)")
-    ax[1].set_ylabel("Inductor Current (A)")
+    ax[1].set_ylabel("Pendulum angle (rad)")
     ax[1].legend()
     ax[1].grid()
 

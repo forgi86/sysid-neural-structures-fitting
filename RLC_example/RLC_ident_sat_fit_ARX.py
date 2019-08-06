@@ -1,17 +1,15 @@
 import pandas as pd
-from scipy.integrate import odeint, solve_ivp
-from scipy.interpolate import interp1d
-import os
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.optim as optim
 import time
 import matplotlib.pyplot as plt
 import os
-from symbolic_RLC import fxu_ODE, fxu_ODE_mod
-from neuralode import  NeuralODE, RunningAverageMeter
-from ssmodels import NeuralStateSpaceModel
+import sys
+
+sys.path.append(os.path.join(".."))
+from torchid.neuralode import  NeuralODE, RunningAverageMeter
+from torchid.ssmodels import NeuralStateSpaceModel
 
 
 if __name__ == '__main__':
