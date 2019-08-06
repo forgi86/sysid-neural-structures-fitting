@@ -10,6 +10,7 @@ import control
 import control.matlab
 import numpy.random
 import pandas as pd
+import os
 
 Ts_fast = 1e-3
 
