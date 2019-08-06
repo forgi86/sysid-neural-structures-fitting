@@ -17,6 +17,10 @@ if __name__ == '__main__':
     COL_U = ['u']
     df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC.csv"))
 
+    std_noise_p = 0.01
+    std_noise_phi = 0.01
+    std_noise = np.array([std_noise_p, std_noise_phi])
+
     t = np.array(df_X[COL_T], dtype=np.float32)
     y = np.array(df_X[COL_Y],dtype=np.float32)
     x = np.array(df_X[COL_X],dtype=np.float32)
@@ -24,7 +28,11 @@ if __name__ == '__main__':
     Ts = t[1] - t[0]
 
     x0_torch = torch.from_numpy(x[0,:])
-
+#    x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
+#    x_noise = x_noise.astype(np.float32)
+    y_noise = np.copy(y) + np.random.randn(*y.shape)*std_noise
+    y_noise = y_noise.astype(np.float32)
+    
     ss_model = MechanicalStateSpaceModel(Ts)
     nn_solution = NeuralODE(ss_model)
     nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_OE_minibatch.pkl")))
@@ -56,7 +64,7 @@ if __name__ == '__main__':
 
     ax[2].plot(t[:n_plot], u[:n_plot, 0])
     ax[2].set_xlabel("Time (s)")
-    ax[2].set_ylabel("Input Voltage (V)")
+    ax[2].set_ylabel("Input Force (V)")
     #ax[2].legend()
     ax[2].grid()
 
@@ -72,21 +80,21 @@ if __name__ == '__main__':
 
     # In[Kalman filter]
     C = np.array([[1., 0., 0., 0.],
-                 [0., 0., 1., 0.]], dtype=np.float32)
+                  [0., 0., 1., 0.]], dtype=np.float32)
     
-    Q_kal = np.diag([0.1, 10, 0.1, 10]).astype(np.float32)
+    Q_kal = np.diag([0.01, 10, 0.01, 10]).astype(np.float32)
     R_kal = 1.0*np.eye(2).astype(np.float32),
     
     x_est_post_vec = np.zeros((t.size, n_x)).astype(np.float32)
     x_est_pri_vec  = np.zeros((t.size, n_x)).astype(np.float32)
 
     x_est_pri = x[0, :] # x[0|-1]
-    P_pri = np.eye(n_x, n_x).astype(np.float32) # P[0|-1]
+    P_pri = np.diag([0.01, 100, 0.01, 100]).astype(np.float32) # P[0|-1]
     I_nx = np.eye(n_x, n_x).astype(np.float32)
 
     for time_idx in range(len(t)):
         ui = u[time_idx,:]
-        yi = y[time_idx,:]
+        yi = y_noise[time_idx,:]
 
         xi_torch = torch.tensor(x_est_pri, requires_grad=True) # measurement
         ui_torch = torch.tensor(ui, requires_grad=True)
@@ -123,8 +131,9 @@ if __name__ == '__main__':
 
 
     fig,ax = plt.subplots(4,1,figsize=(20,10), sharex=True)
-    ax[0].plot(t[:n_plot], x[:n_plot, 0], label='True')
+    ax[0].plot(t[:n_plot], y_noise[:n_plot, 0], 'k',  label='Measured')
     ax[0].plot(t[:n_plot], x_est_post_vec[:n_plot, 0], label='Predicted')
+    ax[0].plot(t[:n_plot], x[:n_plot, 0], label='True')
     ax[0].set_xlabel("Time (s)")
     ax[0].set_ylabel("Position p (m)")
     ax[0].legend()
@@ -137,8 +146,9 @@ if __name__ == '__main__':
     ax[1].legend()
     ax[1].grid()
 
-    ax[2].plot(t[:n_plot], x[:n_plot, 2], label='True')
+    ax[2].plot(t[:n_plot], y_noise[:n_plot, 1], 'k', label='Measured')
     ax[2].plot(t[:n_plot], x_est_post_vec[:n_plot, 2], label='Predicted')
+    ax[2].plot(t[:n_plot], x[:n_plot, 2], label='True')
     ax[2].set_xlabel("Time (s)")
     ax[2].set_ylabel("Angle $\phi$ (rad)")
     ax[2].legend()

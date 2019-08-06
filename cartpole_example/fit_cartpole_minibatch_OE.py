@@ -113,6 +113,7 @@ if __name__ == '__main__':
     if not os.path.exists("models"):
         os.makedirs("models")
     torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", model_name))    
+    
 # In[Simulate model]
     x_0 = x_fit[0, :]
     with torch.no_grad():
