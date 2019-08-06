@@ -1,17 +1,11 @@
 import os
 import pandas as pd
-from scipy.integrate import odeint
-from scipy.interpolate import interp1d
-
 import numpy as np
 import torch
-import torch.nn as nn
-import torch.optim as optim
-import time
 import matplotlib.pyplot as plt
 import sys
 sys.path.append(os.path.join(".."))
-from torchid.neuralode import NeuralODE, RunningAverageMeter
+from torchid.neuralode import NeuralODE
 from torchid.ssmodels import MechanicalStateSpaceModel
 
 
@@ -65,22 +59,3 @@ if __name__ == '__main__':
     ax[2].set_ylabel("Input Voltage (V)")
     #ax[2].legend()
     ax[2].grid()
-"""
-    VAR = []
-    for idx_var in range(n_x):
-        var = np.zeros((1,n_x)).astype(np.float32)
-        var[0,idx_var] = 1.0 # differentiate w.r.t the nth variable
-        VAR.append(torch.tensor(var))
-
-    F_xu = ss_model(x_torch,u_torch)
-    A = np.empty((n_x,n_x))
-    B = np.empty((n_x,n_u))
-        
-    for idx_var in range(n_x):
-        var = VAR[idx_var]
-        F_xu.backward(var, retain_graph=True)
-        A[idx_var,:] = np.array(x_torch.grad)
-        B[idx_var,:] = np.array(u_torch.grad)
-        x_torch.grad.data.zero_()
-        u_torch.grad.data.zero_()
-"""

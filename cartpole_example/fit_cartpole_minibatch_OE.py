@@ -56,7 +56,7 @@ if __name__ == '__main__':
 
 
 # In[Batch function]
-    seq_len = 500 #int(n_fit/10)
+    seq_len = 300 #int(n_fit/10)
     batch_size = n_fit//seq_len
     test_freq = 10
     def get_batch(batch_size, seq_len):
@@ -69,7 +69,7 @@ if __name__ == '__main__':
         
         return batch_t, batch_x0, batch_u, batch_x 
 # In[Scale]
-    scale_error = 1e2*np.ones(4)/4
+    scale_error = 1e2*np.array([1,1,5,5])
     scale_error = torch.tensor(scale_error.astype(np.float32))        
 # In[Fit model]
     ii = 0
