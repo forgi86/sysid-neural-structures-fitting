@@ -58,13 +58,29 @@ class NeuralStateSpaceModelLin(nn.Module):
         DX += self.AL(X) + self.BL(U)
         return DX   
 
+class StateSpaceModelLin(nn.Module):
+    def __init__(self, AL, BL):
+        super(NeuralStateSpaceModelLin, self).__init__()
 
+        self.AL = nn.Linear(2,2, bias=False)
+        self.AL.weight = torch.nn.Parameter(torch.tensor(AL.astype(np.float32)), requires_grad=False)
+        self.BL = nn.Linear(1,2, bias=False)
+        self.BL.weight = torch.nn.Parameter(torch.tensor(BL.astype(np.float32)), requires_grad=False)
+
+
+    
+    def forward(self, X,U):
+        DX = self.AL(X) + self.BL(U)
+        return DX   
+    
+    
+    
 class MechanicalStateSpaceModel(nn.Module):
     def __init__(self, Ts):
         super(MechanicalStateSpaceModel, self).__init__()
         self.net = nn.Sequential(
             nn.Linear(5, 64),  # 4 states, 1 input
-            nn.Tanh(),
+            nn.ReLU(),
             nn.Linear(64,2) # 2 state equations (the other 2 are fixed by basic physics)
         )
         for m in self.net.modules():
@@ -76,9 +92,12 @@ class MechanicalStateSpaceModel(nn.Module):
         self.AL.weight = torch.nn.Parameter(torch.tensor([[0.,Ts,0.,0.],
                                                           [0.,0.,0.,0.],
                                                           [0.,0.,0.,Ts],
-                                                          [0.,0.,0.,0.]]), requires_grad=True)
+                                                          [0.,0.,0.,0.]]), requires_grad=False)
         self.WL = nn.Linear(2,4, bias=False)
-        self.WL.weight = torch.nn.Parameter(torch.tensor([[0.,0.],[1.,0.],[0.,0.],[0.,1.]]), requires_grad=False)
+        self.WL.weight = torch.nn.Parameter(torch.tensor([[0.,0.],
+                                                          [1.,0.],
+                                                          [0.,0.],
+                                                          [0.,1.]]), requires_grad=False)
 
     def forward(self, X, U):
         XU = torch.cat((X,U),-1)

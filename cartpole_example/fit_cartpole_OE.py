@@ -30,7 +30,8 @@ if __name__ == '__main__':
 # In[Model]
     ss_model = MechanicalStateSpaceModel(Ts)
     nn_solution = NeuralODE(ss_model)
-   
+    model_name = "model_ARX_FE_sat_nonoise.pkl"
+    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", model_name)))
 # In[Setup optimization problem]
 
     len_fit = 40
@@ -56,7 +57,7 @@ if __name__ == '__main__':
 
 
 # In[Batch function]
-    seq_len = 500 #int(n_fit/10)
+    seq_len = 100 #int(n_fit/10)
     batch_size = n_fit//seq_len
     test_freq = 10
     def get_batch(batch_size, seq_len):
@@ -121,7 +122,7 @@ if __name__ == '__main__':
     ax[0].legend()
     ax[0].grid()
     ax[1].plot(t_fit[:n_plot], x[:n_plot,2], label='True')
-    ax[1].plot(t_fit[:n_plot], x_fit[:n_plot, 2], label='Simulated')
+    ax[1].plot(t_fit[:n_plot], x_sim[:n_plot, 2], label='Simulated')
     ax[1].set_xlabel("Time (s)")
     ax[1].set_ylabel("Angle (rad)")
     ax[1].legend()

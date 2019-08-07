@@ -16,7 +16,9 @@ if __name__ == '__main__':
     COL_Y = ['p_meas', 'theta_meas']
     COL_X = ['p', 'v', 'theta', 'omega']
     COL_U = ['u']
+    COL_R = ['r']
     df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC.csv"))
+
 
     std_noise_p = 0.01
     std_noise_phi = 0.002
@@ -26,7 +28,7 @@ if __name__ == '__main__':
     x = np.array(df_X[COL_X],dtype=np.float32)
     y = np.array(df_X[COL_Y],dtype=np.float32)
     y = np.copy(x[:, [0, 2]])
-    u = np.array(df_X[COL_U],dtype=np.float32)
+    u = np.array(df_X[COL_R],dtype=np.float32)
     Ts = t[1] - t[0]
     n_x = x.shape[-1]
 
@@ -40,7 +42,7 @@ if __name__ == '__main__':
     ss_model = MechanicalStateSpaceModel(Ts)
     nn_solution = NeuralODE(ss_model)
     #model_name = "model_OE_minibatch_100.pkl" 
-    model_name = "model_ARX_FE_nonoise.pkl"
+    model_name = "model_ARX_FE_ref_nonoise.pkl"
     nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", model_name)))
     
     # In[Simulation plot]

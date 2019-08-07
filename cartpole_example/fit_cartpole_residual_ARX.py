@@ -8,8 +8,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 sys.path.append(os.path.join(".."))
-from torchid.neuralode import  NeuralODE, RunningAverageMeter
-from torchid.ssmodels import MechanicalStateSpaceModel
+from torchid.neuralode import  NeuralODE, NeuralSumODE, RunningAverageMeter
+from torchid.ssmodels import MechanicalStateSpaceModel, NeuralStateSpaceModel
 
 # In[Load data]
 if __name__ == '__main__':
@@ -31,7 +31,11 @@ if __name__ == '__main__':
  
 # In[Model]
     ss_model = MechanicalStateSpaceModel(Ts)
-    nn_solution = NeuralODE(ss_model)
+    model_name = "model_ARX_FE_nonoise.pkl"
+    ss_model.load_state_dict(torch.load(os.path.join("models", model_name)))   
+
+    ss_model_residual = NeuralStateSpaceModel(n_x=4, n_u=1, n_feat=64)
+    nn_solution = NeuralSumODE([ss_model,ss_model_residual])
    
 # In[Setup optimization problem]
 
@@ -44,11 +48,11 @@ if __name__ == '__main__':
     x_meas_fit_torch = torch.from_numpy(x_fit)
     t_fit_torch = torch.from_numpy(t_fit)
     
-    num_iter = 10000
+    num_iter = 20000
     test_freq = 1
 
-    params = list(nn_solution.ss_model.parameters())
-    optimizer = optim.Adam(params, lr=1e-4)
+    params = list(nn_solution.ss_model_list[1].parameters())
+    optimizer = optim.Adam(params, lr=1e-5)
     end = time.time()
     time_meter = RunningAverageMeter(0.97)
     loss_meter = RunningAverageMeter(0.97)
@@ -67,7 +71,7 @@ if __name__ == '__main__':
         x_pred_torch = nn_solution.f_ARX(x_meas_fit_torch, u_fit_torch)
         err = x_pred_torch - x_meas_fit_torch
         err_scaled = err * scale_error
-        loss = torch.mean((err_scaled)**2) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
+        loss = 10e3*torch.mean((err_scaled)**2) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
 
         loss.backward()
         optimizer.step()
@@ -81,12 +85,6 @@ if __name__ == '__main__':
                 ii += 1
         end = time.time()
 
-# In[Save model]
-    if not os.path.exists("models"):
-        os.makedirs("models")
-
-    model_name = "model_ARX_FE_nonoise.pkl"
-    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", model_name))
 
 
 
@@ -97,7 +95,7 @@ if __name__ == '__main__':
         loss = torch.mean(torch.abs(x_sim_torch - x_meas_fit_torch))
         x_sim = np.array(x_sim_torch)
     # In[1]
-    n_plot = 150
+    n_plot = 200
     fig,ax = plt.subplots(2,1,sharex=True)
     ax[0].plot(t_fit[:n_plot], x_fit[:n_plot, 0], label='True')
     ax[0].plot(t_fit[:n_plot], x_sim[:n_plot,0], label='Simulated')

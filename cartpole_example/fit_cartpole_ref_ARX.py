@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 sys.path.append(os.path.join(".."))
 from torchid.neuralode import  NeuralODE, RunningAverageMeter
-from torchid.ssmodels import MechanicalStateSpaceModel
+from torchid.ssmodels import NeuralStateSpaceModel, MechanicalStateSpaceModel
 
 # In[Load data]
 if __name__ == '__main__':
@@ -25,12 +25,12 @@ if __name__ == '__main__':
     y = np.array(df_X[COL_Y],dtype=np.float32)
     x = np.array(df_X[COL_X],dtype=np.float32)
     #u = np.array(df_X[COL_U],dtype=np.float32)
-    u = np.array(df_X[COL_U],dtype=np.float32)
+    u = np.array(df_X[COL_R],dtype=np.float32)
     Ts = t[1] - t[0]
     x_noise = x
  
 # In[Model]
-    ss_model = MechanicalStateSpaceModel(Ts)
+    ss_model = MechanicalStateSpaceModel(Ts)#n_x=4, n_u=1, n_feat=64)
     nn_solution = NeuralODE(ss_model)
    
 # In[Setup optimization problem]
@@ -85,7 +85,7 @@ if __name__ == '__main__':
     if not os.path.exists("models"):
         os.makedirs("models")
 
-    model_name = "model_ARX_FE_nonoise.pkl"
+    model_name = "model_ARX_FE_ref_nonoise.pkl"
     torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", model_name))
 
 
@@ -97,7 +97,7 @@ if __name__ == '__main__':
         loss = torch.mean(torch.abs(x_sim_torch - x_meas_fit_torch))
         x_sim = np.array(x_sim_torch)
     # In[1]
-    n_plot = 150
+    n_plot = 4000
     fig,ax = plt.subplots(2,1,sharex=True)
     ax[0].plot(t_fit[:n_plot], x_fit[:n_plot, 0], label='True')
     ax[0].plot(t_fit[:n_plot], x_sim[:n_plot,0], label='Simulated')

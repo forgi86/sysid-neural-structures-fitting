@@ -45,7 +45,7 @@ def xref_fun_def(t):
 #QDu_def = 0.01 * sparse.eye(1)       # Quadratic cost for Du0, Du1, ...., Du_N-1
 
 Ts_MPC_def = 10e-3
-Qx_def = 1.0 * sparse.diags([1.0, 0, 1.0, 0])   # Quadratic cost for states x0, x1, ..., x_N-1
+Qx_def = 1.0 * sparse.diags([1.0, 0, 5.0, 0])   # Quadratic cost for states x0, x1, ..., x_N-1
 QxN_def = Qx_def
 
 Qu_def = 0.0 * sparse.eye(1)        # Quadratic cost for u0, u1, ...., u_N-1
@@ -55,8 +55,8 @@ DEFAULTS_PENDULUM_MPC = {
     'xref_fun': xref_fun_def,
     'uref':  np.array([0.0]), # N
     'std_npos': 0.001,  # m
-    'std_nphi': 0.001,  # rad
-    'std_dF': 1,  # N
+    'std_nphi': 0.0002,  # rad
+    'std_dF': 0.5,  # N
     'w_F': 1.0,  # rad
     'len_sim': 40, #s
 
@@ -178,7 +178,7 @@ def simulate_pendulum_MPC(sim_options):
     Dumax = np.array([100*Ts_MPC])
 
     # Initialize simulation system
-    phi0 = 10*2*np.pi/360
+    phi0 = 0.0#10*2*np.pi/360
     x0 = np.array([0, 0, phi0, 0]) # initial state
     system_dyn = ode(f_ODE_wrapped).set_integrator('vode', method='bdf') #    dopri5
 #    system_dyn = ode(f_ODE_wrapped).set_integrator('dopri5')
@@ -318,11 +318,10 @@ def simulate_pendulum_MPC(sim_options):
 
         # System simulation step at rate Ts_fast
         time_integrate_start = time.perf_counter()
-        system_dyn.set_f_params(u_fast)
-        system_dyn.integrate(t_step + Ts_fast)
-        x_step = system_dyn.y
-        #x_step = x_step + f_ODE_jit(t_step, x_step, u_fast)*Ts_fast
-        #x_step = x_step + f_ODE(0.0, x_step, u_fast) * Ts_fast
+        #system_dyn.set_f_params(u_fast)
+        #system_dyn.integrate(t_step + Ts_fast)
+        #x_step = system_dyn.y
+        x_step = x_step + f_ODE_jit(t_step, x_step, u_fast)*Ts_fast
         t_int_vec_fast[idx_fast,:] = time.perf_counter() - time_integrate_start
 
         # Time update
@@ -465,12 +464,15 @@ if __name__ == '__main__':
 
     Ts_MPC = simout['Ts_MPC']
 
-    X = np.hstack((t, x, u, y_meas))
+    p_ref = x_ref[:,[0]]
+
+    X = np.hstack((t, x, u, y_meas, p_ref))
     COL_T = ['time']
     COL_X = ['p', 'v', 'theta', 'omega']
     COL_U = ['u']
+    COL_R = ['r']
     COL_Y = ['p_meas', 'theta_meas']
 
-    COL = COL_T + COL_X + COL_U + COL_Y
+    COL = COL_T + COL_X + COL_U + COL_Y + COL_R
     df_X = pd.DataFrame(X, columns=COL)
     df_X.to_csv(os.path.join("data", "pendulum_data_MPC_ref.csv"), index=False)
