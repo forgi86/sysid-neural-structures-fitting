@@ -27,9 +27,6 @@ Bc_def = np.array([
 ])
 
 # Reference input and states
-#t_ref_vec = np.array([0.0, 10.0, 20.0, 30.0, 40.0])
-#p_ref_vec = np.array([0.0, 0.8, 0.8, 0.0, 0.0])
-#rp_fun = interp1d(t_ref_vec, p_ref_vec, kind='zero')
 t_ref_vec = np.array([0.0, 5.0, 10.0, 20.0, 25.0, 30.0, 40.0, 100.0])
 p_ref_vec = np.array([0.0, 0.0,  0.8, 0.8,  0.0,  0.0,  0.8, 0.8])
 rp_fun = interp1d(t_ref_vec, p_ref_vec, kind='linear')
@@ -146,9 +143,8 @@ def simulate_pendulum_MPC(sim_options):
     te = np.arange(N_sim_d) * Ts_fast
     _, d, _ = control.forced_response(Hu, te, e)
     d_fast = d[N_skip:]
-    #td = np.arange(len(d)) * Ts_fast
-    
 
+    # MPC parameters
     Np = get_parameter(sim_options, 'Np')
     Nc = get_parameter(sim_options, 'Nc')
 

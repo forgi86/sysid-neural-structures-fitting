@@ -1,3 +1,4 @@
+import control
 import numpy as np
 
 class LinearStateSpaceSystem:
@@ -21,3 +22,17 @@ class LinearStateSpaceSystem:
         u = np.array(u).ravel()
         self.x = self.A @ self.x + self.B @ u
 
+if __name__ == '__main__':
+
+    Ts = 0.1
+    nx = 2
+    nu = 1
+    ny = 1
+
+    Ac = np.eye(2)
+    Bc = np.ones((2,1))
+    Cd = np.eye(2)
+    Dc = np.zeros((2,1))
+
+    Ad = np.eye(nx) + Ac*Ts
+    Bd = Bc*Ts
