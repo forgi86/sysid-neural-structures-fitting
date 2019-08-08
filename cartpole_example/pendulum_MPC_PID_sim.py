@@ -10,17 +10,19 @@ import control.matlab
 import numpy.random
 import pandas as pd
 
-
-k_def = 8
-tau_def = 20e-3
-Acl_c_def = np.array([[0,1,0], [0, 0, k_def], [0, 0, -1/tau_def]])
-Bcl_c_def = np.array([[0],
-                      [k_def],
-                      [1/tau_def]
-                      ])
-
 Ts_faster_loop = 1e-3
 
+Ac_def = np.array([[0, 1, 0, 0],
+               [0, -b / M, -(g * m) / M, (ftheta * m) / M],
+               [0, 0, 0, 1],
+               [0, b / (M * l), (M * g + g * m) / (M * l), -(M * ftheta + ftheta * m) / (M * l)]])
+
+Bc_def = np.array([
+    [0.0],
+    [1.0 / M],
+    [0.0],
+    [-1 / (M * l)]
+])
 
 t_ref_vec = np.array([0.0, 5.0, 10.0, 20.0, 25.0, 30.0, 40.0, 100.0])
 p_ref_vec = np.array([0.0, 0.0,  0.8, 0.8,  0.0,  0.0,  0.8, 0.8])
@@ -42,8 +44,8 @@ DEFAULTS_PENDULUM_MPC = {
     'w_F':20,  # rad
     'len_sim': 40, #s
 
-    'Acl_c': Acl_c_def,
-    'Bcl_c': Bcl_c_def,
+    'Ac': Ac_def,
+    'Bc': Bc_def,
     'Ts_slower_loop': Ts_slower_loop_def,
     'Q_kal':  np.diag([0.1, 10, 0.1, 10]),
     'R_kal': 1*np.eye(2),
@@ -68,40 +70,28 @@ def simulate_pendulum_MPC(sim_options):
     if seed_val is not None:
         np.random.seed(seed_val)
 
-    Acl_c = get_parameter(sim_options, 'Acl_c')
-    Bcl_c = get_parameter(sim_options, 'Bcl_c')
-
-    Ccl_c = np.array([[1., 0., 0],
-                      [0., 0., 1]])
+    Ac = get_parameter(sim_options, 'Ac')
+    Bc = get_parameter(sim_options, 'Bc')
 
     Cc = np.array([[1., 0., 0., 0.],
                    [0., 0., 1., 0.]])
 
-    Dcl_c = np.zeros((2, 1))
+    Dc = np.zeros((2, 1))
 
-
-    ss_cl_c = control.ss(Acl_c, Bcl_c, Ccl_c, Dcl_c)
-    ncl_x, ncl_u = Bcl_c.shape  # number of states and number or inputs
-    ncl_y = np.shape(Ccl_c)[0]
-
-    nx, nu = 4,1
-    ny = 2
+    [nx, nu] = Bc.shape  # number of states and number or inputs
+    ny = np.shape(Cc)[0]
 
     Ts_slower_loop = get_parameter(sim_options, 'Ts_slower_loop')
     ratio_Ts = int(Ts_slower_loop // Ts_faster_loop)
 
     # Brutal forward euler discretization
-
-    Acl_d = np.eye(ncl_x) + Acl_c*Ts_slower_loop
-    Bcl_d = Bcl_c*Ts_slower_loop
-    Ccl_d = Ccl_c
-    Dcl_d = Dcl_c
-
+    Ad = np.eye(nx) + Ac*Ts_slower_loop
+    Bd = Bc*Ts_slower_loop
     Cd = Cc
-
-    #ss_cl_d = control.matlab.c2d(Acl_d, Bcl_d, Cd, Dd, Ts_faster_loop)
+    Dd = Dc
 
     # Standard deviation of the measurement noise on position and angle
+
     std_npos = get_parameter(sim_options, 'std_npos')
     std_nphi = get_parameter(sim_options, 'std_nphi')
 
@@ -158,8 +148,6 @@ def simulate_pendulum_MPC(sim_options):
     Kd_ss = control.ss(Kd_tf)
     Kd = LinearStateSpaceSystem(A=Kd_ss.A, B=Kd_ss.B, C=Kd_ss.C, D=Kd_ss.D)
 
-    M_ss = LinearStateSpaceSystem(A=Acl_d, B=Bcl_d, C=Ccl_d, D=Dcl_d)
-
     # Simulate in closed loop
     len_sim = get_parameter(sim_options, 'len_sim')  # simulation length (s)
     nsim = int(len_sim // Ts_slower_loop) #int(np.ceil(len_sim / Ts_slower_loop))  # simulation length(timesteps) # watch out! +1 added, is it correct?
@@ -171,7 +159,6 @@ def simulate_pendulum_MPC(sim_options):
     y_vec = np.zeros((nsim, ny))
     y_meas_vec = np.zeros((nsim, ny))
     u_vec = np.zeros((nsim, nu))
-    x_model_vec = np.zeros((nsim,3))
 
     nsim_fast = int(len_sim // Ts_faster_loop)
     t_vec_fast = np.zeros((nsim_fast, 1))
@@ -191,8 +178,8 @@ def simulate_pendulum_MPC(sim_options):
     for idx_fast in range(nsim_fast):
 
         ## Determine step type: fast simulation only or MPC step
-        idx_MPC_controller = idx_fast // ratio_Ts
-        run_MPC_controller = (idx_fast % ratio_Ts) == 0
+        idx_inner_controller = idx_fast // ratio_Ts
+        run_inner_controller = (idx_fast % ratio_Ts) == 0
 
         y_step = Cd.dot(x_step)  # y[i] from the system
         ymeas_step = np.copy(y_step)
@@ -202,25 +189,20 @@ def simulate_pendulum_MPC(sim_options):
         # Output for step i
         # Ts_slower_loop outputs
 
-        if run_MPC_controller: # it is also a step of the simulation at rate Ts_slower_loop
-            if idx_MPC_controller < nsim:
-                t_vec[idx_MPC_controller, :] = t_step
-                y_vec[idx_MPC_controller,:] = y_step
-                y_meas_vec[idx_MPC_controller,:] = ymeas_step
-                u_vec[idx_MPC_controller, :] = u_PID
-
-                ref_angle = angle_ref[idx_MPC_controller]
-                model_out = M_ss.output(ref_angle)
-                x_model_vec[idx_MPC_controller, :] = M_ss.x.ravel()
+        if run_inner_controller: # it is also a step of the simulation at rate Ts_slower_loop
+            if idx_inner_controller < nsim:
+                t_vec[idx_inner_controller, :] = t_step
+                y_vec[idx_inner_controller,:] = y_step
+                y_meas_vec[idx_inner_controller,:] = ymeas_step
+                u_vec[idx_inner_controller, :] = u_PID
 
         # PID angle CONTROLLER
-        ref_angle = angle_ref[idx_fast]
+        ref_angle =  angle_ref[idx_fast]
         error_angle = ref_angle - ymeas_step[1]
         u_PID = Kd.output(error_angle)
         u_PID[u_PID > 10.0] = 10.0
         u_PID[u_PID < -10.0] = -10.0
         u_TOT = u_PID
-
 
         # Ts_fast outputs
         t_vec_fast[idx_fast,:] = t_step
@@ -233,8 +215,7 @@ def simulate_pendulum_MPC(sim_options):
         Kd.update(error_angle)
 
         # Controller simulation step at rate Ts_slower_loop
-        if run_MPC_controller:
-            M_ss.update(ref_angle)
+        if run_inner_controller:
             pass
 
         # System simulation step at rate Ts_fast
@@ -251,7 +232,7 @@ def simulate_pendulum_MPC(sim_options):
 
     simout = {'t': t_vec, 'x': x_vec, 'u': u_vec, 'y': y_vec, 'y_meas': y_meas_vec, 'x_ref': x_ref_vec,  'status': status_vec, 'Fd_fast': Fd_vec_fast,
               't_fast': t_vec_fast, 'x_fast': x_vec_fast, 'x_ref_fast': x_ref_vec_fast, 'u_fast': u_vec_fast, 'y_meas_fast': y_meas_vec_fast, 'emergency_fast': emergency_vec_fast,
-              'K': K, 'nsim': nsim, 'Ts_slower_loop': Ts_slower_loop, 't_calc': t_calc_vec, 'ref_angle_fast': ref_angle_vec_fast, 'x_model': x_model_vec,
+              'K': K, 'nsim': nsim, 'Ts_slower_loop': Ts_slower_loop, 't_calc': t_calc_vec, 'ref_angle_fast': ref_angle_vec_fast,
               't_int_fast': t_int_vec_fast
               }
 
@@ -281,7 +262,6 @@ if __name__ == '__main__':
     x_fast = simout['x_fast']
     y_meas_fast = simout['y_meas_fast']
     u_fast = simout['u_fast']
-    x_model = simout['x_model']
 
     t_fast = simout['t_fast']
     x_ref_fast = simout['x_ref_fast']
@@ -296,30 +276,28 @@ if __name__ == '__main__':
 
     y_ref = x_ref[:, [0, 2]]
 
-    fig,axes = plt.subplots(4,1, figsize=(10,10), sharex=True)
-    axes[0].plot(t, y_meas[:, 0], "b", label='p_meas')
-    axes[0].plot(t_fast, x_fast[:, 0], "k", label='p')
-    axes[0].plot(t, x_model[:, 0], "r", label='p model')
-    axes[0].set_ylim(-30,30.0)
+    fig,axes = plt.subplots(3,1, figsize=(10,10), sharex=True)
+    #axes[0].plot(t, y_meas[:, 0], "b", label='p_meas')
+    axes[0].plot(t_fast, x_fast[:, 1], "k", label='p')
+    idx_pred = 0
+    axes[0].set_ylim(-20,20.0)
     axes[0].set_title("Position (m)")
 
-    axes[1].plot(t_fast, x_fast[:, 1], "k", label='v')
-    axes[1].plot(t, x_model[:, 1], "r", label='v model')
-    axes[1].set_ylim(-20,20.0)
-    axes[1].set_title("Speed (m/s)")
 
-    axes[2].plot(t, y_meas[:, 1]*RAD_TO_DEG, "b", label='phi_meas')
-    axes[2].plot(t_fast, x_fast[:, 2]*RAD_TO_DEG, 'k', label="phi")
-    axes[2].plot(t, x_model[:, 2]*RAD_TO_DEG, "r", label='phi model')
-    axes[2].plot(t_fast, ref_phi_fast[:,0]*RAD_TO_DEG, "k--", label="phi_ref")
+    axes[1].plot(t, y_meas[:, 1]*RAD_TO_DEG, "b", label='phi_meas')
+    axes[1].plot(t_fast, x_fast[:, 2]*RAD_TO_DEG, 'k', label="phi")
+    axes[1].plot(t_fast, ref_phi_fast[:,0]*RAD_TO_DEG, "k--", label="phi_ref")
+
+    idx_pred = 0
+    axes[1].set_ylim(-20,20)
+    axes[1].set_title("Angle (deg)")
+
+    axes[2].plot(t, u[:,0], label="u")
+    axes[2].plot(t_fast, F_input, "k", label="Fd")
+    axes[2].plot(t, uref*np.ones(np.shape(t)), "r--", label="u_ref")
+
     axes[2].set_ylim(-20,20)
-    axes[2].set_title("Angle (deg)")
-
-    axes[3].plot(t, u[:,0], label="u")
-    axes[3].plot(t_fast, F_input, "k", label="Fd")
-    axes[3].plot(t, uref*np.ones(np.shape(t)), "r--", label="u_ref")
-    axes[3].set_ylim(-20,20)
-    axes[3].set_title("Force (N)")
+    axes[2].set_title("Force (N)")
 
     for ax in axes:
         ax.grid(True)
