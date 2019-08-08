@@ -11,7 +11,7 @@ import numpy.random
 import pandas as pd
 
 
-k_def = 8
+k_def = 9
 tau_def = 20e-3
 Acl_c_def = np.array([[0,1,0], [0, 0, k_def], [0, 0, -1/tau_def]])
 Bcl_c_def = np.array([[0],
