@@ -36,3 +36,26 @@ if __name__ == '__main__':
 
     Ad = np.eye(nx) + Ac*Ts
     Bd = Bc*Ts
+
+    # Default controller parameters -
+    K_NUM = [-2100, -10001, -100]
+    K_DEN = [1,   100,     0]
+
+    Ts = 1e-3
+    K = control.tf(K_NUM,K_DEN)
+    Kd_tf = control.c2d(K, Ts)
+    Kd_ss = control.ss(Kd_tf)
+    Kd = LinearStateSpaceSystem(A=Kd_ss.A, B=Kd_ss.B, C=Kd_ss.C, D=Kd_ss.D)
+
+
+    P = -100.01
+    I = -1
+    D = -20
+    N = 100.0
+
+    kP = control.tf(P,1, Ts)
+    kI = I*Ts*control.tf([0, 1], [1,-1], Ts)
+    kD = D*control.tf([N, -N], [1.0, Ts*N -1], Ts)
+    kPID = kP + kD + kI
+
+

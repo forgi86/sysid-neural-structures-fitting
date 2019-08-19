@@ -176,7 +176,7 @@ def simulate_pendulum_MPC(sim_options):
     phi0 = 0.0*2*np.pi/360
     x0 = np.array([0, 0, phi0, 0]) # initial state
     system_dyn = ode(f_ODE_wrapped).set_integrator('vode', method='bdf') #    dopri5
-#    system_dyn = ode(f_ODE_wrapped).set_integrator('dopri5')
+    #system_dyn = ode(f_ODE_wrapped).set_integrator('dopri5')
     system_dyn.set_initial_value(x0, t0)
     system_dyn.set_f_params(0.0)
 
@@ -312,10 +312,10 @@ def simulate_pendulum_MPC(sim_options):
 
         # System simulation step at rate Ts_fast
         time_integrate_start = time.perf_counter()
-        #system_dyn.set_f_params(u_fast)
-        #system_dyn.integrate(t_step + Ts_fast)
-        #x_step = system_dyn.y
-        x_step = x_step + f_ODE_jit(t_step, x_step, u_fast)*Ts_fast
+        system_dyn.set_f_params(u_fast)
+        system_dyn.integrate(t_step + Ts_fast)
+        x_step = system_dyn.y
+        #x_step = x_step + f_ODE_jit(t_step, x_step, u_fast)*Ts_fast
         #x_step = x_step + f_ODE(0.0, x_step, u_fast) * Ts_fast
         t_int_vec_fast[idx_fast,:] = time.perf_counter() - time_integrate_start
 
