@@ -11,8 +11,8 @@ import time
 import matplotlib.pyplot as plt
 
 from symbolic_RLC import fxu_ODE, fxu_ODE_mod, A_nominal, B_nominal
-from neuralode import  NeuralODE, RunningAverageMeter
-from ssmodels import NeuralStateSpaceModelLin, NeuralStateSpaceModel
+from torchid.neuralode import  NeuralODE, RunningAverageMeter
+from torchid.ssmodels import NeuralStateSpaceModelLin, NeuralStateSpaceModel
 
 
 if __name__ == '__main__':
@@ -76,7 +76,7 @@ if __name__ == '__main__':
         return batch_t, batch_x0_hidden, batch_u, batch_x_meas
     
 
-    ss_model = NeuralStateSpaceModel() #NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
+    ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64) #NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
     nn_solution = NeuralODE(ss_model)
     #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model.pkl")))
 

@@ -48,7 +48,7 @@ if __name__ == '__main__':
     u_torch = torch.from_numpy(input_data)
     x_true_torch = torch.from_numpy(state_data)
     
-    ss_model = NeuralStateSpaceModel()
+    ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64)
     nn_solution = NeuralODE(ss_model)
     #nn_solution.load_state_dict(torch.load(os.path.join("models", "model_ARX_FE_sat.pkl")))
 
