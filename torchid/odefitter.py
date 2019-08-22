@@ -100,22 +100,3 @@ class NeuralSumODE():
         x = torch.tensor(x.reshape(1,-1).astype(np.float32))
         u = torch.tensor(u.reshape(1,-1).astype(np.float32))
         return np.array(self.nn_derivative(x,u)).ravel().astype(np.float64)
-    
-    
-class RunningAverageMeter(object):
-    """Computes and stores the average and current value"""
-
-    def __init__(self, momentum=0.99):
-        self.momentum = momentum
-        self.reset()
-
-    def reset(self):
-        self.val = None
-        self.avg = 0
-
-    def update(self, val):
-        if self.val is None:
-            self.avg = val
-        else:
-            self.avg = self.avg * self.momentum + val * (1 - self.momentum)
-        self.val = val

@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 sys.path.append(os.path.join(".."))
-from torchid.neuralode import  NeuralODE, RunningAverageMeter
+from torchid.odefitter import  NeuralODE, RunningAverageMeter
 from torchid.ssmodels import MechanicalStateSpaceModel
 
 # In[Load data]

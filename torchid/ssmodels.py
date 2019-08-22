@@ -66,15 +66,11 @@ class StateSpaceModelLin(nn.Module):
         self.AL.weight = torch.nn.Parameter(torch.tensor(AL.astype(np.float32)), requires_grad=False)
         self.BL = nn.Linear(1,2, bias=False)
         self.BL.weight = torch.nn.Parameter(torch.tensor(BL.astype(np.float32)), requires_grad=False)
-
-
     
     def forward(self, X,U):
         DX = self.AL(X) + self.BL(U)
         return DX   
-    
-    
-    
+
 class MechanicalStateSpaceModel(nn.Module):
     def __init__(self, Ts):
         super(MechanicalStateSpaceModel, self).__init__()
@@ -104,4 +100,6 @@ class MechanicalStateSpaceModel(nn.Module):
         FX_TMP = self.net(XU)
         DX = (self.WL(FX_TMP) + self.AL(X))
         return DX
+
+
 

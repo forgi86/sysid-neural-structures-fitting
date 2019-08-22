@@ -8,7 +8,8 @@ import os
 import sys
 
 sys.path.append(os.path.join(".."))
-from torchid.neuralode import  NeuralODE, RunningAverageMeter
+from torchid.odefitter import  NeuralODE
+from torchid.util import RunningAverageMeter
 from torchid.ssmodels import NeuralStateSpaceModel
 
 
@@ -19,7 +20,6 @@ if __name__ == '__main__':
     COL_U = ['V_IN']
     COL_Y = ['V_C']
 
-   
     df_X = pd.read_csv(os.path.join("data", "RLC_data_sat_FE.csv"))
 
     time_data = np.array(df_X[COL_T], dtype=np.float32)
@@ -28,15 +28,13 @@ if __name__ == '__main__':
     u = np.array(df_X[COL_U],dtype=np.float32)
     x0_torch = torch.from_numpy(x[0,:])
 
-
-    std_noise_V = 5.0
-    std_noise_I = 0.5
+    std_noise_V = 0.0 * 5.0
+    std_noise_I = 0.0 * 0.5
     std_noise = np.array([std_noise_V, std_noise_I])
 
     x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
     x_noise = x_noise.astype(np.float32)
-    
-    
+
     Ts = time_data[1] - time_data[0]
     t_fit = 2e-3
     n_fit = int(t_fit//Ts)#x.shape[0]
@@ -94,7 +92,6 @@ if __name__ == '__main__':
         x_sim = nn_solution.f_OE(torch.tensor(x_0), torch.tensor(input_data))
         loss = torch.mean(torch.abs(x_sim - x_true_torch))
 
-    
     # In[Plot]
     x_sim = np.array(x_sim)
     fig,ax = plt.subplots(2,1,sharex=True)

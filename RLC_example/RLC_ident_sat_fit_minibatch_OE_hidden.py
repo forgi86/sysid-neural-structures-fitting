@@ -10,8 +10,9 @@ import torch.optim as optim
 import time
 import matplotlib.pyplot as plt
 
-from symbolic_RLC import fxu_ODE, fxu_ODE_mod, A_nominal, B_nominal
-from torchid.neuralode import  NeuralODE, RunningAverageMeter
+from RLC_example.symbolic_RLC import fxu_ODE, fxu_ODE_mod, A_nominal, B_nominal
+from torchid.odefitter import  NeuralODE
+from torchid.util import RunningAverageMeter
 from torchid.ssmodels import NeuralStateSpaceModelLin, NeuralStateSpaceModel
 
 
