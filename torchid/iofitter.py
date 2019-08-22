@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 
 
-class NeuralARXSimulator():
+class NeuralIOSimulator():
     def __init__(self, arx_model):
         self.arx_model = arx_model
 

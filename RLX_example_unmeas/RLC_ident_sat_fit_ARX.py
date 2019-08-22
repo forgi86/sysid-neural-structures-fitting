@@ -9,9 +9,9 @@ import sys
 import scipy.linalg
 
 sys.path.append(os.path.join(".."))
-from torchid.arxfitter import NeuralARXSimulator
+from torchid.iofitter import NeuralIOSimulator
 from torchid.util import RunningAverageMeter
-from torchid.arxmodels import NeuralArxModel
+from torchid.iomodels import NeuralIOModel
 
 
 if __name__ == '__main__':
@@ -59,9 +59,9 @@ if __name__ == '__main__':
     y_meas_fit_torch = torch.from_numpy(y_meas_fit)
 
     # Initialize optimization
-    arx_model = NeuralArxModel(n_a=n_a, n_b=n_b, n_feat=64)
-    arx_solution = NeuralARXSimulator(arx_model)
-    optimizer = optim.Adam(arx_solution.arx_model.parameters(), lr=1e-4)
+    io_model = NeuralIOModel(n_a=n_a, n_b=n_b, n_feat=64)
+    io_solution = NeuralIOSimulator(io_model)
+    optimizer = optim.Adam(io_solution.arx_model.parameters(), lr=1e-4)
     end = time.time()
     loss_meter = RunningAverageMeter(0.97)
 
@@ -70,7 +70,7 @@ if __name__ == '__main__':
         optimizer.zero_grad()
 
         # Predict
-        y_pred_torch = arx_solution.f_onestep(phi_fit_torch)
+        y_pred_torch = io_solution.f_onestep(phi_fit_torch)
 
         # Compute loss
         err = y_pred_torch - y_meas_fit_torch[n_max:, :]
@@ -85,7 +85,7 @@ if __name__ == '__main__':
         # Print message
         if itr % test_freq == 0:
             with torch.no_grad():
-                y_pred_torch = arx_solution.f_onestep(phi_fit_torch) #func(x_true_torch, u_torch)
+                y_pred_torch = io_solution.f_onestep(phi_fit_torch) #func(x_true_torch, u_torch)
                 err = y_pred_torch - y_meas_fit_torch[n_max:, :]
                 loss = torch.mean((err) ** 2)  # torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
                 print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
@@ -116,7 +116,7 @@ if __name__ == '__main__':
         u_seq_torch = torch.tensor(u_seq)
 
         u_torch = torch.tensor(u_val[n_max:,:])
-        y_val_sim_torch = arx_solution.f_simerr(u_torch, y_seq_torch, u_seq_torch)
+        y_val_sim_torch = io_solution.f_simerr(u_torch, y_seq_torch, u_seq_torch)
 
     # In[Plot]
     y_val_sim = np.array(y_val_sim_torch)

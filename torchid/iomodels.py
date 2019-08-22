@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import numpy as np
 
-class NeuralArxModel(nn.Module):
+class NeuralIOModel(nn.Module):
     def __init__(self, n_a, n_b, n_feat=64):
-        super(NeuralArxModel, self).__init__()
+        super(NeuralIOModel, self).__init__()
         self.n_a = n_a
         self.n_b = n_b
         self.n_feat = 64
