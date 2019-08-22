@@ -29,16 +29,16 @@ if __name__ == '__main__':
 
     N = np.shape(y)[0]
     Ts = t[1] - t[0]
-    t_fit = 2e-3
+    t_fit = 1e-4
     n_fit = int(t_fit//Ts)#x.shape[0]
     num_iter = 20000
-    test_freq = 100
+    test_freq = 1
 
     n_a = 2 # autoregressive coefficients for y
     n_b = 2 # autoregressive coefficients for u
     n_max = np.max((n_a, n_b)) # delay
 
-    std_noise_V =  5.0
+    std_noise_V =  0.0 * 5.0
     std_noise_I = 0.0 * 0.5
     std_noise = np.array([std_noise_V, std_noise_I])
 
@@ -61,41 +61,47 @@ if __name__ == '__main__':
     # Initialize optimization
     io_model = NeuralIOModel(n_a=n_a, n_b=n_b, n_feat=64)
     io_solution = NeuralIOSimulator(io_model)
-    optimizer = optim.Adam(io_solution.arx_model.parameters(), lr=1e-4)
+    #io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_1step_nonoise.pkl")))
+
+    optimizer = optim.Adam(io_solution.io_model.parameters(), lr=1e-4)
     end = time.time()
     loss_meter = RunningAverageMeter(0.97)
 
     ii = 0
     for itr in range(1, num_iter + 1):
+
+        # Prepare data
+        y_seq = np.array(np.flip(y_fit[0:n_a].ravel()))
+        y_seq_torch = torch.tensor(y_seq)
+
+        u_seq = np.array(np.flip(u_fit[0:n_b].ravel()))
+        u_seq_torch = torch.tensor(u_seq)
+        u_torch = torch.tensor(u_fit[n_max:, :])
+
         optimizer.zero_grad()
 
         # Predict
-        y_pred_torch = io_solution.f_onestep(phi_fit_torch)
+        y_pred_torch = io_solution.f_simerr(y_seq_torch, u_seq_torch, u_torch)
 
         # Compute loss
         err = y_pred_torch - y_meas_fit_torch[n_max:, :]
         loss = torch.mean((err)**2)
 
         # Optimization step
-        loss.backward()
+        loss.backward()  #loss.backward(retain_graph=True)
         optimizer.step()
 
-        loss_meter.update(loss.item())
+        #loss_meter.update(loss.item())
 
         # Print message
         if itr % test_freq == 0:
-            with torch.no_grad():
-                y_pred_torch = io_solution.f_onestep(phi_fit_torch) #func(x_true_torch, u_torch)
-                err = y_pred_torch - y_meas_fit_torch[n_max:, :]
-                loss = torch.mean((err) ** 2)  # torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
-                print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
-                ii += 1
+            print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
         end = time.time()
 
     if not os.path.exists("models"):
         os.makedirs("models")
     
-    #torch.save(arx_solution.arx_model.state_dict(), os.path.join("models", "model_IO_nonoise.pkl"))
+    #torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_simerr_nonoise.pkl"))
 
 
     # Build validation data
@@ -116,11 +122,11 @@ if __name__ == '__main__':
         u_seq_torch = torch.tensor(u_seq)
 
         u_torch = torch.tensor(u_val[n_max:,:])
-        y_val_sim_torch = io_solution.f_simerr(u_torch, y_seq_torch, u_seq_torch)
+        y_val_sim_torch = io_solution.f_simerr(y_seq_torch, u_seq_torch, u_torch)
 
     # In[Plot]
     y_val_sim = np.array(y_val_sim_torch)
-    fig,ax = plt.subplots(2,1,sharex=True)
+    fig,ax = plt.subplots(2,1, sharex=True)
     ax[0].plot(y_val[n_max:,0], 'b', label='True')
     ax[0].plot(y_val_sim[:,0], 'r',  label='Sim')
 

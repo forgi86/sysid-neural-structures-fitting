@@ -11,7 +11,7 @@ import time
 import matplotlib.pyplot as plt
 
 from RLC_example.symbolic_RLC import fxu_ODE, fxu_ODE_mod, A_nominal, B_nominal
-from torchid.odefitter import  NeuralODE
+from torchid.ssfitter import  NeuralODE
 from torchid.util import RunningAverageMeter
 from torchid.ssmodels import NeuralStateSpaceModelLin, NeuralStateSpaceModel
 

@@ -33,13 +33,13 @@ class NeuralODE():
         return X
 
     def f_OE_minibatch(self, x0_batch, U_batch):
-        len_batch = x0_batch.shape[0]
+        batch_size = x0_batch.shape[0]
         n_x = x0_batch.shape[1]
-        T_batch = U_batch.shape[1]
+        seq_len = U_batch.shape[1]
         
-        X_pred = torch.empty((len_batch, T_batch, n_x))
+        X_pred = torch.empty((batch_size, seq_len, n_x))
         xstep = x0_batch
-        for i in range(T_batch):
+        for i in range(seq_len):
             X_pred[:,i,:] = xstep
             ustep = U_batch[:,i,:]
             dx = self.ss_model(xstep, ustep)

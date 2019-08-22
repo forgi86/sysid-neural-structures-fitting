@@ -8,7 +8,7 @@ import os
 import sys
 
 sys.path.append(os.path.join(".."))
-from torchid.odefitter import  NeuralODE
+from torchid.ssfitter import  NeuralODE
 from torchid.util import RunningAverageMeter
 from torchid.ssmodels import NeuralStateSpaceModel
 
