@@ -124,13 +124,16 @@ if __name__ == '__main__':
         u_torch = torch.tensor(u_val[n_max:,:])
         y_val_sim_torch = io_solution.f_simerr(y_seq_torch, u_seq_torch, u_torch)
 
-    # In[Plot]
     y_val_sim = np.array(y_val_sim_torch)
-    fig,ax = plt.subplots(2,1, sharex=True)
+
+
+    # In[Plot]
+    fig, ax = plt.subplots(2,1, sharex=True)
     ax[0].plot(y_val[n_max:,0], 'b', label='True')
     ax[0].plot(y_val_sim[:,0], 'r',  label='Sim')
-
-
     ax[0].legend()
     ax[0].grid(True)
 
+    ax[1].plot(u_val, label='Input')
+    ax[1].legend()
+    ax[1].grid(True)

@@ -162,6 +162,6 @@ if __name__ == '__main__':
     ax[0].grid(True)
 
     ax[1].plot(u_val, label='Input')
-    ax[0].legend()
-    ax[0].grid(True)
+    ax[1].legend()
+    ax[1].grid(True)
 
