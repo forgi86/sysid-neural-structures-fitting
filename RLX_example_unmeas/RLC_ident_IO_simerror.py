@@ -29,16 +29,16 @@ if __name__ == '__main__':
 
     N = np.shape(y)[0]
     Ts = t[1] - t[0]
-    t_fit = 1e-4
+    t_fit = 1e-3
     n_fit = int(t_fit//Ts)#x.shape[0]
-    num_iter = 20000
-    test_freq = 1
+    num_iter = 2000
+    test_freq = 100
 
     n_a = 2 # autoregressive coefficients for y
     n_b = 2 # autoregressive coefficients for u
     n_max = np.max((n_a, n_b)) # delay
 
-    std_noise_V =  0.0 * 5.0
+    std_noise_V = 0.0 * 5.0
     std_noise_I = 0.0 * 0.5
     std_noise = np.array([std_noise_V, std_noise_I])
 
@@ -63,19 +63,20 @@ if __name__ == '__main__':
     io_solution = NeuralIOSimulator(io_model)
     #io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_1step_nonoise.pkl")))
 
-    optimizer = optim.Adam(io_solution.io_model.parameters(), lr=1e-4)
+    optimizer = optim.Adam(io_solution.io_model.parameters(), lr=1e-2)
     end = time.time()
     loss_meter = RunningAverageMeter(0.97)
 
     ii = 0
-    for itr in range(1, num_iter + 1):
+    for itr in range(0, num_iter):
 
         # Prepare data
-        y_seq = np.array(np.flip(y_fit[0:n_a].ravel()))
+        y_seq = np.array(np.flip(y_meas_fit[0:n_a].ravel()))
         y_seq_torch = torch.tensor(y_seq)
 
         u_seq = np.array(np.flip(u_fit[0:n_b].ravel()))
         u_seq_torch = torch.tensor(u_seq)
+
         u_torch = torch.tensor(u_fit[n_max:, :])
 
         optimizer.zero_grad()
@@ -115,6 +116,7 @@ if __name__ == '__main__':
 
 
     with torch.no_grad():
+        y_meas_val_torch = torch.tensor(y_meas_val)
         y_seq = np.array(np.flip(y_val[0:n_a].ravel()))
         y_seq_torch = torch.tensor(y_seq)
 
@@ -124,13 +126,16 @@ if __name__ == '__main__':
         u_torch = torch.tensor(u_val[n_max:,:])
         y_val_sim_torch = io_solution.f_simerr(y_seq_torch, u_seq_torch, u_torch)
 
+        err = y_val_sim_torch - y_meas_val_torch[n_max:,:]
+        loss = torch.mean((err) ** 2)
+
     y_val_sim = np.array(y_val_sim_torch)
 
 
     # In[Plot]
     fig, ax = plt.subplots(2,1, sharex=True)
-    ax[0].plot(y_val[n_max:,0], 'b', label='True')
-    ax[0].plot(y_val_sim[:,0], 'r',  label='Sim')
+    ax[0].plot(y_val[n_max:128,0], 'b', label='True')
+    ax[0].plot(y_val_sim[:128,0], 'r',  label='Sim')
     ax[0].legend()
     ax[0].grid(True)
 

@@ -38,8 +38,8 @@ if __name__ == '__main__':
     n_b = 2 # autoregressive coefficients for u
     n_max = np.max((n_a, n_b)) # delay
 
-    std_noise_V =  0.0 * 5.0
-    std_noise_I = 0.0 * 0.5
+    std_noise_V =  1.0 * 5.0
+    std_noise_I = 1.0 * 0.5
     std_noise = np.array([std_noise_V, std_noise_I])
 
     x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
@@ -71,6 +71,7 @@ if __name__ == '__main__':
     loss_meter = RunningAverageMeter(0.97)
 
     ii = 0
+    LOSS = []
     for itr in range(1, num_iter + 1):
         optimizer.zero_grad()
 
@@ -96,11 +97,12 @@ if __name__ == '__main__':
                 print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
                 ii += 1
         end = time.time()
+        LOSS.append(loss.item())
 
     if not os.path.exists("models"):
         os.makedirs("models")
     
-    torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_1step_nonoise.pkl"))
+    torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_1step_noise.pkl"))
 
 
     # Build validation data
@@ -130,8 +132,9 @@ if __name__ == '__main__':
     fig,ax = plt.subplots(2,1, sharex=True)
     ax[0].plot(y_val[n_max:,0], 'b', label='True')
     ax[0].plot(y_val_sim[:,0], 'r',  label='Sim')
-
-
     ax[0].legend()
     ax[0].grid(True)
 
+    ax[1].plot(u_val, label='Input')
+    ax[1].legend()
+    ax[1].grid(True)

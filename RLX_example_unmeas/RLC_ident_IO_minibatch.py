@@ -34,15 +34,15 @@ if __name__ == '__main__':
     num_iter = 20000
     test_freq = 100
 
-    # Batch learning parameters
-    seq_len = 100  # int(n_fit/10)
-    batch_size = n_fit // seq_len
-
-    n_a = 2 # autoregressive coefficients for y
-    n_b = 2 # autoregressive coefficients for u
+    n_a = 8 # autoregressive coefficients for y
+    n_b = 8 # autoregressive coefficients for u
     n_max = np.max((n_a, n_b)) # delay
 
-    std_noise_V =  0.0 * 5.0
+    # Batch learning parameters
+    seq_len = 32  # int(n_fit/10)
+    batch_size = (n_fit - n_a) // seq_len
+
+    std_noise_V = 1.0 * 5.0
     std_noise_I = 0.0 * 0.5
     std_noise = np.array([std_noise_V, std_noise_I])
 
@@ -82,17 +82,24 @@ if __name__ == '__main__':
 
     def get_batch(batch_size, seq_len):
         num_train_samples = y_meas_fit_torch.shape[0]
-        batch_s = torch.from_numpy(
-            np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False))
+        batch_s = np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False) # batch start indices
+        batch_idx = batch_s[:,np.newaxis] + np.arange(seq_len) # batch all indices
         batch_y_seq = phi_fit_y_torch[batch_s]
         batch_u_seq = phi_fit_u_torch[batch_s]
         #batch_t = torch.stack([time_torch_fit[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
-        batch_y_meas = torch.stack([y_meas_fit_torch[batch_s[i]:batch_s[i] + seq_len] for i in range(batch_size)], dim=0)
-        batch_u = torch.stack([u_fit_torch[batch_s[i]:batch_s[i] + seq_len] for i in range(batch_size)], dim=0)
+        batch_y_meas = y_meas_fit_torch[batch_idx]#torch.stack([y_meas_fit_torch[batch_s[i]:batch_s[i] + seq_len] for i in range(batch_size)], dim=0)
+        batch_u = u_fit_torch[batch_idx] # torch.stack([u_fit_torch[batch_s[i]:batch_s[i] + seq_len] for i in range(batch_size)], dim=0)
 
         return batch_u, batch_y_meas, batch_y_seq, batch_u_seq, batch_s
 
 
+
+    with torch.no_grad():
+        batch_u, batch_y_meas, batch_y_seq, batch_u_seq, batch_s = get_batch(batch_size, seq_len)
+        batch_y_pred = io_solution.f_simerr_minibatch(batch_u, batch_y_seq, batch_u_seq)
+        err = batch_y_meas[:, 0:, :] - batch_y_pred[:, 0:, :]
+        loss = torch.mean((err) ** 2)
+        loss_scale = np.float32(loss)
 
     ii = 0
     for itr in range(0, num_iter):
@@ -104,7 +111,7 @@ if __name__ == '__main__':
 
         # Compute loss
         err = batch_y_meas[:,0:,:] - batch_y_pred[:,0:,:]
-        loss = torch.mean((err)**2)/100
+        loss = torch.mean((err)**2)/loss_scale
 
         # Optimization step
         loss.backward()
@@ -150,7 +157,7 @@ if __name__ == '__main__':
         u_torch = torch.tensor(u_val[n_max:,:])
         y_val_sim_torch = io_solution.f_simerr(y_seq_torch, u_seq_torch, u_torch)
 
-        err_val = y_val_sim_torch - y_meas_val_torch
+        err_val = y_val_sim_torch - y_meas_val_torch[n_max:,:]
         loss_val =  torch.mean((err_val)**2)
 
     # In[Plot]

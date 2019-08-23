@@ -20,15 +20,16 @@ class NeuralIOSimulator():
         for i in range(N):
             phi = torch.cat((y_seq, u_seq))
             yi = self.io_model(phi)
-            Y[i,:] = yi
+            Y[i, :] = yi
 
-            # y shift
-            y_seq[1:] = y_seq[0:-1]
-            y_seq[0] = yi
+            if i < N-1:
+                # y shift
+                y_seq[1:] = y_seq[0:-1]
+                y_seq[0] = yi
 
-            # u shift
-            u_seq[1:] = u_seq[0:-1]
-            u_seq[0] = U[i]
+                # u shift
+                u_seq[1:] = u_seq[0:-1]
+                u_seq[0] = U[i]
 
         return Y
 
