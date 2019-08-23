@@ -32,26 +32,26 @@ class NeuralIOSimulator():
 
         return Y
 
-    def f_simerr_minibatch(self, y_seq_batch, u_seq_batch, U_batch):
+    def f_simerr_minibatch(self, batch_u, batch_y_seq, batch_u_seq):
 
-        batch_size = U_batch.shape[0] # number of training samples in the batch
-        seq_len = U_batch.shape[1] # length of the training sequences
-        n_a = y_seq_batch.shape[1] # number of autoregressive terms on y
-        n_b = u_seq_batch.shape[1] # number of autoregressive terms on u
+        batch_size = batch_u.shape[0] # number of training samples in the batch
+        seq_len = batch_u.shape[1] # length of the training sequences
+        n_a = batch_y_seq.shape[1] # number of autoregressive terms on y
+        n_b = batch_u_seq.shape[1] # number of autoregressive terms on u
 
 
-        Y_pred = torch.empty((batch_size, 1))
+        Y_pred = torch.empty((batch_size, seq_len, 1))
         for i in range(seq_len):
-            phi = torch.cat((y_seq_batch, u_seq_batch), -1)
+            phi = torch.cat((batch_y_seq, batch_u_seq), -1)
             yi = self.io_model(phi)
             Y_pred[:, i, :] = yi
 
             # y shift
-            y_seq_batch[:,1:] = y_seq_batch[:,0:-1]
-            y_seq_batch[:,0] = yi
+            batch_y_seq[:, 1:] = batch_y_seq[:, 0:-1]
+            batch_y_seq[:, [0]] = yi[:]
 
             # u shift
-            u_seq_batch[:,1:] = u_seq_batch[:,0:-1]
-            u_seq_batch[:,0] = U_batch[:,i]
+            batch_u_seq[:, 1:] = batch_u_seq[:, 0:-1]
+            batch_u_seq[:, [0]] = batch_u[:, i]
 
         return Y_pred

@@ -34,6 +34,10 @@ if __name__ == '__main__':
     num_iter = 20000
     test_freq = 100
 
+    # Batch learning parameters
+    seq_len = 100  # int(n_fit/10)
+    batch_size = n_fit // seq_len
+
     n_a = 2 # autoregressive coefficients for y
     n_b = 2 # autoregressive coefficients for u
     n_max = np.max((n_a, n_b)) # delay
@@ -54,27 +58,53 @@ if __name__ == '__main__':
     phi_fit_u = scipy.linalg.toeplitz(u_fit, u_fit[0:n_a])[n_max - 1:-1, :]
     phi_fit = np.hstack((phi_fit_y, phi_fit_u))
 
+    # Neglect initial values
+    y_fit = y_fit[n_max:,:]
+    y_meas_fit = y_meas_fit[n_max:,:]
+    u_fit = u_fit[n_max:, :]
+
     # To Pytorch tensors
     phi_fit_torch = torch.from_numpy(phi_fit)
     y_meas_fit_torch = torch.from_numpy(y_meas_fit)
+    u_fit_torch = torch.from_numpy(u_fit)
+    phi_fit_y_torch = torch.tensor(phi_fit_y)
+    phi_fit_u_torch = torch.tensor(phi_fit_u)
+
 
     # Initialize optimization
     io_model = NeuralIOModel(n_a=n_a, n_b=n_b, n_feat=64)
     io_solution = NeuralIOSimulator(io_model)
+    #io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_1step_nonoise.pkl")))
     optimizer = optim.Adam(io_solution.io_model.parameters(), lr=1e-4)
     end = time.time()
     loss_meter = RunningAverageMeter(0.97)
 
+
+    def get_batch(batch_size, seq_len):
+        num_train_samples = y_meas_fit_torch.shape[0]
+        batch_s = torch.from_numpy(
+            np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False))
+        batch_y_seq = phi_fit_y_torch[batch_s]
+        batch_u_seq = phi_fit_u_torch[batch_s]
+        #batch_t = torch.stack([time_torch_fit[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
+        batch_y_meas = torch.stack([y_meas_fit_torch[batch_s[i]:batch_s[i] + seq_len] for i in range(batch_size)], dim=0)
+        batch_u = torch.stack([u_fit_torch[batch_s[i]:batch_s[i] + seq_len] for i in range(batch_size)], dim=0)
+
+        return batch_u, batch_y_meas, batch_y_seq, batch_u_seq, batch_s
+
+
+
     ii = 0
-    for itr in range(1, num_iter + 1):
+    for itr in range(0, num_iter):
         optimizer.zero_grad()
 
         # Predict
-        y_pred_torch = io_solution.f_onestep(phi_fit_torch)
+        batch_u, batch_y_meas, batch_y_seq, batch_u_seq, batch_s = get_batch(batch_size, seq_len)
+        batch_y_pred = io_solution.f_simerr_minibatch(batch_u, batch_y_seq, batch_u_seq)
 
         # Compute loss
-        err = y_pred_torch - y_meas_fit_torch[n_max:, :]
-        loss = torch.mean((err)**2)
+        err = batch_y_meas[:,0:,:] - batch_y_pred[:,0:,:]
+        loss = torch.mean((err)**2)/100
 
         # Optimization step
         loss.backward()
@@ -85,9 +115,9 @@ if __name__ == '__main__':
         # Print message
         if itr % test_freq == 0:
             with torch.no_grad():
-                y_pred_torch = io_solution.f_onestep(phi_fit_torch) #func(x_true_torch, u_torch)
-                err = y_pred_torch - y_meas_fit_torch[n_max:, :]
-                loss = torch.mean((err) ** 2)  # torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
+                #y_pred_torch = io_solution.f_onestep(phi_fit_torch) #func(x_true_torch, u_torch)
+                #err = y_pred_torch - y_meas_fit_torch[n_max:, :]
+                #loss = torch.mean((err) ** 2)  # torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
                 print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
                 ii += 1
         end = time.time()
@@ -95,18 +125,20 @@ if __name__ == '__main__':
     if not os.path.exists("models"):
         os.makedirs("models")
     
-    torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_1step_nonoise.pkl"))
-
+    #torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_1step_nonoise.pkl"))
 
     # Build validation data
     n_val = N
     u_val = u[0:n_val]
     y_val = y[0:n_val]
     y_meas_val = y_noise[0:n_val]
-    phi_val_y = scipy.linalg.toeplitz(y_meas_val, y_meas_val[0:n_a])[n_max - 1:-1, :] # regressor 1
-    phi_val_u = scipy.linalg.toeplitz(u_val, u_val[0:n_a])[n_max - 1:-1, :]
-    phi_val = np.hstack((phi_val_y, phi_val_u))
 
+    # Neglect initial values
+    y_val = y_val[n_max:,:]
+    y_meas_val = y_meas_val[n_max:,:]
+    u_val = u_val[n_max:, :]
+
+    y_meas_val_torch = torch.tensor(y_meas_val)
 
     with torch.no_grad():
         y_seq = np.array(np.flip(y_val[0:n_a].ravel()))
@@ -118,13 +150,18 @@ if __name__ == '__main__':
         u_torch = torch.tensor(u_val[n_max:,:])
         y_val_sim_torch = io_solution.f_simerr(y_seq_torch, u_seq_torch, u_torch)
 
+        err_val = y_val_sim_torch - y_meas_val_torch
+        loss_val =  torch.mean((err_val)**2)
+
     # In[Plot]
     y_val_sim = np.array(y_val_sim_torch)
     fig,ax = plt.subplots(2,1, sharex=True)
-    ax[0].plot(y_val[n_max:,0], 'b', label='True')
-    ax[0].plot(y_val_sim[:,0], 'r',  label='Sim')
+    ax[0].plot(y_val, 'b', label='True')
+    ax[0].plot(y_val_sim, 'r',  label='Sim')
+    ax[0].legend()
+    ax[0].grid(True)
 
-
+    ax[1].plot(u_val, label='Input')
     ax[0].legend()
     ax[0].grid(True)
 

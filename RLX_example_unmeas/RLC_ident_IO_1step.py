@@ -54,6 +54,11 @@ if __name__ == '__main__':
     phi_fit_u = scipy.linalg.toeplitz(u_fit, u_fit[0:n_a])[n_max - 1:-1, :]
     phi_fit = np.hstack((phi_fit_y, phi_fit_u))
 
+    # Neglect initial values
+    y_fit = y_fit[n_max:,:]
+    y_meas_fit = y_meas_fit[n_max:,:]
+    u_fit = u_fit[n_max:, :]
+
     # To Pytorch tensors
     phi_fit_torch = torch.from_numpy(phi_fit)
     y_meas_fit_torch = torch.from_numpy(y_meas_fit)
@@ -73,7 +78,7 @@ if __name__ == '__main__':
         y_pred_torch = io_solution.f_onestep(phi_fit_torch)
 
         # Compute loss
-        err = y_pred_torch - y_meas_fit_torch[n_max:, :]
+        err = y_pred_torch - y_meas_fit_torch
         loss = torch.mean((err)**2)
 
         # Optimization step
@@ -86,7 +91,7 @@ if __name__ == '__main__':
         if itr % test_freq == 0:
             with torch.no_grad():
                 y_pred_torch = io_solution.f_onestep(phi_fit_torch) #func(x_true_torch, u_torch)
-                err = y_pred_torch - y_meas_fit_torch[n_max:, :]
+                err = y_pred_torch - y_meas_fit_torch
                 loss = torch.mean((err) ** 2)  # torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
                 print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
                 ii += 1
@@ -103,9 +108,11 @@ if __name__ == '__main__':
     u_val = u[0:n_val]
     y_val = y[0:n_val]
     y_meas_val = y_noise[0:n_val]
-    phi_val_y = scipy.linalg.toeplitz(y_meas_val, y_meas_val[0:n_a])[n_max - 1:-1, :] # regressor 1
-    phi_val_u = scipy.linalg.toeplitz(u_val, u_val[0:n_a])[n_max - 1:-1, :]
-    phi_val = np.hstack((phi_val_y, phi_val_u))
+
+    # Neglect initial values
+    y_val = y_val[n_max:,:]
+    y_meas_val = y_meas_val[n_max:,:]
+    u_val = u_val[n_max:, :]
 
 
     with torch.no_grad():
