@@ -34,8 +34,8 @@ if __name__ == '__main__':
     num_iter = 20000
     test_freq = 100
 
-    n_a = 8 # autoregressive coefficients for y
-    n_b = 8 # autoregressive coefficients for u
+    n_a = 2 # autoregressive coefficients for y
+    n_b = 2 # autoregressive coefficients for u
     n_max = np.max((n_a, n_b)) # delay
 
     # Batch learning parameters

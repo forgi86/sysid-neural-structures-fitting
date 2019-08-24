@@ -38,8 +38,8 @@ if __name__ == '__main__':
     n_b = 2 # autoregressive coefficients for u
     n_max = np.max((n_a, n_b)) # delay
 
-    std_noise_V =  1.0 * 5.0
-    std_noise_I = 1.0 * 0.5
+    std_noise_V =  0.0 * 5.0
+    std_noise_I = 0.0 * 0.5
     std_noise = np.array([std_noise_V, std_noise_I])
 
     x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
