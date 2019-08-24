@@ -13,7 +13,7 @@ class NeuralIOSimulator():
         return Y_pred
         pass
 
-    def f_simerr(self, y_seq, u_seq, U):
+    def f_sim(self, y_seq, u_seq, U):
         N = np.shape(U)[0]
         Y = torch.empty((N, 1))
 
@@ -33,7 +33,7 @@ class NeuralIOSimulator():
 
         return Y
 
-    def f_simerr_minibatch(self, batch_u, batch_y_seq, batch_u_seq):
+    def f_sim_minibatch(self, batch_u, batch_y_seq, batch_u_seq):
 
         batch_size = batch_u.shape[0] # number of training samples in the batch
         seq_len = batch_u.shape[1] # length of the training sequences

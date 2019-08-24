@@ -125,7 +125,7 @@ if __name__ == '__main__':
         u_seq_torch = torch.tensor(u_seq)
 
         u_torch = torch.tensor(u_val[n_max:,:])
-        y_val_sim_torch = io_solution.f_simerr(y_seq_torch, u_seq_torch, u_torch)
+        y_val_sim_torch = io_solution.f_sim(y_seq_torch, u_seq_torch, u_torch)
 
     # In[Plot]
     y_val_sim = np.array(y_val_sim_torch)

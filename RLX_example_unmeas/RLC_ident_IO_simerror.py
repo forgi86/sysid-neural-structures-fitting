@@ -82,7 +82,7 @@ if __name__ == '__main__':
         optimizer.zero_grad()
 
         # Predict
-        y_pred_torch = io_solution.f_simerr(y_seq_torch, u_seq_torch, u_torch)
+        y_pred_torch = io_solution.f_sim(y_seq_torch, u_seq_torch, u_torch)
 
         # Compute loss
         err = y_pred_torch - y_meas_fit_torch[n_max:, :]
@@ -124,7 +124,7 @@ if __name__ == '__main__':
         u_seq_torch = torch.tensor(u_seq)
 
         u_torch = torch.tensor(u_val[n_max:,:])
-        y_val_sim_torch = io_solution.f_simerr(y_seq_torch, u_seq_torch, u_torch)
+        y_val_sim_torch = io_solution.f_sim(y_seq_torch, u_seq_torch, u_torch)
 
         err = y_val_sim_torch - y_meas_val_torch[n_max:,:]
         loss = torch.mean((err) ** 2)
