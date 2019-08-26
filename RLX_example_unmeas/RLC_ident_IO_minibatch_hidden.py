@@ -39,7 +39,7 @@ if __name__ == '__main__':
     n_max = np.max((n_a, n_b)) # delay
 
     # Batch learning parameters
-    seq_len = 128  # int(n_fit/10)
+    seq_len = 32  # int(n_fit/10)
     batch_size = (n_fit - n_a) // seq_len
 
     std_noise_V = 0.0 * 5.0
@@ -57,6 +57,7 @@ if __name__ == '__main__':
 
     h_fit = np.copy(y_meas_fit)
     h_fit = np.vstack((np.zeros(n_a).reshape(-1, 1), h_fit)).astype(np.float32)
+    h_fit = 1.0*h_fit + 0.0*np.random.randn(*h_fit.shape).astype(np.float32)
     v_fit = np.copy(u_fit)
     v_fit = np.vstack((np.zeros(n_b).reshape(-1, 1), v_fit)).astype(np.float32)
 
@@ -74,7 +75,7 @@ if __name__ == '__main__':
     # Setup model an simulator
     io_model = NeuralIOModel(n_a=n_a, n_b=n_b, n_feat=64)
     io_solution = NeuralIOSimulator(io_model)
-    io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_1step_nonoise.pkl")))
+    #io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_1step_nonoise.pkl")))
     params = list(io_solution.io_model.parameters()) + [h_fit_torch]
     optimizer = optim.Adam(params, lr=1e-4)
     end = time.time()
@@ -103,6 +104,7 @@ if __name__ == '__main__':
         loss_scale = np.float32(loss)
 
     ii = 0
+    num_iter = 10000
     for itr in range(0, num_iter):
         optimizer.zero_grad()
 
@@ -113,14 +115,22 @@ if __name__ == '__main__':
         # Compute loss
         err_consistency = batch_y_pred - batch_h
         loss_consistency = torch.mean(err_consistency**2)/loss_scale
+        loss_consistency = loss_consistency * 1.0
+        #loss_consistency = 0.0
 
-        err_fit = batch_y_pred - batch_y_meas
+        err_fit = batch_y_pred - batch_y_meas #batch_h - batch_y_meas
         loss_fit = torch.mean(err_fit**2)/loss_scale
 
-        loss = loss_consistency + loss_fit
+        #loss = loss_consistency + loss_fit
+        loss = 0.0*loss_fit + 1.0*loss_consistency
 
         # Optimization step
         loss.backward()
+
+        #h_fit_torch.grad.data = h_fit_torch.grad.data * 1000000.0
+#        optimizer.param_groups[0]['params'][-1].grad.data = optimizer.param_groups[0]['params'][-1].grad.data*0.00000
+        optimizer.param_groups[0]['params'][-1].grad = 1e3*optimizer.param_groups[0]['params'][-1].grad
+
         optimizer.step()
 
         loss_meter.update(loss.item())
@@ -169,7 +179,7 @@ if __name__ == '__main__':
 
     # In[Plot]
     y_val_sim = np.array(y_val_sim_torch)
-    fig,ax = plt.subplots(2,1, sharex=True)
+    fig, ax = plt.subplots(2,1, sharex=True)
     ax[0].plot(y_val, 'b', label='True')
     ax[0].plot(y_val_sim, 'r',  label='Sim')
     ax[0].legend()
