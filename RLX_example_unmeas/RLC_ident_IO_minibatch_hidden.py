@@ -31,15 +31,15 @@ if __name__ == '__main__':
     Ts = t[1] - t[0]
     t_fit = 2e-3
     n_fit = int(t_fit//Ts)#x.shape[0]
-    num_iter = 10
-    test_freq = 1
+    num_iter = 10000
+    test_freq = 10
 
     n_a = 2 # autoregressive coefficients for y
     n_b = 2 # autoregressive coefficients for u
     n_max = np.max((n_a, n_b)) # delay
 
     # Batch learning parameters
-    seq_len = 100  # int(n_fit/10)
+    seq_len = 128  # int(n_fit/10)
     batch_size = (n_fit - n_a) // seq_len
 
     std_noise_V = 0.0 * 5.0
@@ -67,7 +67,7 @@ if __name__ == '__main__':
     # To pytorch tensors
     phi_fit_u_torch = torch.tensor(phi_fit_u)
     h_fit_torch = torch.tensor(h_fit, requires_grad=True) # this is an optimization variable!
-    phi_fit_y_torch = get_torch_regressor_mat(h_fit_torch.view(-1), n_a)
+    phi_fit_h_torch = get_torch_regressor_mat(h_fit_torch.view(-1), n_a)
     y_meas_fit_torch = torch.tensor(y_meas_fit)
     u_fit_torch = torch.tensor(u_fit)
 
@@ -85,37 +85,37 @@ if __name__ == '__main__':
         num_train_samples = y_meas_fit_torch.shape[0]
         batch_s = np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False) # batch start indices
         batch_idx = batch_s[:, np.newaxis] + np.arange(seq_len) # batch all indices
-        batch_y_seq = phi_fit_y_torch[batch_s]
-        batch_u_seq = phi_fit_u_torch[batch_s]
-        batch_y_meas = y_meas_fit_torch[batch_idx]
-        batch_u = u_fit_torch[batch_idx]
-        batch_h = h_fit_torch[batch_idx]
-        return batch_u, batch_y_meas, batch_h, batch_y_seq, batch_u_seq, batch_s
+        batch_idx_seq_h =  batch_s[:, np.newaxis]  - 1 - np.arange(n_a)
+
+        batch_h_seq = h_fit_torch[batch_idx_seq_h + n_a].squeeze() # regressor of hidden variables
+        batch_u_seq =  torch.tensor(phi_fit_u[batch_s]) # regressor of input variables
+
+        batch_y_meas = torch.tensor(y_meas_fit[batch_idx])
+        batch_u = torch.tensor(u_fit[batch_idx])
+        batch_h = h_fit_torch[batch_idx + n_a]
+        return batch_u, batch_y_meas, batch_h, batch_h_seq, batch_u_seq, batch_s
 
     with torch.no_grad():
-        batch_u, batch_y_meas, batch_h, batch_y_seq, batch_u_seq, batch_s = get_batch(batch_size, seq_len)
-        batch_y_pred = io_solution.f_sim_minibatch(batch_u, batch_y_seq, batch_u_seq)
+        batch_u, batch_y_meas, batch_h, batch_h_seq, batch_u_seq, batch_s  = get_batch(batch_size, seq_len)
+        batch_y_pred = io_solution.f_sim_minibatch(batch_u, batch_h_seq, batch_u_seq)
         err = batch_y_meas[:, 0:, :] - batch_y_pred[:, 0:, :]
-        loss = torch.mean((err) ** 2)
+        loss = torch.mean(err ** 2)
         loss_scale = np.float32(loss)
 
-    ii = 2
+    ii = 0
     for itr in range(0, num_iter):
-        print('a')
         optimizer.zero_grad()
-        
-        phi_fit_y_torch = get_torch_regressor_mat(h_fit_torch.view(-1), n_a)
 
         # Predict
-        batch_u, batch_y_meas, batch_h, batch_y_seq, batch_u_seq, batch_s = get_batch(batch_size, seq_len)
-        batch_y_pred = io_solution.f_sim_minibatch(batch_u, batch_y_seq, batch_u_seq)
+        batch_u, batch_y_meas, batch_h, batch_h_seq, batch_u_seq, batch_s = get_batch(batch_size, seq_len)
+        batch_y_pred = io_solution.f_sim_minibatch(batch_u, batch_h_seq, batch_u_seq)
 
         # Compute loss
-        err_consistency = batch_y_pred[:,:,:] - batch_h[:,:,:]
-        loss_consistency = torch.mean((err_consistency)**2)/loss_scale
+        err_consistency = batch_y_pred - batch_h
+        loss_consistency = torch.mean(err_consistency**2)/loss_scale
 
-        err_fit = batch_y_pred[:,:,:] - batch_y_meas[:,:,:]
-        loss_fit = torch.mean((err_fit)**2)/loss_scale
+        err_fit = batch_y_pred - batch_y_meas
+        loss_fit = torch.mean(err_fit**2)/loss_scale
 
         loss = loss_consistency + loss_fit
 
@@ -127,7 +127,7 @@ if __name__ == '__main__':
 
         # Print message
         if itr % test_freq == 0:
-            print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
+            print(f'Iter {itr} | Total Loss {loss:.6f}   Consistency Loss {loss_consistency:.6f}   Fit Loss {loss_fit:.6f}')
             ii += 1
             #with torch.no_grad():
                 #y_pred_torch = io_solution.f_onestep(phi_fit_torch) #func(x_true_torch, u_torch)
@@ -139,3 +139,42 @@ if __name__ == '__main__':
 
     if not os.path.exists("models"):
         os.makedirs("models")
+
+
+    # Build validation data
+    n_val = N
+    u_val = u[0:n_val]
+    y_val = y[0:n_val]
+    y_meas_val = y_noise[0:n_val]
+
+    # Neglect initial values
+    y_val = y_val[n_max:,:]
+    y_meas_val = y_meas_val[n_max:,:]
+    u_val = u_val[n_max:, :]
+
+    y_meas_val_torch = torch.tensor(y_meas_val)
+
+    with torch.no_grad():
+        y_seq = np.array(np.flip(y_val[0:n_a].ravel()))
+        y_seq_torch = torch.tensor(y_seq)
+
+        u_seq = np.array(np.flip(u_val[0:n_b].ravel()))
+        u_seq_torch = torch.tensor(u_seq)
+
+        u_torch = torch.tensor(u_val[n_max:,:])
+        y_val_sim_torch = io_solution.f_sim(y_seq_torch, u_seq_torch, u_torch)
+
+        err_val = y_val_sim_torch - y_meas_val_torch[n_max:,:]
+        loss_val =  torch.mean((err_val)**2)
+
+    # In[Plot]
+    y_val_sim = np.array(y_val_sim_torch)
+    fig,ax = plt.subplots(2,1, sharex=True)
+    ax[0].plot(y_val, 'b', label='True')
+    ax[0].plot(y_val_sim, 'r',  label='Sim')
+    ax[0].legend()
+    ax[0].grid(True)
+
+    ax[1].plot(u_val, label='Input')
+    ax[1].legend()
+    ax[1].grid(True)

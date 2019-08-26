@@ -32,8 +32,13 @@ if __name__ == '__main__':
 
     N = 10
     n_a = 3
-    x = torch.tensor(np.arange(N))
+    x_np = np.arange(N).reshape(-1,1).astype(np.float32)
+    x = torch.tensor(x_np)
 
     X = torch.empty((N - n_a + 1, n_a))
-    for idx in range(N - n_a + 1):
-        X[idx] = x[idx:idx + n_a].flip([0])
+    for idx_1 in range(N - n_a + 1):
+        X[idx_1] = x[idx_1:idx_1 + n_a].flip([0])
+
+    idx_start = np.arange(3,10, dtype=int)
+    idx_1 = idx_start[:, np.newaxis] - np.arange(3, dtype=int)
+    x[[idx_1]]
