@@ -74,7 +74,7 @@ if __name__ == '__main__':
     # Setup model an simulator
     io_model = NeuralIOModel(n_a=n_a, n_b=n_b, n_feat=64)
     io_solution = NeuralIOSimulator(io_model)
-    #io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_1step_nonoise.pkl")))
+    io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_1step_nonoise.pkl")))
     params = list(io_solution.io_model.parameters()) + [h_fit_torch]
     optimizer = optim.Adam(params, lr=1e-4)
     end = time.time()
