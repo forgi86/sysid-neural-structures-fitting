@@ -49,18 +49,19 @@ class NeuralStateSpaceModelLin(nn.Module):
 
         for m in self.net.modules():
             if isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight, mean=0, std=1e-4)
+                nn.init.normal_(m.weight, mean=0, std=1e-2)
                 nn.init.constant_(m.bias, val=0)
     
     def forward(self, X,U):
-        XU = torch.cat((X,U),-1)
+        XU = torch.cat((X, U), -1)
         DX = self.net(XU)
         DX += self.AL(X) + self.BL(U)
         return DX   
 
+
 class StateSpaceModelLin(nn.Module):
     def __init__(self, AL, BL):
-        super(NeuralStateSpaceModelLin, self).__init__()
+        super(StateSpaceModelLin, self).__init__()
 
         self.AL = nn.Linear(2,2, bias=False)
         self.AL.weight = torch.nn.Parameter(torch.tensor(AL.astype(np.float32)), requires_grad=False)
@@ -70,6 +71,7 @@ class StateSpaceModelLin(nn.Module):
     def forward(self, X,U):
         DX = self.AL(X) + self.BL(U)
         return DX   
+
 
 class MechanicalStateSpaceModel(nn.Module):
     def __init__(self, Ts):

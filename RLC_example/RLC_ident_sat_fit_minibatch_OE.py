@@ -25,11 +25,10 @@ if __name__ == '__main__':
     df_X = pd.read_csv(os.path.join("data", "RLC_data_sat_FE.csv"))
     #df_X = pd.read_csv("RLC_data.csv")
     t = np.array(df_X[COL_T], dtype=np.float32)
-    y = np.array(df_X[COL_Y],dtype=np.float32)
-    x = np.array(df_X[COL_X],dtype=np.float32)
-    u = np.array(df_X[COL_U],dtype=np.float32)
+    y = np.array(df_X[COL_Y], dtype=np.float32)
+    x = np.array(df_X[COL_X], dtype=np.float32)
+    u = np.array(df_X[COL_U], dtype=np.float32)
     x0_torch = torch.from_numpy(x[0,:])
-
 
     std_noise_V = 10.0
     std_noise_I = 1.0
@@ -37,11 +36,10 @@ if __name__ == '__main__':
     
     x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
     x_noise = x_noise.astype(np.float32)
-    
-    
+
     Ts = t[1] - t[0]
     t_fit = 5e-3
-    n_fit = int(t_fit//Ts)#x.shape[0]
+    n_fit = int(t_fit//Ts) #x.shape[0]
     num_iter = 10000
     seq_len = 100 #int(n_fit/10)
     batch_size = n_fit//seq_len
