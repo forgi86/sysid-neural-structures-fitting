@@ -43,7 +43,7 @@ if __name__ == '__main__':
     Ts = t[1] - t[0]
     t_fit = 5e-3
     n_fit = int(t_fit/Ts)#x.shape[0]
-    num_iter = 4000
+    num_iter = 10000
     seq_len = 100 #int(n_fit/10)
     batch_size = n_fit//seq_len
 #    batch_size = 128
@@ -68,11 +68,13 @@ if __name__ == '__main__':
 
     def get_batch(batch_size, seq_len):
         num_train_samples = x_meas_torch_fit.shape[0]
-        s = torch.from_numpy(np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False))
-        batch_x0_hidden = x_hidden_torch_fit[s, :]  # (M, D)
-        batch_t = torch.stack([time_torch_fit[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
-        batch_x_meas = torch.stack([x_meas_torch_fit[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
-        batch_u = torch.stack([u_torch_fit[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
+        batch_start = np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False)
+        batch_idx = batch_start[:, np.newaxis] + np.arange(seq_len) # batch all indices
+
+        batch_t = torch.tensor(time_fit[batch_idx]) #torch.stack([time_torch_fit[batch_start[i]:batch_start[i] + seq_len] for i in range(batch_size)], dim=0)
+        batch_x0_hidden = x_hidden_torch_fit[batch_start, :]  # (M, D)
+        batch_x_meas = torch.tensor(x_fit[batch_idx])  #torch.stack([x_meas_torch_fit[batch_start[i]:batch_start[i] + seq_len] for i in range(batch_size)], dim=0)
+        batch_u = torch.tensor(u_fit[batch_idx]) #torch.stack([u_torch_fit[batch_start[i]:batch_start[i] + seq_len] for i in range(batch_size)], dim=0)
         
         return batch_t, batch_x0_hidden, batch_u, batch_x_meas
     

@@ -24,11 +24,10 @@ if __name__ == '__main__':
     COL_Y = ['V_C']
 
     df_X = pd.read_csv(os.path.join("data", "RLC_data_sat_FE.csv"))
-    #df_X = pd.read_csv("RLC_data.csv")
     t = np.array(df_X[COL_T], dtype=np.float32)
-    y = np.array(df_X[COL_Y],dtype=np.float32)
-    x = np.array(df_X[COL_X],dtype=np.float32)
-    u = np.array(df_X[COL_U],dtype=np.float32)
+    y = np.array(df_X[COL_Y], dtype=np.float32)
+    x = np.array(df_X[COL_X], dtype=np.float32)
+    u = np.array(df_X[COL_U], dtype=np.float32)
     x0_torch = torch.from_numpy(x[0,:])
 
 
@@ -68,17 +67,19 @@ if __name__ == '__main__':
 
     def get_batch(batch_size, seq_len):
         num_train_samples = x_meas_torch_fit.shape[0]
-        s = torch.from_numpy(np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False))
-        batch_x0_hidden = x_hidden_torch_fit[s, :]  # (M, D)
-        batch_t = torch.stack([time_torch_fit[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
-        batch_x_meas = torch.stack([x_meas_torch_fit[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
-        batch_x_hidden = torch.stack([x_hidden_torch_fit[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
-        batch_u = torch.stack([u_torch_fit[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
-        
+        batch_start = np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False)
+        batch_idx = batch_start[:, np.newaxis] + np.arange(seq_len) # batch all indices
+
+        batch_t = torch.tensor(time_fit[batch_idx]) #torch.stack([time_torch_fit[batch_start[i]:batch_start[i] + seq_len] for i in range(batch_size)], dim=0)
+        batch_x0_hidden = x_hidden_torch_fit[batch_start, :]  # (M, D)
+        batch_x_meas = torch.tensor(x_fit[batch_idx])  #torch.stack([x_meas_torch_fit[batch_start[i]:batch_start[i] + seq_len] for i in range(batch_size)], dim=0)
+        batch_u = torch.tensor(u_fit[batch_idx]) #torch.stack([u_torch_fit[batch_start[i]:batch_start[i] + seq_len] for i in range(batch_size)], dim=0)
+        batch_x_hidden = x_hidden_torch_fit[batch_idx] #torch.stack([x_hidden_torch_fit[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
+
         return batch_t, batch_x0_hidden, batch_u, batch_x_meas, batch_x_hidden
     
 
-    ss_model = NeuralStateSpaceModel() #NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
+    ss_model = NeuralStateSpaceModel(n_x=2, n_u=1) #NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
     nn_solution = NeuralODE(ss_model)
     #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model.pkl")))
 
@@ -88,12 +89,9 @@ if __name__ == '__main__':
     time_meter = RunningAverageMeter(0.97)
     loss_meter = RunningAverageMeter(0.97)
 
-
-#    scale_error = torch.tensor((std_noise).astype(np.float32))
-#    scale_error = torch.tensor((np.std(x_fit, axis=0)).astype(np.float32))
-
     scale_error = 1./np.std(x_fit, axis=0)
-
+    scale_error = scale_error/np.sum(scale_error)
+    scale_error = torch.tensor(scale_error.astype(np.float32))
 
     
     ii = 0

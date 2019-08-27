@@ -10,9 +10,9 @@ import torch.optim as optim
 import time
 import matplotlib.pyplot as plt
 
-from symbolic_RLC import fxu_ODE, fxu_ODE_mod, A_nominal, B_nominal
-from neuralode import  NeuralODE, RunningAverageMeter
-from ssmodels import NeuralStateSpaceModelLin
+from torchid.ssfitter import  NeuralODE
+from torchid.util import RunningAverageMeter
+from torchid.ssmodels import NeuralStateSpaceModelLin, NeuralStateSpaceModel
 
 
 if __name__ == '__main__':
@@ -61,17 +61,19 @@ if __name__ == '__main__':
 
     def get_batch(batch_size, seq_len):
         num_train_samples = x_meas_torch_fit.shape[0]
-        s = torch.from_numpy(np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False))
-        batch_x0 = x_meas_torch_fit[s, :]  # (M, D)
-        batch_t = torch.stack([time_torch_fit[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
-        batch_x = torch.stack([x_meas_torch_fit[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
-        batch_u = torch.stack([u_torch_fit[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
-        
+        batch_start = np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False)
+        batch_idx = batch_start[:, np.newaxis] + np.arange(seq_len) # batch all indices
+
+        batch_t = torch.tensor(time_fit[batch_idx]) #torch.stack([time_torch_fit[batch_start[i]:batch_start[i] + seq_len] for i in range(batch_size)], dim=0)
+        batch_x0 = torch.tensor(x_fit[batch_start]) #x_meas_torch_fit[batch_start, :]  # (M, D)
+        batch_u = torch.tensor(u_fit[batch_idx]) #torch.stack([u_torch_fit[batch_start[i]:batch_start[i] + seq_len] for i in range(batch_size)], dim=0)
+        batch_x = torch.tensor(x_fit[batch_idx]) #torch.stack([x_meas_torch_fit[batch_start[i]:batch_start[i] + seq_len] for i in range(batch_size)], dim=0)
+
         return batch_t, batch_x0, batch_u, batch_x 
     
 
 #    ss_model = NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
-    ss_model = NeuralStateSpaceModel() #NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
+    ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64) #NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
     nn_solution = NeuralODE(ss_model)
     #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_ARX_FE_sat.pkl")))
 
