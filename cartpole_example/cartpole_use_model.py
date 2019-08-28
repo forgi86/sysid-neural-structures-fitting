@@ -33,7 +33,7 @@ if __name__ == '__main__':
     x0_torch = torch.tensor(x[0,:])
     u_torch = torch.tensor(u)
     with torch.no_grad():
-        x_sim_torch = nn_solution.f_OE(x0_torch, u_torch)
+        x_sim_torch = nn_solution.f_sim(x0_torch, u_torch)
         loss = torch.mean(torch.abs(x_sim_torch - x_torch))
 
     x_sim = np.array(x_sim_torch)

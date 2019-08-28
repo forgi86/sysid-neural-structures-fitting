@@ -92,7 +92,7 @@ if __name__ == '__main__':
         #batch_u = u_torch_fit[0:N].view(batch_size, seq_len, -1)
         #batch_x0 = batch_x[:, 0, :]
 
-        batch_x_pred = nn_solution.f_OE_minibatch(batch_x0, batch_u)
+        batch_x_pred = nn_solution.f_sim_minibatch(batch_x0, batch_u)
         err = batch_x[:,0:,:] - batch_x_pred[:,0:,:]
         err_scaled = err * scale_error        
         loss = torch.mean(err_scaled**2)
@@ -108,7 +108,7 @@ if __name__ == '__main__':
 # In[Simulate model]
     x_0 = x_fit[0, :]
     with torch.no_grad():
-        x_sim_torch = nn_solution.f_OE(torch.tensor(x_0), torch.tensor(u_fit))
+        x_sim_torch = nn_solution.f_sim(torch.tensor(x_0), torch.tensor(u_fit))
         loss = torch.mean(torch.abs(x_sim_torch - x_meas_fit_torch))
         x_sim = np.array(x_sim_torch)
     # In[1]

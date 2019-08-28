@@ -40,7 +40,7 @@ if __name__ == '__main__':
     Ts = t[1] - t[0]
     t_fit = 5e-3
     n_fit = int(t_fit//Ts) #x.shape[0]
-    num_iter = 10000
+    num_iter = 1000#10000
     seq_len = 100 #int(n_fit/10)
     batch_size = n_fit//seq_len
     test_freq = 10
@@ -106,7 +106,7 @@ if __name__ == '__main__':
         #batch_u = u_torch_fit[0:N].view(batch_size, seq_len, -1)
         #batch_x0 = batch_x[:, 0, :]
 
-        batch_x_pred = nn_solution.f_OE_minibatch(batch_x0, batch_u)
+        batch_x_pred = nn_solution.f_sim_minibatch(batch_x0, batch_u)
 #        err = torch.abs(batch_x[:, 1:, :] - batch_x_pred[:, 1:, :])
 #        err[:,:,1] = err[:,:,1]*100.0
 #        loss = torch.mean(err)
@@ -138,7 +138,7 @@ if __name__ == '__main__':
     x_true_torch_val = torch.from_numpy(state_data_val)
 
     with torch.no_grad():
-        x_pred_torch_val = nn_solution.f_OE(x0_torch_val, u_torch_val)
+        x_pred_torch_val = nn_solution.f_sim(x0_torch_val, u_torch_val)
 
     # In[1]
 

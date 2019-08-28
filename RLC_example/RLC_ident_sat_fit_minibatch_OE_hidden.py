@@ -118,7 +118,7 @@ if __name__ == '__main__':
         #batch_u = u_torch_fit[0:N].view(batch_size, seq_len, -1)
         #batch_x0 = batch_x[:, 0, :]
 
-        batch_x_pred = nn_solution.f_OE_minibatch(batch_x0_hidden, batch_u)
+        batch_x_pred = nn_solution.f_sim_minibatch(batch_x0_hidden, batch_u)
 #        err = torch.abs(batch_x[:, 1:, :] - batch_x_pred[:, 1:, :])
 #        err[:,:,1] = err[:,:,1]*100.0
 #        loss = torch.mean(err)
@@ -141,7 +141,7 @@ if __name__ == '__main__':
     x0_fit = np.zeros(2,dtype=np.float32)
     x0_torch_fit = torch.from_numpy(x0_fit)
     with torch.no_grad():
-        x_sim_torch_fit = nn_solution.f_OE(x0_torch_fit, u_torch_fit)
+        x_sim_torch_fit = nn_solution.f_sim(x0_torch_fit, u_torch_fit)
 
     # In[FIT]
     
@@ -177,7 +177,7 @@ if __name__ == '__main__':
     x_true_torch_val = torch.from_numpy(state_data_val)
 
     with torch.no_grad():
-        x_pred_torch_val = nn_solution.f_OE(x0_torch_val, u_torch_val)
+        x_pred_torch_val = nn_solution.f_sim(x0_torch_val, u_torch_val)
 
     # In[1]
 

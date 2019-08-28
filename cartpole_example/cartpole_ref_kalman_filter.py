@@ -52,7 +52,7 @@ if __name__ == '__main__':
     u_torch = torch.tensor(u)
     t_torch = torch.tensor(t)
     with torch.no_grad():
-        x_sim_torch = nn_solution.f_OE(x0_torch, u_torch)
+        x_sim_torch = nn_solution.f_sim(x0_torch, u_torch)
         loss = torch.mean(torch.abs(x_sim_torch - x_torch))
 
     x_sim = np.array(x_sim_torch)
@@ -98,7 +98,7 @@ if __name__ == '__main__':
 
     # In[Predictor performance]
 
-    batch_x_pred = nn_solution.f_OE_minibatch(batch_x0, batch_u)
+    batch_x_pred = nn_solution.f_sim_minibatch(batch_x0, batch_u)
     batch_x_np = batch_x_pred.clone().data.cpu().numpy()
     batch_t_np = batch_t.clone().data.cpu().numpy()
     #err = batch_x[:,1:,:] - batch_x_pred[:,1:,:]

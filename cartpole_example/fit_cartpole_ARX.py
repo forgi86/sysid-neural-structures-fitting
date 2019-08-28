@@ -64,7 +64,7 @@ if __name__ == '__main__':
     ii = 0
     for itr in range(1, num_iter + 1):
         optimizer.zero_grad()
-        x_pred_torch = nn_solution.f_ARX(x_meas_fit_torch, u_fit_torch)
+        x_pred_torch = nn_solution.f_onestep(x_meas_fit_torch, u_fit_torch)
         err = x_pred_torch - x_meas_fit_torch
         err_scaled = err * scale_error
         loss = torch.mean((err_scaled)**2) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
@@ -93,7 +93,7 @@ if __name__ == '__main__':
 # In[Simulate model]
     x_0 = x_fit[0, :]
     with torch.no_grad():
-        x_sim_torch = nn_solution.f_OE(torch.tensor(x_0), torch.tensor(u_fit))
+        x_sim_torch = nn_solution.f_sim(torch.tensor(x_0), torch.tensor(u_fit))
         loss = torch.mean(torch.abs(x_sim_torch - x_meas_fit_torch))
         x_sim = np.array(x_sim_torch)
     # In[1]

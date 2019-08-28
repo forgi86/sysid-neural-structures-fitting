@@ -39,7 +39,7 @@ if __name__ == '__main__':
     n_max = np.max((n_a, n_b)) # delay
 
     # Batch learning parameters
-    seq_len = 32  # int(n_fit/10)
+    seq_len = 16  # int(n_fit/10)
     batch_size = (n_fit - n_a) // seq_len
 
     std_noise_V = 1.0 * 5.0

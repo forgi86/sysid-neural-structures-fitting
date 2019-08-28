@@ -7,7 +7,7 @@ class NeuralODE():
     def __init__(self, ss_model):
         self.ss_model = ss_model
 
-    def f_ARX(self, X, U):
+    def f_onestep(self, X, U):
         X_pred = torch.empty(X.shape)
         X_pred[0,:] = X[0,:]
         DX = self.ss_model(X[0:-1], U[0:-1])
@@ -19,7 +19,7 @@ class NeuralODE():
         loss = torch.mean((X_hidden[1:,:] - (X_hidden[0:-1,:] + DX) ) **2)
         return loss
 
-    def f_OE(self, x0, u):
+    def f_sim_arr(self, x0, u):
         N = np.shape(u)[0]
         nx = np.shape(x0)[0]
 
@@ -32,7 +32,23 @@ class NeuralODE():
             xstep = xstep + dx
         return X
 
-    def f_OE_minibatch(self, x0_batch, U_batch):
+    def f_sim(self, x0, u):
+        N = np.shape(u)[0]
+        nx = np.shape(x0)[0]
+
+        X_list = []
+        xstep = x0
+        for i in range(N):
+            X_list += [xstep]
+            #X[i,:] = xstep
+            ustep = u[i]
+            dx = self.ss_model(xstep, ustep)
+            xstep = xstep + dx
+
+        X = torch.stack(X_list, 0)#.squeeze(2)
+        return X
+
+    def f_sim_minibatch_arr(self, x0_batch, U_batch):
         batch_size = x0_batch.shape[0]
         n_x = x0_batch.shape[1]
         seq_len = U_batch.shape[1]
@@ -44,6 +60,22 @@ class NeuralODE():
             ustep = U_batch[:,i,:]
             dx = self.ss_model(xstep, ustep)
             xstep = xstep + dx
+        return X_pred
+
+    def f_sim_minibatch(self, x0_batch, U_batch):
+        batch_size = x0_batch.shape[0]
+        n_x = x0_batch.shape[1]
+        seq_len = U_batch.shape[1]
+
+        X_pred_list = []#X_pred = torch.empty((batch_size, seq_len, n_x))
+        xstep = x0_batch
+        for i in range(seq_len):
+            X_pred_list += [xstep] #X_pred[:, i, :] = xstep
+            ustep = U_batch[:, i, :]
+            dx = self.ss_model(xstep, ustep)
+            xstep = xstep + dx
+
+        X_pred = torch.stack(X_pred_list, 1)#.squeeze(2)
         return X_pred
 
     def f_ODE(self,t,x,u):

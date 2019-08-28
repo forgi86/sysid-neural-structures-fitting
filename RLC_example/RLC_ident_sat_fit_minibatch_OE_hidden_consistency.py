@@ -108,7 +108,7 @@ if __name__ == '__main__':
         optimizer.zero_grad()
         
         batch_t, batch_x0_hidden, batch_u, batch_x_meas, batch_x_hidden = get_batch(batch_size, seq_len)
-        batch_x_pred = nn_solution.f_OE_minibatch(batch_x0_hidden, batch_u)
+        batch_x_pred = nn_solution.f_sim_minibatch(batch_x0_hidden, batch_u)
         err = batch_x_meas[:,0:,:] - batch_x_pred[:,0:,:]
         err_scaled = err * scale_error
         loss_pred = torch.mean((err_scaled)**2) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
@@ -135,7 +135,7 @@ if __name__ == '__main__':
     x0_fit = np.zeros(2,dtype=np.float32)
     x0_torch_fit = torch.from_numpy(x0_fit)
     with torch.no_grad():
-        x_sim_torch_fit = nn_solution.f_OE(x0_torch_fit, u_torch_fit)
+        x_sim_torch_fit = nn_solution.f_sim(x0_torch_fit, u_torch_fit)
 
     x_true_fit = x[0:n_fit]
     # In[FIT]
@@ -173,7 +173,7 @@ if __name__ == '__main__':
     x_true_torch_val = torch.from_numpy(state_data_val)
 
     with torch.no_grad():
-        x_pred_torch_val = nn_solution.f_OE(x0_torch_val, u_torch_val)
+        x_pred_torch_val = nn_solution.f_sim(x0_torch_val, u_torch_val)
 
     # In[1]
 

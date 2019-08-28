@@ -9,9 +9,10 @@ import torch.optim as optim
 import time
 import matplotlib.pyplot as plt
 import os
-from symbolic_RLC import fxu_ODE, fxu_ODE_mod, A_nominal, B_nominal
-from neuralode import  NeuralODE, RunningAverageMeter
-from ssmodels import NeuralStateSpaceModelLin, NeuralStateSpaceModel
+from RLC_example.symbolic_RLC import fxu_ODE, fxu_ODE_mod, A_nominal, B_nominal
+from torchid.ssfitter import NeuralODE
+from torchid.util import RunningAverageMeter
+from torchid.ssmodels import NeuralStateSpaceModelLin
 
 if __name__ == '__main__':
 
@@ -52,7 +53,7 @@ if __name__ == '__main__':
     ii = 0
     for itr in range(1, num_iter + 1):
         optimizer.zero_grad()
-        x_pred_torch = nn_solution.f_OE(x0_torch, u_torch)
+        x_pred_torch = nn_solution.f_sim(x0_torch, u_torch)
         #y_pred_torch = torch.tensordot(x_pred_torch, C_matrix, ((-1,), (1,))) # we measure the first state
         loss = torch.mean((x_pred_torch - x_true_torch)**2)
         loss.backward()
@@ -63,7 +64,7 @@ if __name__ == '__main__':
 
         if itr % test_freq == 0:
             with torch.no_grad():
-                x_pred_torch = nn_solution.f_OE(x0_torch, u_torch)
+                x_pred_torch = nn_solution.f_sim(x0_torch, u_torch)
                 loss = torch.mean(torch.abs(x_pred_torch - x_true_torch))
                 print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
                 ii += 1
@@ -85,7 +86,7 @@ if __name__ == '__main__':
     x_true_torch_val = torch.from_numpy(state_data_val)
 
     with torch.no_grad():
-        x_pred_torch_val = nn_solution.f_OE(x0_torch_val, u_torch_val)
+        x_pred_torch_val = nn_solution.f_sim(x0_torch_val, u_torch_val)
 
     # In[1]
 

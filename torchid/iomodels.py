@@ -22,7 +22,8 @@ class NeuralIOModel(nn.Module):
         for m in self.net.modules():
             if isinstance(m, nn.Linear):
                 nn.init.normal_(m.weight, mean=0, std=1e-3)
-                nn.init.constant_(m.bias, val=0)
+                nn.init.normal_(m.bias, mean=0, std=1e-3)
+                #nn.init.constant_(m.bias, val=0)
 
     def forward(self, phi):
         Y = self.net(phi) + torch.matmul(phi, self.const)

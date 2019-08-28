@@ -50,7 +50,7 @@ if __name__ == '__main__':
     ii = 0
     for itr in range(1, num_iter + 1):
         optimizer.zero_grad()
-        x_pred_torch = nn_solution.f_ARX(x_true_torch, u_torch)
+        x_pred_torch = nn_solution.f_onestep(x_true_torch, u_torch)
         #loss = torch.mean(torch.abs(x_pred_torch - x_true_torch))
         loss = torch.mean((x_pred_torch - x_true_torch) ** 2)
         loss.backward()
@@ -61,7 +61,7 @@ if __name__ == '__main__':
 
         if itr % test_freq == 0:
             with torch.no_grad():
-                x_pred_torch = nn_solution.f_ARX(x_true_torch, u_torch) #func(x_true_torch, u_torch)
+                x_pred_torch = nn_solution.f_onestep(x_true_torch, u_torch) #func(x_true_torch, u_torch)
                 loss = torch.mean(torch.abs(x_pred_torch - x_true_torch))
                 print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
                 ii += 1
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     x_0 = state_data[0,:]
 
     with torch.no_grad():
-        x_sim = nn_solution.f_OE(torch.tensor(x_0), torch.tensor(input_data))
+        x_sim = nn_solution.f_sim(torch.tensor(x_0), torch.tensor(input_data))
         loss = torch.mean(torch.abs(x_sim - x_true_torch))
 
 
