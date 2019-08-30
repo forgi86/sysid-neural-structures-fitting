@@ -23,15 +23,18 @@ if __name__ == '__main__':
     df_X = pd.read_csv(os.path.join("data", "RLC_data_sat_FE.csv"))
 
     t = np.array(df_X[COL_T], dtype=np.float32)
-    y = np.array(df_X[COL_Y], dtype=np.float32)
+    #y = np.array(df_X[COL_Y], dtype=np.float32)
     x = np.array(df_X[COL_X], dtype=np.float32)
     u = np.array(df_X[COL_U], dtype=np.float32)
+    y_var_idx = 1 # 0: voltage 1: current
+
+    y = np.copy(x[:, [y_var_idx]])
 
     N = np.shape(y)[0]
     Ts = t[1] - t[0]
     t_fit = 2e-3
     n_fit = int(t_fit//Ts)#x.shape[0]
-    num_iter = 20000
+    num_iter = 50000
     test_freq = 100
 
     n_a = 2 # autoregressive coefficients for y
@@ -48,7 +51,7 @@ if __name__ == '__main__':
 
     x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
     x_noise = x_noise.astype(np.float32)
-    y_noise = x_noise[:,[0]]
+    y_noise = x_noise[:,[y_var_idx]]
 
     # Build fit data
     u_fit = u[0:n_fit]
