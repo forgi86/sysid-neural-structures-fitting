@@ -33,6 +33,28 @@ class NeuralIOSimulator():
 
         return Y
 
+    def f_sim_list(self, y_seq, u_seq, U):
+        N = np.shape(U)[0]
+        #Y = torch.empty((N, 1))
+        Y_list = []
+
+        for i in range(N):
+            phi = torch.cat((y_seq, u_seq))
+            yi = self.io_model(phi)
+            Y_list += [yi]
+
+            if i < N-1:
+                # y shift
+                y_seq[1:] = y_seq[0:-1]
+                y_seq[0] = yi
+
+                # u shift
+                u_seq[1:] = u_seq[0:-1]
+                u_seq[0] = U[i]
+
+        Y = torch.stack(Y_list, 0)
+        return Y
+
     def f_sim_minibatch(self, batch_u, batch_y_seq, batch_u_seq):
 
         batch_size = batch_u.shape[0] # number of training samples in the batch

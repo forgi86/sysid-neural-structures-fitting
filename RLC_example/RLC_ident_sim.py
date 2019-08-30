@@ -21,7 +21,7 @@ if __name__ == '__main__':
     COL_U = ['V_IN']
     COL_Y = ['V_C']
 
-    df_X = pd.read_csv(os.path.join("data", "RLC_data_FE.csv"))
+    df_X = pd.read_csv(os.path.join("data", "RLC_data_sat_FE.csv"))
 
     time_data = np.array(df_X[COL_T], dtype=np.float32)
     y = np.array(df_X[COL_Y],dtype=np.float32)
