@@ -42,7 +42,7 @@ if __name__ == '__main__':
     seq_len = 16  # int(n_fit/10)
     batch_size = (n_fit - n_a) // seq_len
 
-    std_noise_V = 1.0 * 5.0
+    std_noise_V = 0.0 * 5.0
     std_noise_I = 0.0 * 0.5
     std_noise = np.array([std_noise_V, std_noise_I])
 

@@ -5,7 +5,7 @@ import torch
 import matplotlib.pyplot as plt
 import sys
 sys.path.append(os.path.join(".."))
-from torchid.ssfitter import NeuralODE
+from torchid.ssfitter import NeuralStateSpaceSimulator
 from torchid.ssmodels import MechanicalStateSpaceModel
 
 
@@ -26,7 +26,7 @@ if __name__ == '__main__':
     x0_torch = torch.from_numpy(x[0,:])
 
     ss_model = MechanicalStateSpaceModel(Ts)
-    nn_solution = NeuralODE(ss_model)
+    nn_solution = NeuralStateSpaceSimulator(ss_model)
     nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_OE_minibatch.pkl")))
 
     x_torch = torch.tensor(x)

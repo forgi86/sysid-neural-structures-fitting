@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 sys.path.append(os.path.join(".."))
-from torchid.ssfitter import  NeuralODE, RunningAverageMeter
+from torchid.ssfitter import  NeuralStateSpaceSimulator, RunningAverageMeter
 from torchid.ssmodels import NeuralStateSpaceModel, MechanicalStateSpaceModel
 
 # In[Load data]
@@ -31,7 +31,7 @@ if __name__ == '__main__':
  
 # In[Model]
     ss_model = MechanicalStateSpaceModel(Ts)#n_x=4, n_u=1, n_feat=64)
-    nn_solution = NeuralODE(ss_model)
+    nn_solution = NeuralStateSpaceSimulator(ss_model)
    
 # In[Setup optimization problem]
 

@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
  
         
-class NeuralODE():
+class NeuralStateSpaceSimulator():
     def __init__(self, ss_model):
         self.ss_model = ss_model
 

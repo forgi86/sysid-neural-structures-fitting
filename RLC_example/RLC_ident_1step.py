@@ -8,7 +8,7 @@ import os
 import sys
 
 sys.path.append(os.path.join(".."))
-from torchid.ssfitter import  NeuralODE
+from torchid.ssfitter import  NeuralStateSpaceSimulator
 from torchid.util import RunningAverageMeter
 from torchid.ssmodels import NeuralStateSpaceModel
 
@@ -47,7 +47,7 @@ if __name__ == '__main__':
     x_true_torch = torch.from_numpy(state_data)
     
     ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64)
-    nn_solution = NeuralODE(ss_model)
+    nn_solution = NeuralStateSpaceSimulator(ss_model)
     #nn_solution.load_state_dict(torch.load(os.path.join("models", "model_ARX_FE_sat.pkl")))
 
     optimizer = optim.Adam(nn_solution.ss_model.parameters(), lr=1e-4)

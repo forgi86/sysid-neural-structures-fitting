@@ -10,7 +10,7 @@ import time
 import matplotlib.pyplot as plt
 import os
 from RLC_example.symbolic_RLC import fxu_ODE, fxu_ODE_mod, A_nominal, B_nominal
-from torchid.ssfitter import NeuralODE
+from torchid.ssfitter import NeuralStateSpaceSimulator
 from torchid.util import RunningAverageMeter
 from torchid.ssmodels import NeuralStateSpaceModelLin
 
@@ -42,7 +42,7 @@ if __name__ == '__main__':
     x_true_torch = torch.from_numpy(state_data)
 
     ss_model = NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
-    nn_solution = NeuralODE(ss_model)
+    nn_solution = NeuralStateSpaceSimulator(ss_model)
 
     params = list(nn_solution.ss_model.parameters())
     optimizer = optim.Adam(params, lr=1e-5)

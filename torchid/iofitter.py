@@ -13,7 +13,7 @@ class NeuralIOSimulator():
         return Y_pred
         pass
 
-    def f_sim(self, y_seq, u_seq, U):
+    def f_sim_arr(self, y_seq, u_seq, U):
         N = np.shape(U)[0]
         Y = torch.empty((N, 1))
 
@@ -33,7 +33,7 @@ class NeuralIOSimulator():
 
         return Y
 
-    def f_sim_list(self, y_seq, u_seq, U):
+    def f_sim(self, y_seq, u_seq, U):
         N = np.shape(U)[0]
         #Y = torch.empty((N, 1))
         Y_list = []
@@ -77,4 +77,31 @@ class NeuralIOSimulator():
             batch_u_seq[:, 1:] = batch_u_seq[:, 0:-1]
             batch_u_seq[:, [0]] = batch_u[:, i]
 
+        return Y_pred
+
+    def f_sim_minibatch(self, batch_u, batch_y_seq, batch_u_seq):
+
+        batch_size = batch_u.shape[0] # number of training samples in the batch
+        seq_len = batch_u.shape[1] # length of the training sequences
+        n_a = batch_y_seq.shape[1] # number of autoregressive terms on y
+        n_b = batch_u_seq.shape[1] # number of autoregressive terms on u
+
+
+        #Y_pred = torch.empty((batch_size, seq_len, 1))
+        Y_pred_list = []
+        for i in range(seq_len):
+            phi = torch.cat((batch_y_seq, batch_u_seq), -1)
+            yi = self.io_model(phi)
+            Y_pred_list += [yi]
+            #Y_pred[:, i, :] = yi
+
+            # y shift
+            batch_y_seq[:, 1:] = batch_y_seq[:, 0:-1]
+            batch_y_seq[:, [0]] = yi[:]
+
+            # u shift
+            batch_u_seq[:, 1:] = batch_u_seq[:, 0:-1]
+            batch_u_seq[:, [0]] = batch_u[:, i]
+
+        Y_pred = torch.stack(Y_pred_list, 1)
         return Y_pred

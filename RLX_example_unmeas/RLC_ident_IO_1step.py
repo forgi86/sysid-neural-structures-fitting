@@ -126,7 +126,10 @@ if __name__ == '__main__':
         u_seq_torch = torch.tensor(u_seq)
 
         u_torch = torch.tensor(u_val[n_max:,:])
+
+        time_start = time.time()
         y_val_sim_torch = io_solution.f_sim(y_seq_torch, u_seq_torch, u_torch)
+        time_sim = time.time() - time_start
 
     # In[Plot]
     y_val_sim = np.array(y_val_sim_torch)
@@ -139,3 +142,6 @@ if __name__ == '__main__':
     ax[1].plot(u_val, label='Input')
     ax[1].legend()
     ax[1].grid(True)
+
+    plt.plot(np.array(y_val_sim_torch_list.detach()))
+    plt.plot(np.array(y_val_sim_torch.detach())+1, 'r')
