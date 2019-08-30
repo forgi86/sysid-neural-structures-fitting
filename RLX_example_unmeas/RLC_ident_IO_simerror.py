@@ -32,7 +32,7 @@ if __name__ == '__main__':
     t_fit = 1e-3
     n_fit = int(t_fit//Ts)#x.shape[0]
     num_iter = 2000
-    test_freq = 100
+    test_freq = 10
 
     n_a = 2 # autoregressive coefficients for y
     n_b = 2 # autoregressive coefficients for u
@@ -63,9 +63,22 @@ if __name__ == '__main__':
     io_solution = NeuralIOSimulator(io_model)
     #io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_1step_nonoise.pkl")))
 
-    optimizer = optim.Adam(io_solution.io_model.parameters(), lr=1e-2)
+    optimizer = optim.Adam(io_solution.io_model.parameters(), lr=1e-4)
     end = time.time()
     loss_meter = RunningAverageMeter(0.97)
+
+    with torch.no_grad():
+        # Prepare data
+        y_seq = np.array(np.flip(y_meas_fit[0:n_a].ravel()))
+        y_seq_torch = torch.tensor(y_seq)
+        u_seq = np.array(np.flip(u_fit[0:n_b].ravel()))
+        u_seq_torch = torch.tensor(u_seq)
+        u_torch = torch.tensor(u_fit[n_max:, :])
+        # Predict
+        y_sim_torch = io_solution.f_sim(y_seq_torch, u_seq_torch, u_torch)
+        err = y_sim_torch - y_meas_fit_torch[n_max:, :]
+        loss = torch.mean(err ** 2)
+        loss_scale = np.float32(loss)
 
     ii = 0
     for itr in range(0, num_iter):
@@ -82,11 +95,11 @@ if __name__ == '__main__':
         optimizer.zero_grad()
 
         # Predict
-        y_pred_torch = io_solution.f_sim(y_seq_torch, u_seq_torch, u_torch)
+        y_sim_torch = io_solution.f_sim(y_seq_torch, u_seq_torch, u_torch)
 
         # Compute loss
-        err = y_pred_torch - y_meas_fit_torch[n_max:, :]
-        loss = torch.mean((err)**2)
+        err = y_sim_torch - y_meas_fit_torch[n_max:, :]
+        loss = torch.mean((err)**2)/loss_scale
 
         # Optimization step
         loss.backward()  #loss.backward(retain_graph=True)
