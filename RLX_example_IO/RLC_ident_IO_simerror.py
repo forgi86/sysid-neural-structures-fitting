@@ -114,8 +114,8 @@ if __name__ == '__main__':
 
     if not os.path.exists("models"):
         os.makedirs("models")
-    
-    #torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_simerr_nonoise.pkl"))
+
+    torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_sim_nonoise.pkl"))
 
 
     # Build validation data
