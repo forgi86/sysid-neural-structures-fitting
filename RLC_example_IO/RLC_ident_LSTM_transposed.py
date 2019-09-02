@@ -1,12 +1,12 @@
 import torch
-from torchid.lstmfitter import LSTMSimulator
+from torchid.lstmfitter_transposed import LSTMSimulator
 import torch.optim as optim
 import torch.nn as nn
 import numpy as np
 import pandas as pd
 import os
-import matplotlib.pyplot as plt
 import time
+import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
 
@@ -35,6 +35,11 @@ if __name__ == '__main__':
     num_iter = 1000
     test_freq = 10
 
+    # set random seed to 0
+    #np.random.seed(0)
+    #torch.manual_seed(0)
+
+
     # build the model
     seq = LSTMSimulator()
     seq.float()
@@ -60,23 +65,26 @@ if __name__ == '__main__':
     u_fit = u[0:n_fit]
     y_fit = y[0:n_fit]
     y_meas_fit = y_noise[0:n_fit]
+    time_fit = t[0:n_fit]
 
     def get_batch(batch_size, seq_len):
         num_train_samples = y_fit.shape[0]
         batch_s = np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False) # batch start indices
         batch_idx = batch_s[:, np.newaxis] + np.arange(seq_len) # batch all indices
+        batch_idx = batch_idx.T
         batch_y_meas = torch.tensor(y_meas_fit[batch_idx])#torch.stack([y_meas_fit_torch[batch_s[i]:batch_s[i] + seq_len] for i in range(batch_size)], dim=0)
         batch_u = torch.tensor(u_fit[batch_idx]) # torch.stack([u_fit_torch[batch_s[i]:batch_s[i] + seq_len] for i in range(batch_size)], dim=0)
-
-        return batch_u, batch_y_meas
+        batch_t = torch.tensor(time_fit[batch_idx])
+        return batch_u, batch_y_meas, batch_t
 
     ii = 0
+
     time_optim_start = time.time()
     for itr in range(num_iter):
         #print('STEP: ', i)
         def closure():
             optimizer.zero_grad()
-            batch_u, batch_y_meas = get_batch(batch_size, seq_len)
+            batch_u, batch_y_meas, _ = get_batch(batch_size, seq_len)
             batch_y_pred = seq(batch_u)
             loss = criterion(batch_y_pred, batch_y_meas)
             loss.backward()
@@ -93,3 +101,4 @@ if __name__ == '__main__':
                 ii += 1
 
     time_optimization  = time.time() - time_optim_start
+
