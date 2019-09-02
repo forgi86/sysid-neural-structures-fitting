@@ -1,5 +1,5 @@
 import torch
-from torchid.lstmfitter import LSTMSimulator
+from torchid.lstmfitter import LSTMSimulator, LSTMAutoRegressive
 import torch.optim as optim
 import torch.nn as nn
 import numpy as np
@@ -32,18 +32,22 @@ if __name__ == '__main__':
     Ts = t[1] - t[0]
     t_fit = 2e-3
     n_fit = int(t_fit//Ts)#x.shape[0]
-    num_iter = 2000
+    num_iter = 2000 #2000
     test_freq = 10
 
     # build the model
-    seq = LSTMSimulator(n_input = 2, n_hidden_1 = 64, n_hidden_2 = 32, n_output = 1)
-    seq.float()
+    #seq = LSTMSimulator(n_input = 2, n_hidden_1 = 64, n_hidden_2 = 32, n_output = 1)
+    #seq.float()
+    seq_ar = LSTMAutoRegressive(n_input = 1, n_hidden_1 = 64, n_hidden_2 = 32, n_output = 1)
+    seq_ar.float()
+    seq_ar.load_state_dict(torch.load(os.path.join("models", "model_ARLSTM_nonoise.pkl")))
+
 #    seq.double() # useful! cas all to double
     criterion = nn.MSELoss()
 
     # use LBFGS as optimizer since we can load the whole data to train
-    #optimizer = optim.LBFGS(seq.parameters(), lr=0.1)
-    optimizer = optim.Adam(seq.parameters(), lr=1e-3)
+    #optimizer = optim.LBFGS(seq_ar.parameters(), lr=0.1)
+    optimizer = optim.Adam(seq_ar.parameters(), lr=1e-4)
     #begin to train
     # Batch learning parameters
     seq_len = 64  # int(n_fit/10)
@@ -79,9 +83,9 @@ if __name__ == '__main__':
         def closure():
             optimizer.zero_grad()
             batch_u, batch_y_meas, batch_y_old = get_batch(batch_size, seq_len)
-            regressor = torch.stack((batch_u, batch_y_old), 2).squeeze(-1)
-            batch_y_pred = seq(regressor)
-            loss = criterion(batch_y_pred, batch_y_meas)
+            #regressor = torch.stack((batch_u, batch_y_old), 2).squeeze(-1)
+            batch_y_pred = seq_ar(batch_u, batch_y_old)
+            loss = criterion(batch_y_pred, batch_y_meas)*100
             loss.backward()
             return loss
 
@@ -96,3 +100,30 @@ if __name__ == '__main__':
                 ii += 1
 
     time_optimization  = time.time() - time_optim_start
+
+    torch.save(seq_ar.state_dict(), os.path.join("models", "model_ARLSTM_nonoise.pkl"))
+
+
+    # Build validation data
+    n_val = N
+    u_val = u[0:n_val]
+    y_val = y[0:n_val]
+    y_meas_val = y_noise[0:n_val]
+
+    u_val_torch = torch.tensor(u_val).unsqueeze(0)
+    y_meas_val_torch = torch.tensor(y_meas_val).unsqueeze(0)
+
+    with torch.no_grad():
+        y_sim_val_torch = seq_ar.forward_sim(u_val_torch)
+        y_sim_val = np.array(y_sim_val_torch.detach()).squeeze(0)
+
+
+    fig, ax = plt.subplots(2,1, sharex=True)
+    ax[0].plot(y_val, 'b', label='True')
+    ax[0].plot(y_sim_val, 'r',  label='Sim')
+    ax[0].legend()
+    ax[0].grid(True)
+
+    ax[1].plot(u_val, label='Input')
+    ax[1].legend()
+    ax[1].grid(True)

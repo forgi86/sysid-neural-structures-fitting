@@ -177,7 +177,7 @@ if __name__ == '__main__':
 
     # In[1]
 
-    fig,ax = plt.subplots(3,1, sharex=True)
+    fig, ax = plt.subplots(3,1, sharex=True)
     ax[0].plot(np.array(x_true_torch_val[:,0]), label='True')
     ax[0].plot(np.array(x_pred_torch_val[:,0]), label='Fit')
     ax[0].legend()

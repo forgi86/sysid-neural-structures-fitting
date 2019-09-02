@@ -113,4 +113,4 @@ if __name__ == '__main__':
     COL = COL_T + COL_X + COL_U + COL_Y
     df_X = pd.DataFrame(X, columns=COL)
 
-    df_X.to_csv(os.path.join("data", "RLC_data_sat_FE.csv"), index=False)
+    #df_X.to_csv(os.path.join("data", "RLC_data_sat_FE.csv"), index=False)
