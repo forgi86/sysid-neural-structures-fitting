@@ -42,7 +42,7 @@ if __name__ == '__main__':
     n_max = np.max((n_a, n_b)) # delay
 
     # Batch learning parameters
-    seq_len = 16  # int(n_fit/10)
+    seq_len = 128  # int(n_fit/10)
     batch_size = (n_fit - n_a) // seq_len
 
     std_noise_V = 0.0 * 5.0
@@ -135,7 +135,7 @@ if __name__ == '__main__':
     if not os.path.exists("models"):
         os.makedirs("models")
     
-    #torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_1step_nonoise.pkl"))
+    torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_128step_nonoise.pkl"))
 
     # Build validation data
     n_val = N
