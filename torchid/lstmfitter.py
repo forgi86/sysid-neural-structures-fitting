@@ -4,12 +4,12 @@ import torch.nn as nn
 
 
 class LSTMSimulator(nn.Module):
-    def __init__(self):
+    def __init__(self, n_input = 1, n_hidden_1 = 64, n_hidden_2 = 32, n_output = 1):
 
-        self.n_input = 1
-        self.n_hidden_1 = 64
-        self.n_hidden_2 = 32
-        self.n_output = 1
+        self.n_input = n_input
+        self.n_hidden_1 = n_hidden_1
+        self.n_hidden_2 = n_hidden_2
+        self.n_output = n_output
 
         super(LSTMSimulator, self).__init__()
         self.lstm1 = nn.LSTMCell(self.n_input, self.n_hidden_1) # input size, hidden size

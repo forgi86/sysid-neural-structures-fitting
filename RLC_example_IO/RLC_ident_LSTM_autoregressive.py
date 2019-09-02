@@ -1,12 +1,12 @@
 import torch
-from torchid.lstmfitter_transposed import LSTMSimulator
+from torchid.lstmfitter import LSTMSimulator
 import torch.optim as optim
 import torch.nn as nn
 import numpy as np
 import pandas as pd
 import os
-import time
 import matplotlib.pyplot as plt
+import time
 
 if __name__ == '__main__':
 
@@ -32,16 +32,11 @@ if __name__ == '__main__':
     Ts = t[1] - t[0]
     t_fit = 2e-3
     n_fit = int(t_fit//Ts)#x.shape[0]
-    num_iter = 1000
+    num_iter = 2000
     test_freq = 10
 
-    # set random seed to 0
-    #np.random.seed(0)
-    #torch.manual_seed(0)
-
-
     # build the model
-    seq = LSTMSimulator()
+    seq = LSTMSimulator(n_input = 2, n_hidden_1 = 64, n_hidden_2 = 32, n_output = 1)
     seq.float()
 #    seq.double() # useful! cas all to double
     criterion = nn.MSELoss()
@@ -59,33 +54,33 @@ if __name__ == '__main__':
 
     x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
     x_noise = x_noise.astype(np.float32)
-    y_noise = x_noise[:, [y_var_idx]]
+    y_noise = x_noise[:,[y_var_idx]]
 
     # Build fit data
     u_fit = u[0:n_fit]
     y_fit = y[0:n_fit]
     y_meas_fit = y_noise[0:n_fit]
-    time_fit = t[0:n_fit]
+
 
     def get_batch(batch_size, seq_len):
         num_train_samples = y_fit.shape[0]
-        batch_s = np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False) # batch start indices
+        batch_s = np.random.choice(np.arange(1, num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False) # batch start indices
         batch_idx = batch_s[:, np.newaxis] + np.arange(seq_len) # batch all indices
-        batch_idx = batch_idx.T
         batch_y_meas = torch.tensor(y_meas_fit[batch_idx])#torch.stack([y_meas_fit_torch[batch_s[i]:batch_s[i] + seq_len] for i in range(batch_size)], dim=0)
         batch_u = torch.tensor(u_fit[batch_idx]) # torch.stack([u_fit_torch[batch_s[i]:batch_s[i] + seq_len] for i in range(batch_size)], dim=0)
-        batch_t = torch.tensor(time_fit[batch_idx])
-        return batch_u, batch_y_meas, batch_t
+        batch_y_old = torch.tensor(y_meas_fit[batch_idx - 1])
+
+        return batch_u, batch_y_meas, batch_y_old
 
     ii = 0
-
     time_optim_start = time.time()
     for itr in range(num_iter):
         #print('STEP: ', i)
         def closure():
             optimizer.zero_grad()
-            batch_u, batch_y_meas, _ = get_batch(batch_size, seq_len)
-            batch_y_pred = seq(batch_u)
+            batch_u, batch_y_meas, batch_y_old = get_batch(batch_size, seq_len)
+            regressor = torch.stack((batch_u, batch_y_old), 2).squeeze(-1)
+            batch_y_pred = seq(regressor)
             loss = criterion(batch_y_pred, batch_y_meas)
             loss.backward()
             return loss
@@ -101,4 +96,3 @@ if __name__ == '__main__':
                 ii += 1
 
     time_optimization  = time.time() - time_optim_start
-
