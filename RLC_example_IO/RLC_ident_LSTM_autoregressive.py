@@ -46,8 +46,8 @@ if __name__ == '__main__':
     criterion = nn.MSELoss()
 
     # use LBFGS as optimizer since we can load the whole data to train
-    #optimizer = optim.LBFGS(seq_ar.parameters(), lr=0.1)
-    optimizer = optim.Adam(seq_ar.parameters(), lr=1e-4)
+    optimizer = optim.LBFGS(seq_ar.parameters(), lr=0.1)
+    #optimizer = optim.Adam(seq_ar.parameters(), lr=1e-2)
     #begin to train
     # Batch learning parameters
     seq_len = 64  # int(n_fit/10)
