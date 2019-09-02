@@ -48,7 +48,7 @@ class LSTMAutoRegressive(nn.Module):
         self.lstm2 = nn.LSTMCell(self.n_hidden_1, self.n_hidden_2)
         self.linear = nn.Linear(self.n_hidden_2, self.n_output)
 
-    def forward(self, input, delayed_output):
+    def forward(self, input, delayed_output): # future=... to predict in the future!
         batch_size = input.size(0)
         outputs = []
         h_t = torch.zeros(batch_size, self.n_hidden_1)#, dtype=torch.double)
@@ -69,7 +69,7 @@ class LSTMAutoRegressive(nn.Module):
         return outputs
 
 
-    def forward_sim(self, input):
+    def forward_sim(self, input, delayed_output_t=None):
         batch_size = input.size(0)
         outputs = []
         h_t = torch.zeros(batch_size, self.n_hidden_1)#, dtype=torch.double)
@@ -77,7 +77,9 @@ class LSTMAutoRegressive(nn.Module):
         h_t2 = torch.zeros(batch_size, self.n_hidden_2)#, dtype=torch.double)
         c_t2 = torch.zeros(batch_size, self.n_hidden_2)#, dtype=torch.double)
 
-        delayed_output_t = torch.zeros(batch_size, self.n_output)
+        if delayed_output_t is None:
+            delayed_output_t = torch.zeros(batch_size, self.n_output)
+
         seq_len = input.size(1)
         for t in range(seq_len): #, input_t in enumerate(input.chunk(input.size(1), dim=1)):
             input_t = input[:, t, :]

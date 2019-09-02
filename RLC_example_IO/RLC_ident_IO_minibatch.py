@@ -42,7 +42,7 @@ if __name__ == '__main__':
     n_max = np.max((n_a, n_b)) # delay
 
     # Batch learning parameters
-    seq_len = 128  # int(n_fit/10)
+    seq_len = 32  # int(n_fit/10)
     batch_size = (n_fit - n_a) // seq_len
 
     std_noise_V = 0.0 * 5.0
@@ -90,12 +90,24 @@ if __name__ == '__main__':
         batch_y_seq = phi_fit_y_torch[batch_s]
         batch_u_seq = phi_fit_u_torch[batch_s]
         #batch_t = torch.stack([time_torch_fit[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
-        batch_y_meas = y_meas_fit_torch[batch_idx]#torch.stack([y_meas_fit_torch[batch_s[i]:batch_s[i] + seq_len] for i in range(batch_size)], dim=0)
-        batch_u = u_fit_torch[batch_idx] # torch.stack([u_fit_torch[batch_s[i]:batch_s[i] + seq_len] for i in range(batch_size)], dim=0)
+        batch_y_meas = torch.tensor(y_meas_fit[batch_idx]) #torch.stack([y_meas_fit_torch[batch_s[i]:batch_s[i] + seq_len] for i in range(batch_size)], dim=0)
+        batch_u = torch.tensor(u_fit[batch_idx]) # torch.stack([u_fit_torch[batch_s[i]:batch_s[i] + seq_len] for i in range(batch_size)], dim=0)
 
         return batch_u, batch_y_meas, batch_y_seq, batch_u_seq, batch_s
 
 
+    def get_sequential_batch(seq_len):
+        num_train_samples = y_meas_fit_torch.shape[0]
+        batch_size = num_train_samples//seq_len
+        batch_s = np.arange(0, batch_size, dtype=np.int64) * seq_len
+        batch_idx = batch_s[:,np.newaxis] + np.arange(seq_len) # batch all indices
+        batch_y_seq = phi_fit_y_torch[batch_s]
+        batch_u_seq = phi_fit_u_torch[batch_s]
+        #batch_t = torch.stack([time_torch_fit[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
+        batch_y_meas = torch.tensor(y_meas_fit[batch_idx]) #torch.stack([y_meas_fit_torch[batch_s[i]:batch_s[i] + seq_len] for i in range(batch_size)], dim=0)
+        batch_u = torch.tensor(u_fit[batch_idx]) # torch.stack([u_fit_torch[batch_s[i]:batch_s[i] + seq_len] for i in range(batch_size)], dim=0)
+
+        return batch_u, batch_y_meas, batch_y_seq, batch_u_seq, batch_s
 
     with torch.no_grad():
         batch_u, batch_y_meas, batch_y_seq, batch_u_seq, batch_s = get_batch(batch_size, seq_len)

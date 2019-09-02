@@ -14,8 +14,9 @@ if __name__ == '__main__':
     np.random.seed(42)
     # Input characteristics #
     len_sim = 5e-3
-    Ts = 2e-7
-    
+    #Ts = 2e-7
+    Ts = 5e-7
+
     omega_input = 150e3 # input power spectrum - cutoff frequency
     std_input = 80 # input power spectrum - amplitude
     
@@ -113,4 +114,4 @@ if __name__ == '__main__':
     COL = COL_T + COL_X + COL_U + COL_Y
     df_X = pd.DataFrame(X, columns=COL)
 
-    #df_X.to_csv(os.path.join("data", "RLC_data_sat_FE.csv"), index=False)
+    df_X.to_csv(os.path.join("data", "RLC_data_sat_FE.csv"), index=False)
