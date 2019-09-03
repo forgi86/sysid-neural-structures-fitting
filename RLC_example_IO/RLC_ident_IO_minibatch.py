@@ -16,6 +16,9 @@ from torchid.iomodels import NeuralIOModel
 
 if __name__ == '__main__':
 
+    np.random.seed(0)
+    torch.manual_seed(0)
+
     COL_T = ['time']
     COL_X = ['V_C', 'I_L']
     COL_U = ['V_IN']
@@ -26,7 +29,7 @@ if __name__ == '__main__':
     #y = np.array(df_X[COL_Y], dtype=np.float32)
     x = np.array(df_X[COL_X], dtype=np.float32)
     u = np.array(df_X[COL_U], dtype=np.float32)
-    y_var_idx = 1 # 0: voltage 1: current
+    y_var_idx = 0 # 0: voltage 1: current
 
     y = np.copy(x[:, [y_var_idx]])
 
@@ -42,7 +45,7 @@ if __name__ == '__main__':
     n_max = np.max((n_a, n_b)) # delay
 
     # Batch learning parameters
-    seq_len = 32  # int(n_fit/10)
+    seq_len = 64  # int(n_fit/10) 32 seems to work :)
     batch_size = (n_fit - n_a) // seq_len
 
     std_noise_V = 0.0 * 5.0
@@ -117,6 +120,7 @@ if __name__ == '__main__':
         loss_scale = np.float32(loss)
 
     ii = 0
+    LOSS = []
     for itr in range(0, num_iter):
         optimizer.zero_grad()
 
@@ -142,7 +146,8 @@ if __name__ == '__main__':
                 #loss = torch.mean((err) ** 2)  # torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
                 print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
                 ii += 1
-        end = time.time()
+        LOSS.append(loss.item())
+
 
     if not os.path.exists("models"):
         os.makedirs("models")

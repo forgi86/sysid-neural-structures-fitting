@@ -74,6 +74,7 @@ if __name__ == '__main__':
     # In[plot]
     fig, ax = plt.subplots(3,1, figsize=(10,10), sharex=True)
     ax[0].plot(t_sim, x2[:,0],'b')
+    ax[0].plot(t_sim, x2[:,0],'b*')
     ax[0].plot(t_sim, x2_noise[:,0],'r')
 
     ax[0].set_xlabel('time (s')
@@ -81,6 +82,7 @@ if __name__ == '__main__':
     
 #    ax[1].plot(t_sim, x1[:,1],'b')
     ax[1].plot(t_sim, x2[:,1],'b')
+    ax[1].plot(t_sim, x2[:,1],'b*')
     ax[1].plot(t_sim, x2_noise[:,1],'r')
     ax[1].set_xlabel('time (s)')
     ax[1].set_ylabel('Inductor current (A)')

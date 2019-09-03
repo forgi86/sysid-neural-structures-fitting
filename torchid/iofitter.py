@@ -7,7 +7,6 @@ class NeuralIOSimulator():
     def __init__(self, io_model):
         self.io_model = io_model
 
-
     def f_onestep(self, PHI):
         Y_pred = self.io_model(PHI)
         return Y_pred

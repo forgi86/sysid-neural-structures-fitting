@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import numpy as np
 
+
 class NeuralIOModel(nn.Module):
     def __init__(self, n_a, n_b, n_feat=64):
         super(NeuralIOModel, self).__init__()
@@ -21,7 +22,7 @@ class NeuralIOModel(nn.Module):
 
         for m in self.net.modules():
             if isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight, mean=0, std=1e-3)
+                nn.init.normal_(m.weight, mean=0, std=1e-4)
                 #nn.init.normal_(m.bias, mean=0, std=1e-3)
                 nn.init.constant_(m.bias, val=0)
 

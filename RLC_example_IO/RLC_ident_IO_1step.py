@@ -24,15 +24,18 @@ if __name__ == '__main__':
     df_X = pd.read_csv(os.path.join("data", "RLC_data_sat_FE.csv"))
 
     t = np.array(df_X[COL_T], dtype=np.float32)
-    y = np.array(df_X[COL_Y], dtype=np.float32)
+    #y = np.array(df_X[COL_Y], dtype=np.float32)
     x = np.array(df_X[COL_X], dtype=np.float32)
     u = np.array(df_X[COL_U], dtype=np.float32)
+    y_var_idx = 1 # 0: voltage 1: current
+
+    y = np.copy(x[:, [y_var_idx]])
 
     N = np.shape(y)[0]
     Ts = t[1] - t[0]
     t_fit = 2e-3
     n_fit = int(t_fit//Ts)#x.shape[0]
-    num_iter = 20000
+    num_iter = 50000
     test_freq = 100
 
     n_a = 2 # autoregressive coefficients for y
@@ -45,7 +48,7 @@ if __name__ == '__main__':
 
     x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
     x_noise = x_noise.astype(np.float32)
-    y_noise = x_noise[:,[0]]
+    y_noise = x_noise[:,[y_var_idx]]
 
     # Build fit data
     u_fit = u[0:n_fit]
@@ -81,7 +84,7 @@ if __name__ == '__main__':
 
         # Compute loss
         err = y_pred_torch - y_meas_fit_torch
-        loss = torch.mean((err)**2)
+        loss = torch.mean((err)**2)*10
 
         # Optimization step
         loss.backward()
@@ -92,9 +95,9 @@ if __name__ == '__main__':
         # Print message
         if itr % test_freq == 0:
             with torch.no_grad():
-                y_pred_torch = io_solution.f_onestep(phi_fit_torch) #func(x_true_torch, u_torch)
-                err = y_pred_torch - y_meas_fit_torch
-                loss = torch.mean((err) ** 2)  # torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
+                #y_pred_torch = io_solution.f_onestep(phi_fit_torch) #func(x_true_torch, u_torch)
+                #err = y_pred_torch - y_meas_fit_torch
+                #loss = torch.mean((err) ** 2)  # torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
                 print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
                 ii += 1
         end = time.time()
@@ -143,5 +146,3 @@ if __name__ == '__main__':
     ax[1].legend()
     ax[1].grid(True)
 
-    plt.plot(np.array(y_val_sim_torch_list.detach()))
-    plt.plot(np.array(y_val_sim_torch.detach())+1, 'r')
