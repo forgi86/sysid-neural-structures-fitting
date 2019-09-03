@@ -57,37 +57,42 @@ if __name__ == '__main__':
     io_solution = NeuralIOSimulator(io_model)
     io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_1step_nonoise.pkl")))
 
-    # Build validation data
-    n_val = N
-    u_val = u[0:n_val]
-    y_val = y[0:n_val]
-    y_meas_val = y_noise[0:n_val]
+    # In[Validate model]
+    t_val_start = 0
+    t_val_end = t[-1]
+    idx_val_start = int(t_val_start//Ts)#x.shape[0]
+    idx_val_end = int(t_val_end//Ts)#x.shape[0]
+
+    n_val = idx_val_end - idx_val_start
+    u_val = np.copy(u[idx_val_start:idx_val_end])
+    y_val = np.copy(y[idx_val_start:idx_val_end])
+    y_meas_val = np.copy(y_noise[idx_val_start:idx_val_end])
+
+    y_seq = np.array(np.flip(y_val[0:n_a].ravel()))
+    u_seq = np.array(np.flip(u_val[0:n_b].ravel()))
 
     # Neglect initial values
-    y_val = y_val[n_max:, :]
-    y_meas_val = y_meas_val[n_max:, :]
+    y_val = y_val[n_max:,:]
+    y_meas_val = y_meas_val[n_max:,:]
     u_val = u_val[n_max:, :]
 
     y_meas_val_torch = torch.tensor(y_meas_val)
 
     with torch.no_grad():
-        y_seq = np.array(np.flip(y_val[0:n_a].ravel()))
         y_seq_torch = torch.tensor(y_seq)
-
-        u_seq = np.array(np.flip(u_val[0:n_b].ravel()))
         u_seq_torch = torch.tensor(u_seq)
 
-        u_torch = torch.tensor(u_val[n_max:, :])
+        u_torch = torch.tensor(u_val)
         y_val_sim_torch = io_solution.f_sim(y_seq_torch, u_seq_torch, u_torch)
 
-        err_val = y_val_sim_torch - y_meas_val_torch[n_max:, :]
-        loss_val = torch.mean((err_val) ** 2)
+        err_val = y_val_sim_torch - y_meas_val_torch
+        loss_val =  torch.mean((err_val)**2)
 
     # In[Plot]
     y_val_sim = np.array(y_val_sim_torch)
-    fig, ax = plt.subplots(2, 1, sharex=True)
+    fig,ax = plt.subplots(2,1, sharex=True)
     ax[0].plot(y_val, 'b', label='True')
-    ax[0].plot(y_val_sim, 'r', label='Sim')
+    ax[0].plot(y_val_sim, 'r',  label='Sim')
     ax[0].legend()
     ax[0].grid(True)
 

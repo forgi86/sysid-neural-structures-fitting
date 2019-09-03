@@ -27,7 +27,7 @@ if __name__ == '__main__':
     #y = np.array(df_X[COL_Y], dtype=np.float32)
     x = np.array(df_X[COL_X], dtype=np.float32)
     u = np.array(df_X[COL_U], dtype=np.float32)
-    y_var_idx = 1 # 0: voltage 1: current
+    y_var_idx = 0 # 0: voltage 1: current
 
     y = np.copy(x[:, [y_var_idx]])
 
@@ -35,14 +35,14 @@ if __name__ == '__main__':
     Ts = t[1] - t[0]
     t_fit = 2e-3
     n_fit = int(t_fit//Ts)#x.shape[0]
-    num_iter = 50000
+    num_iter = 40000
     test_freq = 100
 
     n_a = 2 # autoregressive coefficients for y
     n_b = 2 # autoregressive coefficients for u
     n_max = np.max((n_a, n_b)) # delay
 
-    std_noise_V =  0.0 * 5.0
+    std_noise_V = 0.0 * 5.0
     std_noise_I = 0.0 * 0.5
     std_noise = np.array([std_noise_V, std_noise_I])
 
@@ -84,7 +84,7 @@ if __name__ == '__main__':
 
         # Compute loss
         err = y_pred_torch - y_meas_fit_torch
-        loss = torch.mean((err)**2)*10
+        loss = torch.mean((err)**2)
 
         # Optimization step
         loss.backward()
@@ -106,39 +106,46 @@ if __name__ == '__main__':
     if not os.path.exists("models"):
         os.makedirs("models")
     
-    torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_1step_noise.pkl"))
+    torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_1step_nonoise.pkl"))
 
 
-    # Build validation data
-    n_val = N
-    u_val = u[0:n_val]
-    y_val = y[0:n_val]
-    y_meas_val = y_noise[0:n_val]
+
+    # In[Validate model]
+    t_val_start = 0
+    t_val_end = t[-1]
+    idx_val_start = int(t_val_start//Ts)#x.shape[0]
+    idx_val_end = int(t_val_end//Ts)#x.shape[0]
+
+    n_val = idx_val_end - idx_val_start
+    u_val = np.copy(u[idx_val_start:idx_val_end])
+    y_val = np.copy(y[idx_val_start:idx_val_end])
+    y_meas_val = np.copy(y_noise[idx_val_start:idx_val_end])
+
+    y_seq = np.array(np.flip(y_val[0:n_a].ravel()))
+    u_seq = np.array(np.flip(u_val[0:n_b].ravel()))
 
     # Neglect initial values
     y_val = y_val[n_max:,:]
     y_meas_val = y_meas_val[n_max:,:]
     u_val = u_val[n_max:, :]
 
+    y_meas_val_torch = torch.tensor(y_meas_val)
 
     with torch.no_grad():
-        y_seq = np.array(np.flip(y_val[0:n_a].ravel()))
         y_seq_torch = torch.tensor(y_seq)
-
-        u_seq = np.array(np.flip(u_val[0:n_b].ravel()))
         u_seq_torch = torch.tensor(u_seq)
 
-        u_torch = torch.tensor(u_val[n_max:,:])
-
-        time_start = time.time()
+        u_torch = torch.tensor(u_val)
         y_val_sim_torch = io_solution.f_sim(y_seq_torch, u_seq_torch, u_torch)
-        time_sim = time.time() - time_start
+
+        err_val = y_val_sim_torch - y_meas_val_torch
+        loss_val =  torch.mean((err_val)**2)
 
     # In[Plot]
     y_val_sim = np.array(y_val_sim_torch)
     fig,ax = plt.subplots(2,1, sharex=True)
-    ax[0].plot(y_val[n_max:,0], 'b', label='True')
-    ax[0].plot(y_val_sim[:,0], 'r',  label='Sim')
+    ax[0].plot(y_val, 'b', label='True')
+    ax[0].plot(y_val_sim, 'r',  label='Sim')
     ax[0].legend()
     ax[0].grid(True)
 

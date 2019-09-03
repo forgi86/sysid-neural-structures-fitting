@@ -20,10 +20,16 @@ if __name__ == '__main__':
     torch.manual_seed(0)
 
     COL_T = ['time']
-    COL_X = ['V_C', 'I_L']
-    COL_U = ['V_IN']
-    COL_Y = ['V_C']
-    df_X = pd.read_csv(os.path.join("data", "RLC_data_sat_FE.csv"))
+    COL_Y = ['Ca']
+    COL_X = ['Ca', 'T']
+    COL_U = ['q']
+
+    df_X = pd.read_csv(os.path.join("data", "cstr.dat"), header=None, sep="\t")
+    df_X.columns = ['time', 'q', 'Ca', 'T', 'None']
+
+    df_X['q'] = df_X['q']/100
+    df_X['Ca'] = df_X['Ca']*10
+    df_X['T'] = df_X['T']/400
 
     t = np.array(df_X[COL_T], dtype=np.float32)
     #y = np.array(df_X[COL_Y], dtype=np.float32)
@@ -35,24 +41,21 @@ if __name__ == '__main__':
 
     N = np.shape(y)[0]
     Ts = t[1] - t[0]
-    t_fit = 2e-3
+    t_fit = t[-1]
     n_fit = int(t_fit//Ts)#x.shape[0]
     num_iter = 50000
     test_freq = 100
 
-    n_a = 2 # autoregressive coefficients for y
-    n_b = 2 # autoregressive coefficients for u
+    n_a = 8 # autoregressive coefficients for y
+    n_b = 8 # autoregressive coefficients for u
     n_max = np.max((n_a, n_b)) # delay
 
     # Batch learning parameters
     seq_len = 64  # int(n_fit/10) 32 seems to work :)
     batch_size = (n_fit - n_a) // seq_len
 
-    std_noise_V = 1.0 * 2.5
-    std_noise_I = 0.0 * 0.5
-    std_noise = np.array([std_noise_V, std_noise_I])
 
-    x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
+    x_noise = np.copy(x) 
     x_noise = x_noise.astype(np.float32)
     y_noise = x_noise[:,[y_var_idx]]
 
@@ -152,11 +155,12 @@ if __name__ == '__main__':
     if not os.path.exists("models"):
         os.makedirs("models")
     
-    torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_64step_2p5Vnoise.pkl"))
+    torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_64step.pkl"))
 
-    # Build validation data
-    t_val_start = 2e-3
-    t_val_end = 5e-3
+
+    # In[Validate model]
+    t_val_start = 0
+    t_val_end = t[-1]
     idx_val_start = int(t_val_start//Ts)#x.shape[0]
     idx_val_end = int(t_val_end//Ts)#x.shape[0]
 
@@ -164,6 +168,9 @@ if __name__ == '__main__':
     u_val = np.copy(u[idx_val_start:idx_val_end])
     y_val = np.copy(y[idx_val_start:idx_val_end])
     y_meas_val = np.copy(y_noise[idx_val_start:idx_val_end])
+
+    y_seq = np.array(np.flip(y_val[0:n_a].ravel()))
+    u_seq = np.array(np.flip(u_val[0:n_b].ravel()))
 
     # Neglect initial values
     y_val = y_val[n_max:,:]
@@ -173,16 +180,13 @@ if __name__ == '__main__':
     y_meas_val_torch = torch.tensor(y_meas_val)
 
     with torch.no_grad():
-        y_seq = np.array(np.flip(y_val[0:n_a].ravel()))
         y_seq_torch = torch.tensor(y_seq)
-
-        u_seq = np.array(np.flip(u_val[0:n_b].ravel()))
         u_seq_torch = torch.tensor(u_seq)
 
-        u_torch = torch.tensor(u_val[n_max:,:])
+        u_torch = torch.tensor(u_val)
         y_val_sim_torch = io_solution.f_sim(y_seq_torch, u_seq_torch, u_torch)
 
-        err_val = y_val_sim_torch - y_meas_val_torch[n_max:,:]
+        err_val = y_val_sim_torch - y_meas_val_torch
         loss_val =  torch.mean((err_val)**2)
 
     # In[Plot]
