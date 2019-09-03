@@ -28,14 +28,14 @@ def get_torch_regressor_mat(x, n_a):
     return X
 
 
-def get_random_batch_idx(num_train_samples, batch_size, seq_len):
-    batch_start = np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False) # batch start indices
+def get_random_batch_idx(num_samples, batch_size, seq_len):
+    batch_start = np.random.choice(np.arange(num_samples - seq_len, dtype=np.int64), batch_size, replace=False) # batch start indices
     batch_idx = batch_start[:,np.newaxis] + np.arange(seq_len) # batch all indices
     return batch_start, batch_idx
 
 
-def get_sequential_batch_idx(num_train_samples, seq_len):
-    batch_size = num_train_samples//seq_len
+def get_sequential_batch_idx(num_samples, seq_len):
+    batch_size = num_samples // seq_len
     batch_start = np.arange(0, batch_size, dtype=np.int64) * seq_len
     batch_idx = batch_start[:,np.newaxis] + np.arange(seq_len) # batch all indices
     return batch_start, batch_idx
