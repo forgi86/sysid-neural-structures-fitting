@@ -78,6 +78,22 @@ class NeuralStateSpaceSimulator():
         X_pred = torch.stack(X_pred_list, 1)#.squeeze(2)
         return X_pred
 
+    def f_sim_minibatch_transposed(self, x0_batch, U_batch):
+        batch_size = x0_batch.shape[0]
+        n_x = x0_batch.shape[1]
+        seq_len = U_batch.shape[0]
+
+        X_pred_list = []#X_pred = torch.empty((batch_size, seq_len, n_x))
+        xstep = x0_batch
+        for i in range(seq_len):
+            X_pred_list += [xstep] #X_pred[:, i, :] = xstep
+            ustep = U_batch[i, :, :]
+            dx = self.ss_model(xstep, ustep)
+            xstep = xstep + dx
+
+        X_pred = torch.stack(X_pred_list, 0)#.squeeze(2)
+        return X_pred
+
     def f_ODE(self,t,x,u):
         x = torch.tensor(x.reshape(1,-1).astype(np.float32))
         u = torch.tensor(u.reshape(1,-1).astype(np.float32))

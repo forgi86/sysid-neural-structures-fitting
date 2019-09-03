@@ -64,6 +64,7 @@ if __name__ == '__main__':
     scale_error = torch.tensor(1e2)
 
     ii = 0
+    LOSS = []
     for itr in range(1, num_iter + 1):
         def closure():
             optimizer.zero_grad()
@@ -85,7 +86,8 @@ if __name__ == '__main__':
 #                loss = torch.mean((x_pred_torch - x_true_torch) ** 2)
             print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
             ii += 1
-        end = time.time()
+        
+        LOSS.append(loss.item())
 
     if not os.path.exists("models"):
         os.makedirs("models")

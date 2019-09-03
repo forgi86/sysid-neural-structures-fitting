@@ -46,12 +46,12 @@ if __name__ == '__main__':
     num_iter = 50000
     test_freq = 100
 
-    n_a = 8 # autoregressive coefficients for y
-    n_b = 8 # autoregressive coefficients for u
+    n_a = 4 # autoregressive coefficients for y
+    n_b = 4 # autoregressive coefficients for u
     n_max = np.max((n_a, n_b)) # delay
 
     # Batch learning parameters
-    seq_len = 64  # int(n_fit/10) 32 seems to work :)
+    seq_len = 32  # int(n_fit/10) 32 seems to work :)
     batch_size = (n_fit - n_a) // seq_len
 
 
@@ -83,8 +83,8 @@ if __name__ == '__main__':
     # Initialize optimization
     io_model = NeuralIOModel(n_a=n_a, n_b=n_b, n_feat=64)
     io_solution = NeuralIOSimulator(io_model)
-    #io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_1step_nonoise.pkl")))
-    optimizer = optim.Adam(io_solution.io_model.parameters(), lr=1e-4)
+    #io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_16step.pkl")))
+    optimizer = optim.Adam(io_solution.io_model.parameters(), lr=1e-5)
     end = time.time()
     loss_meter = RunningAverageMeter(0.97)
 
@@ -155,7 +155,7 @@ if __name__ == '__main__':
     if not os.path.exists("models"):
         os.makedirs("models")
     
-    torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_64step.pkl"))
+    torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_32step.pkl"))
 
 
     # In[Validate model]
@@ -201,3 +201,9 @@ if __name__ == '__main__':
     ax[1].legend()
     ax[1].grid(True)
 
+
+    fig,ax = plt.subplots(1,1)
+    ax.plot(LOSS)
+    ax.grid(True)
+    ax.set_ylabel("Loss")
+    ax.set_xlabel("Itaration")        

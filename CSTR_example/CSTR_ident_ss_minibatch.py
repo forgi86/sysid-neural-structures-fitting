@@ -93,6 +93,7 @@ if __name__ == '__main__':
     
         
     ii = 0
+    LOSS = []
     for itr in range(0, num_iter):
 
         optimizer.zero_grad()
@@ -115,9 +116,9 @@ if __name__ == '__main__':
         loss_meter.update(loss.item())
 
 
-        end = time.time()
+        LOSS.append(loss.val())
 
-    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", "model_ss_16_from1.pkl"))
+    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", "model_ss_16step_from1.pkl"))
 
     # In[Validate model]
     t_val = time_data[-1]
