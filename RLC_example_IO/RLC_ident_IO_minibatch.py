@@ -152,7 +152,7 @@ if __name__ == '__main__':
     if not os.path.exists("models"):
         os.makedirs("models")
     
-    torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_128step_nonoise.pkl"))
+    torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_64step_nonoise.pkl"))
 
     # Build validation data
     n_val = N
