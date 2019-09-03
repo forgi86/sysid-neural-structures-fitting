@@ -90,7 +90,7 @@ if __name__ == '__main__':
     if not os.path.exists("models"):
         os.makedirs("models")
     
-    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", "model_IO_1step.pkl"))
+    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", "model_ss_1step.pkl"))
 
 
     # In[Plot]

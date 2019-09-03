@@ -10,6 +10,7 @@ import torch.optim as optim
 import time
 import matplotlib.pyplot as plt
 
+
 from torchid.ssfitter import  NeuralStateSpaceSimulator
 from torchid.util import RunningAverageMeter
 from torchid.ssmodels import NeuralStateSpaceModelLin, NeuralStateSpaceModel
@@ -44,7 +45,7 @@ if __name__ == '__main__':
     n_fit = int(t_fit//Ts)#x.shape[0]
     num_iter = 20000
     test_freq = 100    
-    seq_len = 64 #int(n_fit/10)
+    seq_len = 16 #int(n_fit/10)
     batch_size = n_fit//seq_len
 
     # Get fit data #
@@ -75,7 +76,7 @@ if __name__ == '__main__':
 #    ss_model = NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
     ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64) #NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
-    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_ss_64.pkl")))
+    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_ss_1step.pkl")))
 
     params = list(nn_solution.ss_model.parameters())
     optimizer = optim.Adam(params, lr=1e-4)
@@ -94,33 +95,20 @@ if __name__ == '__main__':
     ii = 0
     for itr in range(0, num_iter):
 
-
-        if  itr > 0 and itr % test_freq == 0:
-            with torch.no_grad():
-                #x_pred_torch = nn_solution.f_OE(x0_torch, u_torch_fit)
-                #loss = torch.mean(torch.abs(x_pred_torch - x_meas_torch_fit))
-                print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
-                ii += 1
-
         optimizer.zero_grad()
         batch_t, batch_x0, batch_u, batch_x = get_batch(batch_size, seq_len)
-        #batch_size = 256
-        #N = x_true_torch_fit.shape[0]
-        #N = int(N // batch_size) * batch_size
-        #seq_len = int(N // batch_size)
-        #batch_x = x_true_torch_fit[0:N].view(batch_size, seq_len, -1)
-        #batch_u = u_torch_fit[0:N].view(batch_size, seq_len, -1)
-        #batch_x0 = batch_x[:, 0, :]
-
         batch_x_pred = nn_solution.f_sim_minibatch(batch_x0, batch_u)
-#        err = torch.abs(batch_x[:, 1:, :] - batch_x_pred[:, 1:, :])
-#        err[:,:,1] = err[:,:,1]*100.0
-#        loss = torch.mean(err)
         err = batch_x[:,0:,:] - batch_x_pred[:,0:,:]
         err_scaled = err  
-        loss = torch.mean(err_scaled**2)/loss_scale
-#        loss = torch.mean((batch_x[:,1:,:] - batch_x_pred[:,1:,:])**2) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
-        loss.backward()
+        loss = torch.mean(err_scaled**2)
+        loss_sc = loss/loss_scale
+
+        if itr % test_freq == 0:
+            with torch.no_grad():
+                print('Iter {:04d} | Loss {:.6f}, Scaled Loss {:.6f}'.format(itr, loss.item(), loss_sc.item()))
+                ii += 1
+                
+        loss_sc.backward()
         optimizer.step()
 
         time_meter.update(time.time() - end)
@@ -129,7 +117,7 @@ if __name__ == '__main__':
 
         end = time.time()
 
-    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", "model_ss_64.pkl"))
+    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", "model_ss_16_from1.pkl"))
 
     # In[Validate model]
     t_val = time_data[-1]
