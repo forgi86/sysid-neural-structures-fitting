@@ -155,10 +155,15 @@ if __name__ == '__main__':
     torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_64step_nonoise.pkl"))
 
     # Build validation data
-    n_val = N
-    u_val = u[0:n_val]
-    y_val = y[0:n_val]
-    y_meas_val = y_noise[0:n_val]
+    t_val_start = 2e-3
+    t_val_end = 5e-3
+    idx_val_start = int(t_val_start//Ts)#x.shape[0]
+    idx_val_end = int(t_val_end//Ts)#x.shape[0]
+
+    n_val = idx_val_end - idx_val_start
+    u_val = np.copy(u[idx_val_start:idx_val_end])
+    y_val = np.copy(y[idx_val_start:idx_val_end])
+    y_meas_val = np.copy(y_noise[idx_val_start:idx_val_end])
 
     # Neglect initial values
     y_val = y_val[n_max:,:]
