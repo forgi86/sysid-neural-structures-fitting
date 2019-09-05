@@ -51,7 +51,6 @@ if __name__ == '__main__':
     #nn_solution.load_state_dict(torch.load(os.path.join("models", "model_ARX_FE_sat.pkl")))
 
     optimizer = optim.Adam(nn_solution.ss_model.parameters(), lr=1e-4)
-    end = time.time()
     time_meter = RunningAverageMeter(0.97)
     loss_meter = RunningAverageMeter(0.97)
     
@@ -59,7 +58,10 @@ if __name__ == '__main__':
     scale_error = scale_error/np.sum(scale_error)
     scale_error = torch.tensor(scale_error.astype(np.float32))
 
+    LOSS = []
     ii = 0
+
+    start_time = time.time()
     for itr in range(1, num_iter + 1):
         optimizer.zero_grad()
         x_pred_torch = nn_solution.f_onestep(x_true_torch, u_torch)
@@ -73,18 +75,21 @@ if __name__ == '__main__':
         time_meter.update(time.time() - end)
         loss_meter.update(loss.item())
 
+        LOSS.append(loss.item())
+        
         if itr % test_freq == 0:
             with torch.no_grad():
                 x_pred_torch = nn_solution.f_onestep(x_true_torch, u_torch) #func(x_true_torch, u_torch)
                 loss = torch.mean((x_pred_torch - x_true_torch) ** 2)
                 print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
                 ii += 1
-        end = time.time()
+    
+    train_time = time.time() - start_time
 
     if not os.path.exists("models"):
         os.makedirs("models")
     
-    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", "model_ARX_FE_sat_nonoise.pkl"))
+    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", "model_ss_1step.pkl"))
 
     x_0 = state_data[0,:]
 

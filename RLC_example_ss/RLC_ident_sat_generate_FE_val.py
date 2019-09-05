@@ -2,6 +2,7 @@ from scipy.integrate import solve_ivp
 from scipy.interpolate import interp1d
 import numpy as np
 import matplotlib.pyplot as plt
+import control
 import control.matlab
 import pandas as pd
 import os
@@ -15,8 +16,12 @@ if __name__ == '__main__':
     len_sim = 5e-3
     Ts = 2e-7
     
-    omega_input = 150e3
-    std_input = 50
+    omega_input = 50e3 # input power spectrum - cutoff frequency
+    std_input = 120 # input power spectrum - amplitude
+    
+    std_noise_V = 10
+    std_noise_I = 1
+    std_noise = np.array([std_noise_V, std_noise_I])
     
     tau_input = 1/omega_input
     Hu = control.TransferFunction([1], [1 / omega_input, 1])
@@ -44,25 +49,38 @@ if __name__ == '__main__':
         u = u_func(t).ravel()
         return fxu_ODE_mod(t, x, u)
 
-
+    # In[Integrate]
     x0 = np.zeros(2)
-    f_ODE(0.0,x0)
     t_span = (t_sim[0],t_sim[-1])
-    y1 = solve_ivp(f_ODE, t_span, x0, t_eval = t_sim)
-    y2 = solve_ivp(f_ODE_mod, t_span, x0, t_eval = t_sim)
+
+    x1 = np.empty((len(t_sim), x0.shape[0]))
+    x2 = np.empty((len(t_sim), x0.shape[0]))
+
+    x1step = np.copy(x0)
+    x2step = np.copy(x0)
+    for idx in range(len(t_sim)):
+        time = t_sim[idx]
+        x1[idx,:] = x1step
+        x2[idx,:] = x2step
+        x1step += f_ODE(time, x1step)*Ts
+        x2step += f_ODE_mod(time, x2step)*Ts
     
-    x1 = y1.y.T
-    x2 = y2.y.T
+    
+    # In[Add noise]
+    x1_noise = np.copy(x1) + np.random.randn(*x1.shape)*std_noise
+    x2_noise = np.copy(x2) + np.random.randn(*x2.shape)*std_noise
     
     # In[plot]
     fig, ax = plt.subplots(3,1, figsize=(10,10), sharex=True)
-    ax[0].plot(t_sim, x1[:,0],'b')
-    ax[0].plot(t_sim, x2[:,0],'r*')
+    ax[0].plot(t_sim, x2[:,0],'b')
+    ax[0].plot(t_sim, x2_noise[:,0],'r')
+
     ax[0].set_xlabel('time (s')
     ax[0].set_ylabel('Capacitor voltage (V)')
     
-    ax[1].plot(t_sim, x1[:,1],'b')
-    ax[1].plot(t_sim, x2[:,1],'r')
+#    ax[1].plot(t_sim, x1[:,1],'b')
+    ax[1].plot(t_sim, x2[:,1],'b')
+    ax[1].plot(t_sim, x2_noise[:,1],'r')
     ax[1].set_xlabel('time (s)')
     ax[1].set_ylabel('Inductor current (A)')
     
@@ -74,6 +92,10 @@ if __name__ == '__main__':
     ax[1].grid(True)
     ax[2].grid(True)
 
+    # In[Save]
+    if not os.path.exists("data"):
+        os.makedirs("data")
+
     X = np.hstack((t_sim.reshape(-1, 1), x1, u.reshape(-1, 1), x1[:, 0].reshape(-1, 1)))
     COL_T = ['time']
     COL_X = ['V_C', 'I_L']
@@ -81,7 +103,7 @@ if __name__ == '__main__':
     COL_Y = ['V_C']
     COL = COL_T + COL_X + COL_U + COL_Y
     df_X = pd.DataFrame(X, columns=COL)
-    df_X.to_csv("RLC_data.csv", index=False)
+    df_X.to_csv(os.path.join("data", "RLC_data_FE.csv"), index=False)
 
     X = np.hstack((t_sim.reshape(-1, 1), x2, u.reshape(-1, 1), x2[:, 0].reshape(-1, 1)))
     COL_T = ['time']
@@ -90,4 +112,5 @@ if __name__ == '__main__':
     COL_Y = ['V_C']
     COL = COL_T + COL_X + COL_U + COL_Y
     df_X = pd.DataFrame(X, columns=COL)
-    df_X.to_csv("RLC_data_sat.csv", index=False)
+
+    df_X.to_csv(os.path.join("data", "RLC_data_sat_FE_val.csv"), index=False)

@@ -2,7 +2,6 @@ from scipy.integrate import solve_ivp
 from scipy.interpolate import interp1d
 import numpy as np
 import matplotlib.pyplot as plt
-import control
 import control.matlab
 import pandas as pd
 import os

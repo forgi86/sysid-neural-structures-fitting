@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
 
     # Predict batch data
-    seq_len = 16
+    seq_len = 256
     batch_start, batch_idx = get_sequential_batch_idx(y_val.shape[0], seq_len)
     batch_time = torch.tensor(time_val[batch_idx])  # torch.stack([time_torch_fit[batch_start[i]:batch_start[i] + seq_len] for i in range(batch_size)], dim=0)
     batch_x0 = torch.tensor(x_val[batch_start])  # x_meas_torch_fit[batch_start, :]  # (M, D)
