@@ -28,8 +28,8 @@ if __name__ == '__main__':
     u = np.array(df_X[COL_U],dtype=np.float32)
     x0_torch = torch.from_numpy(x[0,:])
 
-    std_noise_V = 0.0 * 5.0
-    std_noise_I = 0.0 * 0.5
+    std_noise_V = 1.0 * 5.0
+    std_noise_I = 1.0 * 0.5
     std_noise = np.array([std_noise_V, std_noise_I])
 
     x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
@@ -51,8 +51,6 @@ if __name__ == '__main__':
     #nn_solution.load_state_dict(torch.load(os.path.join("models", "model_ARX_FE_sat.pkl")))
 
     optimizer = optim.Adam(nn_solution.ss_model.parameters(), lr=1e-4)
-    time_meter = RunningAverageMeter(0.97)
-    loss_meter = RunningAverageMeter(0.97)
     
     scale_error = 1./np.std(x_noise, axis=0)
     scale_error = scale_error/np.sum(scale_error)
@@ -72,9 +70,6 @@ if __name__ == '__main__':
         loss.backward()
         optimizer.step()
 
-        time_meter.update(time.time() - end)
-        loss_meter.update(loss.item())
-
         LOSS.append(loss.item())
         
         if itr % test_freq == 0:
@@ -89,7 +84,7 @@ if __name__ == '__main__':
     if not os.path.exists("models"):
         os.makedirs("models")
     
-    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", "model_ss_1step.pkl"))
+    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", "model_ss_1step_noise.pkl"))
 
     x_0 = state_data[0,:]
 
@@ -113,3 +108,10 @@ if __name__ == '__main__':
     ax[1].legend()
     ax[0].grid(True)
     ax[1].grid(True)
+
+
+    fig,ax = plt.subplots(1,1)
+    ax.plot(LOSS)
+    ax.grid(True)
+    ax.set_ylabel("Loss (-)")
+    ax.set_xlabel("Iteration (-)")
