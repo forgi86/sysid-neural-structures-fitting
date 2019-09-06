@@ -17,7 +17,7 @@ if __name__ == '__main__':
     COL_X = ['V_C', 'I_L']
     COL_U = ['V_IN']
     COL_Y = ['V_C']
-    df_X = pd.read_csv(os.path.join("data", "RLC_data_sat_FE.csv"))
+    df_X = pd.read_csv(os.path.join("data", "model_ss_1step_noise.pkl"))
 
     time_data = np.array(df_X[COL_T], dtype=np.float32)
     # y = np.array(df_X[COL_Y], dtype=np.float32)

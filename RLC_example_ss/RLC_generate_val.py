@@ -13,10 +13,10 @@ if __name__ == '__main__':
     np.random.seed(42)
     # Input characteristics #
     len_sim = 5e-3
-    Ts = 2e-7
+    Ts = 5e-7
     
-    omega_input = 150e3
-    std_input = 50
+    omega_input = 70e3
+    std_input = 100
     
     tau_input = 1/omega_input
     Hu = control.TransferFunction([1], [1 / omega_input, 1])
@@ -57,8 +57,8 @@ if __name__ == '__main__':
     # In[plot]
     fig, ax = plt.subplots(3,1, figsize=(10,10), sharex=True)
     ax[0].plot(t_sim, x1[:,0],'b')
-    ax[0].plot(t_sim, x2[:,0],'r*')
-    ax[0].set_xlabel('time (s')
+    ax[0].plot(t_sim, x2[:,0],'r')
+    ax[0].set_xlabel('time (s)')
     ax[0].set_ylabel('Capacitor voltage (V)')
     
     ax[1].plot(t_sim, x1[:,1],'b')
@@ -74,6 +74,10 @@ if __name__ == '__main__':
     ax[1].grid(True)
     ax[2].grid(True)
 
+    # In[Save]
+    if not os.path.exists("data"):
+        os.makedirs("data")
+
     X = np.hstack((t_sim.reshape(-1, 1), x1, u.reshape(-1, 1), x1[:, 0].reshape(-1, 1)))
     COL_T = ['time']
     COL_X = ['V_C', 'I_L']
@@ -81,7 +85,8 @@ if __name__ == '__main__':
     COL_Y = ['V_C']
     COL = COL_T + COL_X + COL_U + COL_Y
     df_X = pd.DataFrame(X, columns=COL)
-    df_X.to_csv("RLC_data.csv", index=False)
+#    df_X.to_csv(os.path.join("data", "RLC_data_id.csv"), index=False)
+
 
     X = np.hstack((t_sim.reshape(-1, 1), x2, u.reshape(-1, 1), x2[:, 0].reshape(-1, 1)))
     COL_T = ['time']
@@ -90,4 +95,4 @@ if __name__ == '__main__':
     COL_Y = ['V_C']
     COL = COL_T + COL_X + COL_U + COL_Y
     df_X = pd.DataFrame(X, columns=COL)
-    df_X.to_csv("RLC_data_sat.csv", index=False)
+    df_X.to_csv(os.path.join("data", "RLC_data_val.csv"), index=False)

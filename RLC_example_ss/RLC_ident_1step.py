@@ -20,7 +20,7 @@ if __name__ == '__main__':
     COL_U = ['V_IN']
     COL_Y = ['V_C']
 
-    df_X = pd.read_csv(os.path.join("data", "RLC_data_sat_FE.csv"))
+    df_X = pd.read_csv(os.path.join("data", "RLC_data_id.csv"))
 
     time_data = np.array(df_X[COL_T], dtype=np.float32)
     y = np.array(df_X[COL_Y],dtype=np.float32)
@@ -28,8 +28,8 @@ if __name__ == '__main__':
     u = np.array(df_X[COL_U],dtype=np.float32)
     x0_torch = torch.from_numpy(x[0,:])
 
-    std_noise_V = 1.0 * 5.0
-    std_noise_I = 1.0 * 0.5
+    std_noise_V = 0.0 * 5.0
+    std_noise_I = 0.0 * 0.5
     std_noise = np.array([std_noise_V, std_noise_I])
 
     x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     Ts = time_data[1] - time_data[0]
     t_fit = 2e-3
     n_fit = int(t_fit//Ts)#x.shape[0]
-    num_iter = 20000
+    num_iter = 30000
     test_freq = 100
 
     input_data = u[0:n_fit]
@@ -51,40 +51,44 @@ if __name__ == '__main__':
     #nn_solution.load_state_dict(torch.load(os.path.join("models", "model_ARX_FE_sat.pkl")))
 
     optimizer = optim.Adam(nn_solution.ss_model.parameters(), lr=1e-4)
-    
-    scale_error = 1./np.std(x_noise, axis=0)
-    scale_error = scale_error/np.sum(scale_error)
-    scale_error = torch.tensor(scale_error.astype(np.float32))
+
+
+    with torch.no_grad():
+        x_pred_torch = nn_solution.f_onestep(x_true_torch, u_torch)
+        err_init = x_pred_torch - x_true_torch
+        scale_error = torch.sqrt(torch.mean((err_init)**2,dim=0)) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
+
 
     LOSS = []
     ii = 0
 
     start_time = time.time()
-    for itr in range(1, num_iter + 1):
+    for itr in range(0, num_iter):
         optimizer.zero_grad()
         x_pred_torch = nn_solution.f_onestep(x_true_torch, u_torch)
         err = x_pred_torch - x_true_torch
-        err_scaled = err * scale_error
+        err_scaled = err / scale_error
         loss = torch.mean((err_scaled)**2) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
+
+        if itr % test_freq == 0:
+            with torch.no_grad():
+                #x_pred_torch = nn_solution.f_onestep(x_true_torch, u_torch) #func(x_true_torch, u_torch)
+                #loss = torch.mean((x_pred_torch - x_true_torch) ** 2)
+                print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
+                ii += 1
 
         loss.backward()
         optimizer.step()
 
         LOSS.append(loss.item())
         
-        if itr % test_freq == 0:
-            with torch.no_grad():
-                x_pred_torch = nn_solution.f_onestep(x_true_torch, u_torch) #func(x_true_torch, u_torch)
-                loss = torch.mean((x_pred_torch - x_true_torch) ** 2)
-                print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
-                ii += 1
-    
+
     train_time = time.time() - start_time
 
     if not os.path.exists("models"):
         os.makedirs("models")
     
-    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", "model_ss_1step_noise.pkl"))
+    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", "model_ss_1step_nonoise.pkl"))
 
     x_0 = state_data[0,:]
 
@@ -110,8 +114,10 @@ if __name__ == '__main__':
     ax[1].grid(True)
 
 
-    fig,ax = plt.subplots(1,1)
+    fig,ax = plt.subplots(1,1, figsize=(5,4))
     ax.plot(LOSS)
     ax.grid(True)
     ax.set_ylabel("Loss (-)")
     ax.set_xlabel("Iteration (-)")
+    fig_name = "RLC_SS_loss_1step_nonoise.pdf"
+    fig.savefig(fig_name, bbox_inches='tight')

@@ -17,8 +17,8 @@ if __name__ == '__main__':
     COL_X = ['V_C', 'I_L']
     COL_U = ['V_IN']
     COL_Y = ['V_C']
-#    df_X = pd.read_csv(os.path.join("data", "RLC_data_sat_FE.csv"))
-    df_X = pd.read_csv(os.path.join("data", "RLC_data_sat_FE.csv"))
+    df_X = pd.read_csv(os.path.join("data", "RLC_data_val.csv"))
+#    df_X = pd.read_csv(os.path.join("data", "RLC_data_id.csv"))
 
     time_data = np.array(df_X[COL_T], dtype=np.float32)
     # y = np.array(df_X[COL_Y], dtype=np.float32)
@@ -46,7 +46,10 @@ if __name__ == '__main__':
     # Initialize optimization
     ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64) #NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
-    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_ss_1step_noise.pkl")))
+
+    #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_ss_1step_nonoise.pkl")))
+    #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_ss_1step_noise.pkl")))
+    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_minibatch_128_noise.pkl")))
 
 
     # In[Validate model]
@@ -96,5 +99,5 @@ if __name__ == '__main__':
     ax[1].set_ylabel("Inductor Current (A)")
     ax[1].set_ylim([-20, 20])
 
-    fig_name = f"RLC_SS_id_noise.pdf"
+    fig_name = "RLC_SS_val_128step_noise.pdf"
     fig.savefig(fig_name, bbox_inches='tight')
