@@ -28,8 +28,8 @@ if __name__ == '__main__':
     u = np.array(df_X[COL_U],dtype=np.float32)
     x0_torch = torch.from_numpy(x[0,:])
 
-    std_noise_V = 0.0 * 5.0
-    std_noise_I = 0.0 * 0.5
+    std_noise_V = 0.0 * 10.0
+    std_noise_I = 0.0 * 1.0
     std_noise = np.array([std_noise_V, std_noise_I])
 
     x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
