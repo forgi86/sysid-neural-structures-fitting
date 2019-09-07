@@ -1,16 +1,12 @@
 import pandas as pd
 import numpy as np
 import torch
-import torch.optim as optim
-import time
 import matplotlib.pyplot as plt
 import os
 import sys
-import scipy.linalg
 
 sys.path.append(os.path.join(".."))
 from torchid.iofitter import NeuralIOSimulator
-from torchid.util import RunningAverageMeter
 from torchid.iomodels import NeuralIOModel
 
 if __name__ == '__main__':
@@ -55,7 +51,7 @@ if __name__ == '__main__':
     # Initialize optimization
     io_model = NeuralIOModel(n_a=n_a, n_b=n_b, n_feat=64)
     io_solution = NeuralIOSimulator(io_model)
-    io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_1step_nonoise.pkl")))
+    io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_128step_noise.pkl")))
 
     # In[Validate model]
     t_val_start = 0

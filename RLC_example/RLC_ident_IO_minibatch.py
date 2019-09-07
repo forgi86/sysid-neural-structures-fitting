@@ -148,13 +148,12 @@ if __name__ == '__main__':
                 print('Iter {:04d} | Loss {:.6f}, Scaled Loss {:.6f}'.format(itr, loss.item(), loss_sc.item()))
                 ii += 1
         LOSS.append(loss_sc.item())
+    train_time = time.time() - start_time
 
 
     if not os.path.exists("models"):
         os.makedirs("models")
-    
-    torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_64step_2p5Vnoise.pkl"))
-    train_time = time.time() - start_time
+    torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_128step_noise.pkl"))
 
     # Build validation data
     t_val_start = 2e-3
