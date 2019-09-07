@@ -186,6 +186,9 @@ if __name__ == '__main__':
         err_val = y_val_sim_torch - y_meas_val_torch[n_max:,:]
         loss_val =  torch.mean((err_val)**2)
 
+    if not os.path.exists("fig"):
+        os.makedirs("fig")
+
     # In[Plot]
     y_val_sim = np.array(y_val_sim_torch)
     fig,ax = plt.subplots(2,1, sharex=True)
@@ -204,6 +207,6 @@ if __name__ == '__main__':
     ax.set_ylabel("Loss (-)")
     ax.set_xlabel("Iteration (-)")
     fig_name = "RLC_IO_loss_128step_noise.pdf"
-    fig.savefig(fig_name, bbox_inches='tight')
+    fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')
 
 
