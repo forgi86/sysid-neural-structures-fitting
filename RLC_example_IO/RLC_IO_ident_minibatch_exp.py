@@ -47,7 +47,7 @@ if __name__ == '__main__':
     seq_len = 128  # int(n_fit/10) 32 seems to work :)
     batch_size = (n_fit - n_a) // seq_len
 
-    std_noise_V = 5.0
+    std_noise_V = 10.0
     std_noise_I = 1.0
     std_noise = np.array([std_noise_V, std_noise_I])
 
@@ -80,7 +80,7 @@ if __name__ == '__main__':
     io_model = NeuralIOModel(n_a=n_a, n_b=n_b, n_feat=64)
     io_solution = NeuralIOSimulator(io_model)
     #io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_1step_nonoise.pkl")))
-    optimizer = optim.Adam(io_solution.io_model.parameters(), lr=2e-4)
+    optimizer = optim.Adam(io_solution.io_model.parameters(), lr=1e-3)
     end = time.time()
     loss_meter = RunningAverageMeter(0.97)
 
@@ -126,6 +126,8 @@ if __name__ == '__main__':
 
         # Predict
         batch_u, batch_y_meas, batch_y_seq, batch_u_seq, batch_s = get_batch(batch_size, seq_len)
+        #batch_u, batch_y_meas, batch_y_seq, batch_u_seq, batch_s = get_sequential_batch(seq_len)
+
         batch_y_pred = io_solution.f_sim_minibatch(batch_u, batch_y_seq, batch_u_seq)
 
         # Compute loss

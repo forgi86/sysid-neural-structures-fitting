@@ -31,8 +31,8 @@ if __name__ == '__main__':
     Ts = t[1] - t[0]
     t_fit = 2e-3
     n_fit = int(t_fit//Ts)#x.shape[0]
-    num_iter = 1000# 40000
-    test_freq = 100
+    num_iter = 10000
+    test_freq = 10
 
     n_a = 2 # autoregressive coefficients for y
     n_b = 2 # autoregressive coefficients for u
@@ -42,8 +42,8 @@ if __name__ == '__main__':
     seq_len = 128  # int(n_fit/10)
     batch_size = (n_fit - n_a) // seq_len
 
-    std_noise_V = 1.0 * 10.0
-    std_noise_I = 1.0 * 1.0
+    std_noise_V = 0.0 * 5.0
+    std_noise_I = 0.0 * 0.5
     std_noise = np.array([std_noise_V, std_noise_I])
 
     x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
@@ -68,7 +68,6 @@ if __name__ == '__main__':
     # To pytorch tensors
     phi_fit_u_torch = torch.tensor(phi_fit_u)
     h_fit_torch = torch.tensor(h_fit, requires_grad=True) # this is an optimization variable!
-    h_fit_torch = torch.tensor(h_fit, requires_grad=False) # this is an optimization variable!
     phi_fit_h_torch = get_torch_regressor_mat(h_fit_torch.view(-1), n_a)
     y_meas_fit_torch = torch.tensor(y_meas_fit)
     u_fit_torch = torch.tensor(u_fit)
@@ -77,7 +76,7 @@ if __name__ == '__main__':
     io_model = NeuralIOModel(n_a=n_a, n_b=n_b, n_feat=64)
     io_solution = NeuralIOSimulator(io_model)
     #io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_1step_nonoise.pkl")))
-    params = list(io_solution.io_model.parameters()) #+ [h_fit_torch]
+    params = list(io_solution.io_model.parameters()) + [h_fit_torch]
     optimizer = optim.Adam(params, lr=2e-4)
     end = time.time()
     loss_meter = RunningAverageMeter(0.97)
@@ -122,7 +121,7 @@ if __name__ == '__main__':
 
     LOSS = []
     ii = 0
-    num_iter = 40000
+    num_iter = 10000
     for itr in range(0, num_iter):
         optimizer.zero_grad()
 
@@ -132,26 +131,28 @@ if __name__ == '__main__':
         batch_y_pred = io_solution.f_sim_minibatch(batch_u, batch_h_seq, batch_u_seq)
 
         # Compute loss
-        #err_consistency = batch_y_pred - batch_h
-        #loss_consistency = torch.mean(err_consistency**2)/loss_scale
-        #loss_consistency = loss_consistency
+        err_consistency = batch_y_pred - batch_h
+        loss_consistency = torch.mean(err_consistency**2)/loss_scale
+        loss_consistency = loss_consistency
 
-        err = batch_y_pred - batch_y_meas #batch_h - batch_y_meas
-        loss = torch.mean(err**2)
-        loss_sc = loss/loss_scale
+        err_fit = batch_y_pred - batch_y_meas #batch_h - batch_y_meas
+        loss_fit = torch.mean(err_fit**2)/loss_scale
 
-        LOSS.append(loss_sc.item())
+        #loss = loss_consistency + loss_fit
+        loss = 1.0*loss_fit + 1.0*loss_consistency
+
+        LOSS.append(loss.item())
 
         # Optimization step
-        loss_sc.backward()
+        loss.backward()
 
-        #optimizer.param_groups[0]['params'][-1].grad = 1e3*optimizer.param_groups[0]['params'][-1].grad
+        optimizer.param_groups[0]['params'][-1].grad = 1e3*optimizer.param_groups[0]['params'][-1].grad
         optimizer.step()
 
 
         # Print message
         if itr % test_freq == 0:
-            print('Iter {:04d} | Loss {:.6f}, Scaled Loss {:.6f}'.format(itr, loss.item(), loss_sc.item()))
+            print(f'Iter {itr} | Total Loss {loss:.6f}   Consistency Loss {loss_consistency:.6f}   Fit Loss {loss_fit:.6f}')
             ii += 1
         end = time.time()
 
