@@ -11,11 +11,16 @@ from torchid.iomodels import NeuralIOModel
 
 if __name__ == '__main__':
 
+    dataset_type = 'val'
+    model_type = '32step_noise'
+
     COL_T = ['time']
     COL_X = ['V_C', 'I_L']
     COL_U = ['V_IN']
     COL_Y = ['V_C']
-    df_X = pd.read_csv(os.path.join("data", "RLC_data_val.csv"))
+
+    dataset_filename = f"RLC_data_{dataset_type}.csv"
+    df_X = pd.read_csv(os.path.join("data", dataset_filename))
 
     t = np.array(df_X[COL_T], dtype=np.float32)
     # y = np.array(df_X[COL_Y], dtype=np.float32)
@@ -51,7 +56,9 @@ if __name__ == '__main__':
     # Initialize optimization
     io_model = NeuralIOModel(n_a=n_a, n_b=n_b, n_feat=64)
     io_solution = NeuralIOSimulator(io_model)
-    io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_32step_noise.pkl")))
+
+    model_filename = f"model_IO_{model_type}.pkl"
+    io_solution.io_model.load_state_dict(torch.load(os.path.join("models", model_filename)))
 
     # In[Validate model]
     t_val_start = 0
@@ -96,3 +103,5 @@ if __name__ == '__main__':
     ax[1].legend()
     ax[1].grid(True)
 
+    fig_name = f"RLC_IO_{dataset_type}_{model_type}.pdf"
+    fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')

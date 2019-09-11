@@ -17,6 +17,12 @@ from torchid.ssmodels import NeuralStateSpaceModelLin, NeuralStateSpaceModel
 
 if __name__ == '__main__':
 
+    num_iter = 10000 #10000
+    seq_len = 128 #int(n_fit/10)
+    test_freq = 10
+    t_fit = 2e-3
+    add_noise = True
+
     COL_T = ['time']
     COL_X = ['V_C', 'I_L']
     COL_U = ['V_IN']
@@ -29,20 +35,17 @@ if __name__ == '__main__':
     u = np.array(df_X[COL_U], dtype=np.float32)
     x0_torch = torch.from_numpy(x[0,:])
 
-    std_noise_V = 2.0 * 5.0
-    std_noise_I = 2.0 * 0.5
+
+    std_noise_V = add_noise * 10.0
+    std_noise_I = add_noise * 1.0
     std_noise = np.array([std_noise_V, std_noise_I])
     
     x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
     x_noise = x_noise.astype(np.float32)
 
     Ts = t[1] - t[0]
-    t_fit = 2e-3
     n_fit = int(t_fit//Ts) #x.shape[0]
-    num_iter = 10000 #10000
-    seq_len = 128 #int(n_fit/10)
     batch_size = n_fit//seq_len
-    test_freq = 10
 
     # Get fit data #
     u_fit = u[0:n_fit]
@@ -69,10 +72,8 @@ if __name__ == '__main__':
         return batch_t, batch_x0, batch_u, batch_x 
     
 
-#    ss_model = NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
     ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64) #NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
-    #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_ss_1step_noise.pkl")))
 
     params = list(nn_solution.ss_model.parameters())
     optimizer = optim.Adam(params, lr=1e-3)
@@ -85,11 +86,10 @@ if __name__ == '__main__':
         batch_t, batch_x0, batch_u, batch_x = get_batch(batch_size, seq_len)
         batch_x_sim = nn_solution.f_sim_minibatch(batch_x0, batch_u)
         err_init = batch_x_sim - batch_x
-        scale_error = torch.sqrt(torch.mean((err_init)**2,dim=(0,1))) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
+        scale_error = torch.sqrt(torch.mean((err_init)**2,dim=(0,1)))
 
-    ii = 0
     LOSS = []
-
+    start_time = time.time()
     for itr in range(0, num_iter):
 
         optimizer.zero_grad()
@@ -99,9 +99,7 @@ if __name__ == '__main__':
         err_scaled = err/scale_error
         loss = torch.mean(err_scaled**2)
         if itr % test_freq == 0:
-            with torch.no_grad():
-                print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
-                ii += 1
+            print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
 
         loss.backward()
         optimizer.step()
@@ -111,10 +109,15 @@ if __name__ == '__main__':
         time_meter.update(time.time() - end)
         loss_meter.update(loss.item())
 
+    train_time = time.time() - start_time
+    print(f"\nTrain time: {train_time:.2f}")
 
-        end = time.time()
+    if add_noise:
+        model_filename = f"model_SS_{seq_len}step_noise.pkl"
+    else:
+        model_filename = f"model_SS_{seq_len}step_nonoise.pkl"
 
-    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", "model_minibatch_128_noise.pkl"))
+    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", model_filename))
 
     t_val = 5e-3
     n_val = int(t_val//Ts)#x.shape[0]
@@ -153,3 +156,10 @@ if __name__ == '__main__':
     ax.grid(True)
     ax.set_ylabel("Loss (-)")
     ax.set_xlabel("Iteration (-)")
+
+    if add_noise:
+        fig_name = f"RLC_SS_loss_{seq_len}step_noise.pdf"
+    else:
+        fig_name = f"RLC_SS_loss_{seq_len}step_nonoise.pdf"
+
+    fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')

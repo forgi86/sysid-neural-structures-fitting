@@ -9,7 +9,6 @@ import sys
 
 sys.path.append(os.path.join(".."))
 from torchid.ssfitter import  NeuralStateSpaceSimulator
-from torchid.util import RunningAverageMeter
 from torchid.ssmodels import NeuralStateSpaceModel
 
 
@@ -58,10 +57,7 @@ if __name__ == '__main__':
         err_init = x_est_torch - x_true_torch
         scale_error = torch.sqrt(torch.mean((err_init)**2,dim=0)) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
 
-
     LOSS = []
-    ii = 0
-
     start_time = time.time()
     for itr in range(0, num_iter):
         optimizer.zero_grad()
@@ -71,11 +67,7 @@ if __name__ == '__main__':
         loss = torch.mean((err_scaled)**2) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
 
         if itr % test_freq == 0:
-            with torch.no_grad():
-                #x_pred_torch = nn_solution.f_onestep(x_true_torch, u_torch) #func(x_true_torch, u_torch)
-                #loss = torch.mean((x_pred_torch - x_true_torch) ** 2)
-                print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
-                ii += 1
+            print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
 
         loss.backward()
         optimizer.step()
@@ -116,7 +108,7 @@ if __name__ == '__main__':
     if not os.path.exists("fig"):
         os.makedirs("fig")
 
-    fig,ax = plt.subplots(1,1, figsize=(5,4))
+    fig,ax = plt.subplots(1,1, figsize=(7.5,6))
     ax.plot(LOSS)
     ax.grid(True)
     ax.set_ylabel("Loss (-)")

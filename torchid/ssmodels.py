@@ -7,9 +7,14 @@ Created on Mon Aug  5 11:00:29 2019
 import torch
 import torch.nn as nn
 import numpy as np
-
+from torch.jit import Final
 
 class NeuralStateSpaceModel(nn.Module):
+
+    n_x: Final[int]
+    n_u: Final[int]
+    n_feat: Final[int]
+
     def __init__(self, n_x, n_u, n_feat=64):
         super(NeuralStateSpaceModel, self).__init__()
         self.n_x = n_x

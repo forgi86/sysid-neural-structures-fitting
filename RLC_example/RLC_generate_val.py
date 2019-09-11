@@ -6,7 +6,7 @@ import control.matlab
 import pandas as pd
 import os
 
-from RLC_example_ss.symbolic_RLC import fxu_ODE, fxu_ODE_mod
+from RLC_example.symbolic_RLC import fxu_ODE, fxu_ODE_mod
 
 if __name__ == '__main__':
 
@@ -16,7 +16,7 @@ if __name__ == '__main__':
     Ts = 5e-7
     
     omega_input = 70e3
-    std_input = 100
+    std_input = 120
     
     tau_input = 1/omega_input
     Hu = control.TransferFunction([1], [1 / omega_input, 1])

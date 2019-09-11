@@ -13,12 +13,17 @@ from torchid.util import get_random_batch_idx, get_sequential_batch_idx
 
 if __name__ == '__main__':
 
+    dataset_type = 'id'
+    model_type = '128step_noise'
+    #model_type = '1step_nonoise'
+
     COL_T = ['time']
     COL_X = ['V_C', 'I_L']
     COL_U = ['V_IN']
     COL_Y = ['V_C']
-    df_X = pd.read_csv(os.path.join("data", "RLC_data_val.csv"))
-#    df_X = pd.read_csv(os.path.join("data", "RLC_data_id.csv"))
+
+    dataset_filename = f"RLC_data_{dataset_type}.csv"
+    df_X = pd.read_csv(os.path.join("data", dataset_filename))
 
     time_data = np.array(df_X[COL_T], dtype=np.float32)
     # y = np.array(df_X[COL_Y], dtype=np.float32)
@@ -47,9 +52,8 @@ if __name__ == '__main__':
     ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64) #NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
 
-    #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_SS_1step_nonoise.pkl")))
-    #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_ss_1step_noise.pkl")))
-    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_minibatch_128_noise.pkl")))
+    model_filename = f"model_SS_{model_type}.pkl"
+    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", model_filename)))
 
 
     # In[Validate model]
@@ -77,8 +81,8 @@ if __name__ == '__main__':
     fig, ax = plt.subplots(2,1,sharex=True, figsize=(6,5))
     time_val_us = time_val *1e6
 
-    t_plot_start = 0
-    t_plot_end = 0.3e-3
+    t_plot_start = 1e-3
+    t_plot_end = t_plot_start + 0.3e-3
     idx_plot_start = int(t_plot_start//Ts)#x.shape[0]
     idx_plot_end = int(t_plot_end//Ts)#x.shape[0]
 
@@ -99,5 +103,5 @@ if __name__ == '__main__':
     ax[1].set_ylabel("Inductor Current (A)")
     ax[1].set_ylim([-20, 20])
 
-    fig_name = "RLC_SS_val_128step_noise.pdf"
-    fig.savefig(fig_name, bbox_inches='tight')
+    fig_name = f"RLC_SS_{dataset_type}_{model_type}.pdf"
+    fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')

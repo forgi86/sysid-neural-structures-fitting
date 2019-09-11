@@ -46,13 +46,16 @@ if __name__ == '__main__':
     x_true_torch = torch.from_numpy(state_data)
 
     ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64)
+    ss_model = torch.jit.script(ss_model)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
 
     params = list(nn_solution.ss_model.parameters())
     optimizer = optim.Adam(params, lr=1e-4)
     end = time.time()
 
-    func = torch.jit.trace(nn_solution, (x0_torch, u_torch))
+    #func = torch.jit.trace(nn_solution, (x0_torch, u_torch))
+    func = torch.jit.script(nn_solution)
+    #func = nn_solution
 
     with torch.no_grad():
         x_est_torch = func(x0_torch, u_torch) #nn_solution.f_sim
@@ -92,7 +95,9 @@ if __name__ == '__main__':
     x_true_torch_val = torch.from_numpy(state_data_val)
 
     with torch.no_grad():
-        x_pred_torch_val = nn_solution.f_sim(x0_torch_val, u_torch_val)
+        time_sim_start = time.perf_counter()
+        x_pred_torch_val = nn_solution(x0_torch_val, u_torch_val)
+        time_sim = time.perf_counter() - time_sim_start
 
     # In[1]
 

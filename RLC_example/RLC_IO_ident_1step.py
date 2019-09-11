@@ -72,7 +72,6 @@ if __name__ == '__main__':
     io_solution = NeuralIOSimulator(io_model)
     optimizer = optim.Adam(io_solution.io_model.parameters(), lr=1e-4)
     end = time.time()
-    loss_meter = RunningAverageMeter(0.97)
 
     ii = 0
     LOSS = []
@@ -90,16 +89,9 @@ if __name__ == '__main__':
         loss.backward()
         optimizer.step()
 
-        loss_meter.update(loss.item())
-
         # Print message
         if itr % test_freq == 0:
-            with torch.no_grad():
-                #y_pred_torch = io_solution.f_onestep(phi_fit_torch) #func(x_true_torch, u_torch)
-                #err = y_pred_torch - y_meas_fit_torch
-                #loss = torch.mean((err) ** 2)  # torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
-                print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
-                ii += 1
+            print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
         end = time.time()
         LOSS.append(loss.item())
 
