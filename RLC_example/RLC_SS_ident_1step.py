@@ -14,6 +14,8 @@ from torchid.ssmodels import NeuralStateSpaceModel
 
 if __name__ == '__main__':
 
+    add_noise = True
+
     COL_T = ['time']
     COL_X = ['V_C', 'I_L']
     COL_U = ['V_IN']
@@ -22,13 +24,13 @@ if __name__ == '__main__':
     df_X = pd.read_csv(os.path.join("data", "RLC_data_id.csv"))
 
     time_data = np.array(df_X[COL_T], dtype=np.float32)
-    y = np.array(df_X[COL_Y],dtype=np.float32)
-    x = np.array(df_X[COL_X],dtype=np.float32)
-    u = np.array(df_X[COL_U],dtype=np.float32)
+    y = np.array(df_X[COL_Y], dtype=np.float32)
+    x = np.array(df_X[COL_X], dtype=np.float32)
+    u = np.array(df_X[COL_U], dtype=np.float32)
     x0_torch = torch.from_numpy(x[0,:])
 
-    std_noise_V = 0.0 * 10.0
-    std_noise_I = 0.0 * 1.0
+    std_noise_V = add_noise * 10.0
+    std_noise_I = add_noise * 1.0
     std_noise = np.array([std_noise_V, std_noise_I])
 
     x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
@@ -76,11 +78,17 @@ if __name__ == '__main__':
         
 
     train_time = time.time() - start_time
+    print(f"\nTrain time: {train_time:.2f}")
 
     if not os.path.exists("models"):
         os.makedirs("models")
-    
-    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", "model_SS_1step_nonoise.pkl"))
+
+    if add_noise:
+        model_filename = "model_SS_1step_noise.pkl"
+    else:
+        model_filename = "model_SS_1step_nonoise.pkl"
+
+    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", model_filename))
 
     x_0 = state_data[0,:]
 
@@ -113,5 +121,10 @@ if __name__ == '__main__':
     ax.grid(True)
     ax.set_ylabel("Loss (-)")
     ax.set_xlabel("Iteration (-)")
-    fig_name = "RLC_SS_loss_1step_nonoise.pdf"
+
+    if add_noise:
+        fig_name = "RLC_SS_loss_1step_noise.pdf"
+    else:
+        fig_name = "RLC_SS_loss_1step_nonoise.pdf"
+
     fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')

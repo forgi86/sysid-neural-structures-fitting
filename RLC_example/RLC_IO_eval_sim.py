@@ -11,7 +11,7 @@ from torchid.iomodels import NeuralIOModel
 
 if __name__ == '__main__':
 
-    dataset_type = 'val'
+    dataset_type = 'id'
     model_type = '32step_noise'
 
     COL_T = ['time']
@@ -22,7 +22,7 @@ if __name__ == '__main__':
     dataset_filename = f"RLC_data_{dataset_type}.csv"
     df_X = pd.read_csv(os.path.join("data", dataset_filename))
 
-    t = np.array(df_X[COL_T], dtype=np.float32)
+    time_data = np.array(df_X[COL_T], dtype=np.float32)
     # y = np.array(df_X[COL_Y], dtype=np.float32)
     x = np.array(df_X[COL_X], dtype=np.float32)
     u = np.array(df_X[COL_U], dtype=np.float32)
@@ -31,22 +31,15 @@ if __name__ == '__main__':
     y = np.copy(x[:, [y_var_idx]])
 
     N = np.shape(y)[0]
-    Ts = t[1] - t[0]
-    t_fit = 2e-3
-    n_fit = int(t_fit // Ts)  # x.shape[0]
-    num_iter = 50000
-    test_freq = 100
+    Ts = time_data[1] - time_data[0]
+
 
     n_a = 2  # autoregressive coefficients for y
     n_b = 2  # autoregressive coefficients for u
     n_max = np.max((n_a, n_b))  # delay
 
-    # Batch learning parameters
-    seq_len = 16  # int(n_fit/10)
-    batch_size = (n_fit - n_a) // seq_len
-
-    std_noise_V = 0.0 * 5.0
-    std_noise_I = 0.0 * 0.5
+    std_noise_V = 1.0 * 10.0
+    std_noise_I = 1.0 * 1.0
     std_noise = np.array([std_noise_V, std_noise_I])
 
     x_noise = np.copy(x) + np.random.randn(*x.shape) * std_noise
@@ -62,7 +55,7 @@ if __name__ == '__main__':
 
     # In[Validate model]
     t_val_start = 0
-    t_val_end = t[-1]
+    t_val_end = time_data[-1]
     idx_val_start = int(t_val_start//Ts)#x.shape[0]
     idx_val_end = int(t_val_end//Ts)#x.shape[0]
 
@@ -70,14 +63,16 @@ if __name__ == '__main__':
     u_val = np.copy(u[idx_val_start:idx_val_end])
     y_val = np.copy(y[idx_val_start:idx_val_end])
     y_meas_val = np.copy(y_noise[idx_val_start:idx_val_end])
+    time_val = time_data[idx_val_start:idx_val_end]
 
-    y_seq = np.array(np.flip(y_val[0:n_a].ravel()))
-    u_seq = np.array(np.flip(u_val[0:n_b].ravel()))
+    y_seq = np.zeros(n_a, dtype=np.float32) #np.array(np.flip(y_val[0:n_a].ravel()))
+    u_seq = np.zeros(n_b, dtype=np.float32 ) #np.array(np.flip(u_val[0:n_b].ravel()))
 
     # Neglect initial values
-    y_val = y_val[n_max:,:]
-    y_meas_val = y_meas_val[n_max:,:]
-    u_val = u_val[n_max:, :]
+#    y_val = y_val[n_max:, :]
+#    y_meas_val = y_meas_val[n_max:, :]
+#    u_val = u_val[n_max:, :]
+#    time_val = time_val[n_max:, :]
 
     y_meas_val_torch = torch.tensor(y_meas_val)
 
@@ -91,15 +86,26 @@ if __name__ == '__main__':
         err_val = y_val_sim_torch - y_meas_val_torch
         loss_val =  torch.mean((err_val)**2)
 
+
+    t_plot_start = 1e-3
+    t_plot_end = t_plot_start + 0.3e-3
+    idx_plot_start = int(t_plot_start//Ts)#x.shape[0]
+    idx_plot_end = int(t_plot_end//Ts)#x.shape[0]
+
     # In[Plot]
     y_val_sim = np.array(y_val_sim_torch)
+    time_val_us = time_val *1e6
+
     fig,ax = plt.subplots(2,1, sharex=True)
-    ax[0].plot(y_val, 'b', label='True')
-    ax[0].plot(y_val_sim, 'r',  label='Sim')
+    ax[0].plot(time_val_us[idx_plot_start:idx_plot_end], y_val[idx_plot_start:idx_plot_end], 'b', label='True')
+    ax[0].plot(time_val_us[idx_plot_start:idx_plot_end], y_val_sim[idx_plot_start:idx_plot_end], 'r',  label='Sim')
     ax[0].legend()
     ax[0].grid(True)
+    ax[0].set_xlabel("Time ($\mu$s)")
+    ax[0].set_ylabel("Capacitor Voltage (V)")
+    ax[0].set_ylim([-400, 400])
 
-    ax[1].plot(u_val, label='Input')
+    ax[1].plot(time_val_us[idx_plot_start:idx_plot_end], u_val[idx_plot_start:idx_plot_end], label='Input')
     ax[1].legend()
     ax[1].grid(True)
 

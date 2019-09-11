@@ -16,6 +16,12 @@ from torchid.util import get_torch_regressor_mat
 
 if __name__ == '__main__':
 
+    num_iter = 20000 # 40000
+    seq_len = 32  # int(n_fit/10)
+    test_freq = 100
+    t_fit = 2e-3
+    add_noise = True
+
     COL_T = ['time']
     COL_X = ['V_C', 'I_L']
     COL_U = ['V_IN']
@@ -29,21 +35,17 @@ if __name__ == '__main__':
 
     N = np.shape(y)[0]
     Ts = t[1] - t[0]
-    t_fit = 2e-3
     n_fit = int(t_fit//Ts)#x.shape[0]
-    num_iter = 20000 # 40000
-    test_freq = 100
 
     n_a = 2 # autoregressive coefficients for y
     n_b = 2 # autoregressive coefficients for u
     n_max = np.max((n_a, n_b)) # delay
 
     # Batch learning parameters
-    seq_len = 32  # int(n_fit/10)
     batch_size = (n_fit - n_a) // seq_len
 
-    std_noise_V = 1.0 * 10.0
-    std_noise_I = 1.0 * 1.0
+    std_noise_V = add_noise * 10.0
+    std_noise_I = add_noise * 1.0
     std_noise = np.array([std_noise_V, std_noise_I])
 
     x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
@@ -149,9 +151,18 @@ if __name__ == '__main__':
         end = time.time()
 
     train_time = time.time() - start_time
+    print(f"\nTrain time: {train_time:.2f}")
+
     if not os.path.exists("models"):
         os.makedirs("models")
-    torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_32step_noise.pkl"))
+
+    if add_noise:
+        model_filename = f"model_IO_{seq_len}step_noise.pkl"
+    else:
+        model_filename = f"model_IO_{seq_len}step_nonoise.pkl"
+
+
+    torch.save(io_solution.io_model.state_dict(), os.path.join("models", model_filename))
 
     # Build validation data
     n_val = N
@@ -193,6 +204,10 @@ if __name__ == '__main__':
     ax[1].legend()
     ax[1].grid(True)
 
+    if add_noise:
+        fig_name = f"RLC_IO_loss_{seq_len}step_noise.pdf"
+    else:
+        fig_name = f"RLC_IO_loss_{seq_len}step_nonoise.pdf"
 
 
     fig, ax = plt.subplots(1,1, figsize=(5,4))
@@ -200,5 +215,4 @@ if __name__ == '__main__':
     ax.grid(True)
     ax.set_ylabel("Loss (-)")
     ax.set_xlabel("Iteration (-)")
-    fig_name = "RLC_IO_loss_32step_noise.pdf"
     fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')

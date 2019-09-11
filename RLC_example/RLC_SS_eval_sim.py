@@ -13,9 +13,12 @@ from torchid.util import get_random_batch_idx, get_sequential_batch_idx
 
 if __name__ == '__main__':
 
-    dataset_type = 'id'
-    model_type = '128step_noise'
+    #dataset_type = 'id'
+    dataset_type = 'val'
+
+    #model_type = '128step_noise'
     #model_type = '1step_nonoise'
+    model_type = '1step_noise'
 
     COL_T = ['time']
     COL_X = ['V_C', 'I_L']

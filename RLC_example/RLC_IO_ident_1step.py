@@ -17,6 +17,8 @@ from torchid.iomodels import NeuralIOModel
 
 if __name__ == '__main__':
 
+    add_noise = False
+
     COL_T = ['time']
     COL_X = ['V_C', 'I_L']
     COL_U = ['V_IN']
@@ -42,8 +44,9 @@ if __name__ == '__main__':
     n_b = 2 # autoregressive coefficients for u
     n_max = np.max((n_a, n_b)) # delay
 
-    std_noise_V = 0.0 * 5.0
-    std_noise_I = 0.0 * 0.5
+    std_noise_V = add_noise * 10.0
+    std_noise_I = add_noise * 1.0
+
     std_noise = np.array([std_noise_V, std_noise_I])
 
     x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
@@ -97,8 +100,13 @@ if __name__ == '__main__':
 
     if not os.path.exists("models"):
         os.makedirs("models")
-    
-    torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_1step_nonoise.pkl"))
+
+    if add_noise:
+        model_filename = "model_IO_1step_noise.pkl"
+    else:
+        model_filename = "model_IO_1step_nonoise.pkl"
+
+    torch.save(io_solution.io_model.state_dict(), os.path.join("models", model_filename))
 
 
 
@@ -145,11 +153,15 @@ if __name__ == '__main__':
     ax[1].legend()
     ax[1].grid(True)
 
+    if add_noise:
+        fig_name = "RLC_IO_loss_1step_noise.pdf"
+    else:
+        fig_name = "RLC_IO_loss_1step_nonoise.pdf"
 
     fig,ax = plt.subplots(1,1, figsize=(5,4))
     ax.plot(LOSS)
     ax.grid(True)
     ax.set_ylabel("Loss (-)")
     ax.set_xlabel("Iteration (-)")
-    fig_name = "RLC_IO_loss_1step_nonoise.pdf"
-    fig.savefig(fig_name, bbox_inches='tight')
+
+    fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')

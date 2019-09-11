@@ -78,8 +78,6 @@ if __name__ == '__main__':
     params = list(nn_solution.ss_model.parameters())
     optimizer = optim.Adam(params, lr=1e-3)
     end = time.time()
-    time_meter = RunningAverageMeter(0.97)
-    loss_meter = RunningAverageMeter(0.97)
 
 
     with torch.no_grad():
@@ -106,8 +104,6 @@ if __name__ == '__main__':
 
         LOSS.append(loss.item())
 
-        time_meter.update(time.time() - end)
-        loss_meter.update(loss.item())
 
     train_time = time.time() - start_time
     print(f"\nTrain time: {train_time:.2f}")
