@@ -15,7 +15,7 @@ if __name__ == '__main__':
     COL_X = ['V_C', 'I_L']
     COL_U = ['V_IN']
     COL_Y = ['V_C']
-    df_X = pd.read_csv(os.path.join("data", "RLC_data_sat_FE.csv"))
+    df_X = pd.read_csv(os.path.join("data", "RLC_data_val.csv"))
 
     t = np.array(df_X[COL_T], dtype=np.float32)
     # y = np.array(df_X[COL_Y], dtype=np.float32)
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     # Initialize optimization
     io_model = NeuralIOModel(n_a=n_a, n_b=n_b, n_feat=64)
     io_solution = NeuralIOSimulator(io_model)
-    io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_128step_noise.pkl")))
+    io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_32step_noise.pkl")))
 
     # In[Validate model]
     t_val_start = 0

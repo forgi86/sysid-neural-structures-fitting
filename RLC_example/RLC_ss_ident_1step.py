@@ -38,7 +38,7 @@ if __name__ == '__main__':
     Ts = time_data[1] - time_data[0]
     t_fit = 2e-3
     n_fit = int(t_fit//Ts)#x.shape[0]
-    num_iter = 30000
+    num_iter = 40000
     test_freq = 100
 
     input_data = u[0:n_fit]
@@ -54,8 +54,8 @@ if __name__ == '__main__':
 
 
     with torch.no_grad():
-        x_pred_torch = nn_solution.f_onestep(x_true_torch, u_torch)
-        err_init = x_pred_torch - x_true_torch
+        x_est_torch = nn_solution.f_onestep(x_true_torch, u_torch)
+        err_init = x_est_torch - x_true_torch
         scale_error = torch.sqrt(torch.mean((err_init)**2,dim=0)) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
 
 
@@ -65,8 +65,8 @@ if __name__ == '__main__':
     start_time = time.time()
     for itr in range(0, num_iter):
         optimizer.zero_grad()
-        x_pred_torch = nn_solution.f_onestep(x_true_torch, u_torch)
-        err = x_pred_torch - x_true_torch
+        x_est_torch = nn_solution.f_onestep(x_true_torch, u_torch)
+        err = x_est_torch - x_true_torch
         err_scaled = err / scale_error
         loss = torch.mean((err_scaled)**2) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
 
@@ -88,7 +88,7 @@ if __name__ == '__main__':
     if not os.path.exists("models"):
         os.makedirs("models")
     
-    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", "model_ss_1step_nonoise.pkl"))
+    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", "model_SS_1step_nonoise.pkl"))
 
     x_0 = state_data[0,:]
 
@@ -103,16 +103,18 @@ if __name__ == '__main__':
     x_sim = np.array(x_sim)
     fig, ax = plt.subplots(2,1,sharex=True)
     ax[0].plot(np.array(x_true_torch[:,0]), 'k+',  label='True')
-    ax[0].plot(np.array(x_pred_torch[:,0].detach()), 'b', label='Pred')
+    ax[0].plot(np.array(x_est_torch[:, 0].detach()), 'b', label='Pred')
     ax[0].plot(x_sim[:,0],'r', label='Sim')
     ax[0].legend()
     ax[1].plot(np.array(x_true_torch[:,1]), 'k+', label='True')
-    ax[1].plot(np.array(x_pred_torch[:,1].detach()), 'b', label='Pred')
+    ax[1].plot(np.array(x_est_torch[:, 1].detach()), 'b', label='Pred')
     ax[1].plot(x_sim[:,1],'r', label='Sim')
     ax[1].legend()
     ax[0].grid(True)
     ax[1].grid(True)
 
+    if not os.path.exists("fig"):
+        os.makedirs("fig")
 
     fig,ax = plt.subplots(1,1, figsize=(5,4))
     ax.plot(LOSS)
@@ -120,4 +122,4 @@ if __name__ == '__main__':
     ax.set_ylabel("Loss (-)")
     ax.set_xlabel("Iteration (-)")
     fig_name = "RLC_SS_loss_1step_nonoise.pdf"
-    fig.savefig(fig_name, bbox_inches='tight')
+    fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')

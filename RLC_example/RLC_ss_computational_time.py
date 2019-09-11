@@ -18,7 +18,7 @@ if __name__ == '__main__':
     COL_U = ['V_IN']
     COL_Y = ['V_C']
 
-    df_X = pd.read_csv(os.path.join("data", "RLC_data_sat_FE.csv"))
+    df_X = pd.read_csv(os.path.join("data", "RLC_data_id.csv"))
     # df_X = pd.read_csv("RLC_data.csv")
     time_data = np.array(df_X[COL_T], dtype=np.float32)
     y = np.array(df_X[COL_Y], dtype=np.float32)
@@ -47,8 +47,9 @@ if __name__ == '__main__':
 
     # Initialize optimization
     ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64)  # NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
+    ss_model = torch.jit.script(NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64))
     nn_solution = NeuralStateSpaceSimulator(ss_model)
-    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_ARX_FE_sat_nonoise.pkl")))
+    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_SS_1step_nonoise.pkl")))
 
     # In[Validate model]
     t_val_start = 0
@@ -63,8 +64,7 @@ if __name__ == '__main__':
     time_val = time_data[idx_val_start:idx_val_end]
 
     # Predict batch data
-    SEQ_LEN = np.arange(2, 5000, 64)
-    SEQ_LEN[-1] = 24000
+    SEQ_LEN = np.concatenate([np.arange(8, 128), np.arange(128, 4000, 200)])
 
     TIME_CALC_NOGRAD = []
     TIME_CALC_GRAD = []
@@ -72,6 +72,7 @@ if __name__ == '__main__':
     num_samples = y_val.shape[0]
 
     loss_fn = torch.nn.MSELoss()
+
 
 
     for idx in range(len(SEQ_LEN)):
@@ -85,12 +86,13 @@ if __name__ == '__main__':
         time_start = time.perf_counter()
 
         with torch.no_grad():
-            batch_x_pred = nn_solution.f_sim_minibatch(batch_x0, batch_u)
-            err = batch_x - batch_x_pred
+            batch_x_est = nn_solution.f_sim_minibatch(batch_x0, batch_u)
+            err = batch_x - batch_x_est
             err_scaled = err
             loss = torch.mean(err_scaled**2)
             #loss = loss_fn(batch_x_pred, batch_x)
-            TIME_CALC_NOGRAD.append(time.perf_counter() - time_start)
+            val = (time.perf_counter() - time_start)#/(seq_len * batch_size)
+            TIME_CALC_NOGRAD.append(val)
 
 
     for idx in range(len(SEQ_LEN)):
@@ -105,19 +107,21 @@ if __name__ == '__main__':
 
         time_start = time.perf_counter()
 
-        batch_x_pred = nn_solution.f_sim_minibatch(batch_x0, batch_u)
-        err = batch_x - batch_x_pred
+        batch_x_est = nn_solution.f_sim_minibatch(batch_x0, batch_u)
+        err = batch_x - batch_x_est
         err_scaled = err
         loss = torch.mean(err_scaled ** 2)
         # loss = loss_fn(batch_x_pred, batch_x)
         loss.backward()
-        TIME_CALC_GRAD.append(time.perf_counter() - time_start)
+        val = (time.perf_counter() - time_start)# / (seq_len * batch_size)
+        TIME_CALC_GRAD.append(val)
 
         for par in nn_solution.ss_model.parameters():
             if par.grad is not None:
                 par.grad.zero_()
 
     # In[Plot]
-    plt.plot(SEQ_LEN, np.array(TIME_CALC_NOGRAD)*1e3, '*b')
-    plt.plot(SEQ_LEN, np.array(TIME_CALC_GRAD) * 1e3, '*r')
+    plt.plot(SEQ_LEN, np.array(TIME_CALC_NOGRAD)*1e3, '*b', label='Forward pass only')
+    plt.plot(SEQ_LEN, np.array(TIME_CALC_GRAD) * 1e3, '*r', label='Forward and backward pass')
+    plt.legend()
     plt.grid(True)

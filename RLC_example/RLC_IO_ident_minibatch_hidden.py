@@ -20,7 +20,7 @@ if __name__ == '__main__':
     COL_X = ['V_C', 'I_L']
     COL_U = ['V_IN']
     COL_Y = ['V_C']
-    df_X = pd.read_csv(os.path.join("data", "RLC_data_sat_FE.csv"))
+    df_X = pd.read_csv(os.path.join("data", "RLC_data_id.csv"))
 
     t = np.array(df_X[COL_T], dtype=np.float32)
     y = np.array(df_X[COL_Y], dtype=np.float32)
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     Ts = t[1] - t[0]
     t_fit = 2e-3
     n_fit = int(t_fit//Ts)#x.shape[0]
-    num_iter = 1000# 40000
+    num_iter = 20000 # 40000
     test_freq = 100
 
     n_a = 2 # autoregressive coefficients for y
@@ -39,7 +39,7 @@ if __name__ == '__main__':
     n_max = np.max((n_a, n_b)) # delay
 
     # Batch learning parameters
-    seq_len = 128  # int(n_fit/10)
+    seq_len = 32  # int(n_fit/10)
     batch_size = (n_fit - n_a) // seq_len
 
     std_noise_V = 1.0 * 10.0
@@ -57,7 +57,6 @@ if __name__ == '__main__':
 
     h_fit = np.copy(y_meas_fit)
     h_fit = np.vstack((np.zeros(n_a).reshape(-1, 1), h_fit)).astype(np.float32)
-    h_fit = 1.0*h_fit + 0.0*np.random.randn(*h_fit.shape).astype(np.float32)
     v_fit = np.copy(u_fit)
     v_fit = np.vstack((np.zeros(n_b).reshape(-1, 1), v_fit)).astype(np.float32)
 
@@ -68,7 +67,6 @@ if __name__ == '__main__':
     # To pytorch tensors
     phi_fit_u_torch = torch.tensor(phi_fit_u)
     h_fit_torch = torch.tensor(h_fit, requires_grad=True) # this is an optimization variable!
-    h_fit_torch = torch.tensor(h_fit, requires_grad=False) # this is an optimization variable!
     phi_fit_h_torch = get_torch_regressor_mat(h_fit_torch.view(-1), n_a)
     y_meas_fit_torch = torch.tensor(y_meas_fit)
     u_fit_torch = torch.tensor(u_fit)
@@ -77,8 +75,8 @@ if __name__ == '__main__':
     io_model = NeuralIOModel(n_a=n_a, n_b=n_b, n_feat=64)
     io_solution = NeuralIOSimulator(io_model)
     #io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_1step_nonoise.pkl")))
-    params = list(io_solution.io_model.parameters()) #+ [h_fit_torch]
-    optimizer = optim.Adam(params, lr=2e-4)
+    params = list(io_solution.io_model.parameters()) + [h_fit_torch]
+    optimizer = optim.Adam(params, lr=10e-4)
     end = time.time()
     loss_meter = RunningAverageMeter(0.97)
 
@@ -116,13 +114,13 @@ if __name__ == '__main__':
     with torch.no_grad():
         batch_u, batch_y_meas, batch_h, batch_h_seq, batch_u_seq, batch_s  = get_batch(batch_size, seq_len)
         batch_y_pred = io_solution.f_sim_minibatch(batch_u, batch_h_seq, batch_u_seq)
-        err = batch_y_meas[:, 0:, :] - batch_y_pred[:, 0:, :]
+        err = batch_y_meas - batch_y_pred
         loss = torch.mean(err ** 2)
         loss_scale = np.float32(loss)
 
     LOSS = []
     ii = 0
-    num_iter = 40000
+    start_time = time.time()
     for itr in range(0, num_iter):
         optimizer.zero_grad()
 
@@ -132,22 +130,17 @@ if __name__ == '__main__':
         batch_y_pred = io_solution.f_sim_minibatch(batch_u, batch_h_seq, batch_u_seq)
 
         # Compute loss
-        #err_consistency = batch_y_pred - batch_h
-        #loss_consistency = torch.mean(err_consistency**2)/loss_scale
-        #loss_consistency = loss_consistency
-
         err = batch_y_pred - batch_y_meas #batch_h - batch_y_meas
         loss = torch.mean(err**2)
         loss_sc = loss/loss_scale
 
+        # Append to loss vector
         LOSS.append(loss_sc.item())
 
         # Optimization step
         loss_sc.backward()
-
-        #optimizer.param_groups[0]['params'][-1].grad = 1e3*optimizer.param_groups[0]['params'][-1].grad
+        # optimizer.param_groups[0]['params'][-1].grad = 1e3*optimizer.param_groups[0]['params'][-1].grad
         optimizer.step()
-
 
         # Print message
         if itr % test_freq == 0:
@@ -155,9 +148,10 @@ if __name__ == '__main__':
             ii += 1
         end = time.time()
 
+    train_time = time.time() - start_time
     if not os.path.exists("models"):
         os.makedirs("models")
-
+    torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_32step_noise.pkl"))
 
     # Build validation data
     n_val = N
@@ -185,6 +179,9 @@ if __name__ == '__main__':
         err_val = y_val_sim_torch - y_meas_val_torch[n_max:,:]
         loss_val =  torch.mean((err_val)**2)
 
+    if not os.path.exists("fig"):
+        os.makedirs("fig")
+
     # In[Plot]
     y_val_sim = np.array(y_val_sim_torch)
     fig, ax = plt.subplots(2,1, sharex=True)
@@ -192,7 +189,16 @@ if __name__ == '__main__':
     ax[0].plot(y_val_sim, 'r',  label='Sim')
     ax[0].legend()
     ax[0].grid(True)
-
     ax[1].plot(u_val, label='Input')
     ax[1].legend()
     ax[1].grid(True)
+
+
+
+    fig, ax = plt.subplots(1,1, figsize=(5,4))
+    ax.plot(np.array(LOSS)/LOSS[0])
+    ax.grid(True)
+    ax.set_ylabel("Loss (-)")
+    ax.set_xlabel("Iteration (-)")
+    fig_name = "RLC_IO_loss_32step_noise.pdf"
+    fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')

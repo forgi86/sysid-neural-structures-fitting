@@ -36,7 +36,7 @@ if __name__ == '__main__':
     Ts = t[1] - t[0]
     t_fit = 2e-3
     n_fit = int(t_fit//Ts)#x.shape[0]
-    num_iter = 50000
+    num_iter = 1000#50000
     test_freq = 100
 
     n_a = 2 # autoregressive coefficients for y

@@ -80,10 +80,10 @@ if __name__ == '__main__':
         optimizer.zero_grad()
 
         # Predict
-        y_pred_torch = io_solution.f_onestep(phi_fit_torch)
+        y_est_torch = io_solution.f_onestep(phi_fit_torch)
 
         # Compute loss
-        err = y_pred_torch - y_meas_fit_torch
+        err = y_est_torch - y_meas_fit_torch
         loss = torch.mean((err)**2)
 
         # Optimization step

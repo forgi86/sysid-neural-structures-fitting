@@ -8,7 +8,7 @@ import os
 import sys
 
 sys.path.append(os.path.join(".."))
-from torchid.ssfitter import  NeuralStateSpaceSimulator
+from torchid.ssfitter_jit import  NeuralStateSpaceSimulator
 from torchid.util import RunningAverageMeter
 from torchid.ssmodels import NeuralStateSpaceModel
 
@@ -35,7 +35,7 @@ if __name__ == '__main__':
     x_noise = x_noise.astype(np.float32)
 
     Ts = time_data[1] - time_data[0]
-    t_fit = 0.5e-3 #2e-3
+    t_fit = 0.5e-3
     n_fit = int(t_fit//Ts)#x.shape[0]
     num_iter = 1000
     test_freq = 100
@@ -52,8 +52,10 @@ if __name__ == '__main__':
     optimizer = optim.Adam(params, lr=1e-4)
     end = time.time()
 
+    func = torch.jit.trace(nn_solution, (x0_torch, u_torch))
+
     with torch.no_grad():
-        x_est_torch = nn_solution.f_sim(x0_torch, u_torch)
+        x_est_torch = func(x0_torch, u_torch) #nn_solution.f_sim
         err_init = x_est_torch  - x_true_torch
         scale_error = torch.sqrt(torch.mean((err_init)**2, dim=(0))) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
 
@@ -61,7 +63,7 @@ if __name__ == '__main__':
     ii = 0
     for itr in range(1, num_iter + 1):
         optimizer.zero_grad()
-        x_est_torch = nn_solution.f_sim(x0_torch, u_torch)
+        x_est_torch = func(x0_torch, u_torch)#nn_solution.f_sim(x0_torch, u_torch)
         err = x_est_torch - x_true_torch
         err_scaled = err/scale_error
         loss = torch.mean(err_scaled ** 2)
@@ -73,9 +75,8 @@ if __name__ == '__main__':
         loss.backward()
         optimizer.step()
 
-        end = time.time()
-
     train_time = time.time() - start_time
+
 #    torch.save(nn_solution.state_dict(), 'model.pkl')
 
     t_val = 5e-3

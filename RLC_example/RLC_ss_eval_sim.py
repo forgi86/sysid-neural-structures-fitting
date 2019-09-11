@@ -47,7 +47,7 @@ if __name__ == '__main__':
     ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64) #NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
 
-    #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_ss_1step_nonoise.pkl")))
+    #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_SS_1step_nonoise.pkl")))
     #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_ss_1step_noise.pkl")))
     nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_minibatch_128_noise.pkl")))
 
