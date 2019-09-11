@@ -13,8 +13,8 @@ from torchid.util import get_random_batch_idx, get_sequential_batch_idx
 
 if __name__ == '__main__':
 
-    #dataset_type = 'id'
     dataset_type = 'val'
+    #dataset_type = 'val'
 
     #model_type = '128step_noise'
     #model_type = '1step_nonoise'
@@ -84,14 +84,18 @@ if __name__ == '__main__':
     fig, ax = plt.subplots(2,1,sharex=True, figsize=(6,5))
     time_val_us = time_val *1e6
 
-    t_plot_start = 1e-3
+    if dataset_type == 'id':
+        t_plot_start = 0.2e-3
+    else:
+        t_plot_start = 1.0e-3
     t_plot_end = t_plot_start + 0.3e-3
+
     idx_plot_start = int(t_plot_start//Ts)#x.shape[0]
     idx_plot_end = int(t_plot_end//Ts)#x.shape[0]
 
 
     ax[0].plot(time_val_us[idx_plot_start:idx_plot_end], x_true_val[idx_plot_start:idx_plot_end,0], 'k',  label='True')
-    ax[0].plot(time_val_us[idx_plot_start:idx_plot_end], x_sim[idx_plot_start:idx_plot_end,0],'r', label='Model simulation')
+    ax[0].plot(time_val_us[idx_plot_start:idx_plot_end], x_sim[idx_plot_start:idx_plot_end,0],'r--', label='Model simulation')
     ax[0].legend(loc='upper right')
     ax[0].grid(True)
     ax[0].set_xlabel("Time ($\mu$s)")
@@ -99,7 +103,7 @@ if __name__ == '__main__':
     ax[0].set_ylim([-400, 400])
 
     ax[1].plot(time_val_us[idx_plot_start:idx_plot_end], np.array(x_true_val[idx_plot_start:idx_plot_end:,1]), 'k', label='True')
-    ax[1].plot(time_val_us[idx_plot_start:idx_plot_end], x_sim[idx_plot_start:idx_plot_end:,1],'r', label='Model simulation')
+    ax[1].plot(time_val_us[idx_plot_start:idx_plot_end], x_sim[idx_plot_start:idx_plot_end:,1],'r--', label='Model simulation')
     ax[1].legend(loc='upper right')
     ax[1].grid(True)
     ax[1].set_xlabel("Time ($\mu$s)")

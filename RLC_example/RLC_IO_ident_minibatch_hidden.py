@@ -210,7 +210,7 @@ if __name__ == '__main__':
         fig_name = f"RLC_IO_loss_{seq_len}step_nonoise.pdf"
 
 
-    fig, ax = plt.subplots(1,1, figsize=(5,4))
+    fig,ax = plt.subplots(1,1, figsize=(7.5,6))
     ax.plot(np.array(LOSS)/LOSS[0])
     ax.grid(True)
     ax.set_ylabel("Loss (-)")

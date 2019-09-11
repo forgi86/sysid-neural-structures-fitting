@@ -97,17 +97,19 @@ if __name__ == '__main__':
     time_val_us = time_val *1e6
 
     fig,ax = plt.subplots(2,1, sharex=True)
-    ax[0].plot(time_val_us[idx_plot_start:idx_plot_end], y_val[idx_plot_start:idx_plot_end], 'b', label='True')
-    ax[0].plot(time_val_us[idx_plot_start:idx_plot_end], y_val_sim[idx_plot_start:idx_plot_end], 'r',  label='Sim')
-    ax[0].legend()
+    ax[0].plot(time_val_us[idx_plot_start:idx_plot_end], y_val[idx_plot_start:idx_plot_end], 'k', label='True')
+    ax[0].plot(time_val_us[idx_plot_start:idx_plot_end], y_val_sim[idx_plot_start:idx_plot_end], 'r--',  label='Model simulation')
+    ax[0].legend(loc='upper right')
     ax[0].grid(True)
     ax[0].set_xlabel("Time ($\mu$s)")
-    ax[0].set_ylabel("Capacitor Voltage (V)")
+    ax[0].set_ylabel("Capacitor voltage $v_C$ (V)")
     ax[0].set_ylim([-400, 400])
 
-    ax[1].plot(time_val_us[idx_plot_start:idx_plot_end], u_val[idx_plot_start:idx_plot_end], label='Input')
-    ax[1].legend()
+    ax[1].plot(time_val_us[idx_plot_start:idx_plot_end], u_val[idx_plot_start:idx_plot_end], 'k', label='Input')
+    #ax[1].legend()
     ax[1].grid(True)
+    ax[1].set_xlabel("Time ($\mu$s)")
+    ax[1].set_ylabel("Input voltage $v_{in}$ (V)")
 
     fig_name = f"RLC_IO_{dataset_type}_{model_type}.pdf"
     fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')
