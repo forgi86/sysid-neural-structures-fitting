@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 sys.path.append(os.path.join(".."))
-from torchid.ssfitter import  NeuralStateSpaceSimulator, RunningAverageMeter
+from torchid.ssfitter import  NeuralStateSpaceSimulator
 from torchid.ssmodels import MechanicalStateSpaceModel
 
 # In[Load data]
@@ -28,12 +28,11 @@ if __name__ == '__main__':
     x_noise = x
  
     n_x = x.shape[-1]
-# In[Model]
     ss_model = MechanicalStateSpaceModel(Ts)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
-    #model_name = "model_ARX_FE_nonoise.pkl"
-    #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", model_name)))
-# In[Setup optimization problem]
+    #model_name = "model_SS_1step_nonoise.pkl"
+    model_name = "model_SS_150step_nonoise.pkl"
+    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", model_name )))
 
     len_fit = 40
     n_fit = int(len_fit//Ts)
@@ -44,21 +43,16 @@ if __name__ == '__main__':
     x_meas_fit_torch = torch.from_numpy(x_fit)
     t_fit_torch = torch.from_numpy(t_fit)
     
-    num_iter = 10000
+    num_iter = 1000
     test_freq = 1
 
     params = list(nn_solution.ss_model.parameters())
     optimizer = optim.Adam(params, lr=1e-5)
     end = time.time()
-    time_meter = RunningAverageMeter(0.97)
-    loss_meter = RunningAverageMeter(0.97)
-    
-    #scale_error = 1./np.std(x_noise, axis=0)
-    #scale_error = scale_error/np.sum(scale_error)
 
 
 # In[Batch function]
-    seq_len = 200 #int(n_fit/10)
+    seq_len = 200
     batch_size = n_fit//seq_len
     test_freq = 10
     def get_batch(batch_size, seq_len):
@@ -70,9 +64,7 @@ if __name__ == '__main__':
         batch_u = torch.stack([u_fit_torch[s[i]:s[i] + seq_len] for i in range(batch_size)], dim=0)
         
         return batch_t, batch_x0, batch_u, batch_x 
-# In[Scale]
-#    scale_error = 1e1*np.array([1.0,1.0,1,1])
-#    scale_error = torch.tensor(scale_error.astype(np.float32))        
+
     len_sim = x.shape[0]
     dist_sim = 1
     
@@ -99,33 +91,20 @@ if __name__ == '__main__':
                 ii += 1
         optimizer.zero_grad()
         batch_t, batch_x0, batch_u, batch_x = get_batch(batch_size, seq_len)
-        #batch_size = 256
-        #N = x_true_torch_fit.shape[0]
-        #N = int(N // batch_size) * batch_size
-        #seq_len = int(N // batch_size)
-        #batch_x = x_true_torch_fit[0:N].view(batch_size, seq_len, -1)
-        #batch_u = u_torch_fit[0:N].view(batch_size, seq_len, -1)
-        #batch_x0 = batch_x[:, 0, :]
 
         batch_x_pred = nn_solution.f_sim_minibatch(batch_x0, batch_u)
-#        err = torch.abs(batch_x[:, 1:, :] - batch_x_pred[:, 1:, :])
-#        err[:,:,1] = err[:,:,1]*100.0
-#        loss = torch.mean(err)
-        err = batch_x[:,1:,:] - batch_x_pred[:,1:,:]
+        err = batch_x - batch_x_pred
         err_scaled = err * scale_error        
         loss = torch.mean(err_scaled**2)
-#        loss = torch.mean((batch_x[:,1:,:] - batch_x_pred[:,1:,:])**2) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
         loss.backward()
         optimizer.step()
 
-        time_meter.update(time.time() - end)
-        loss_meter.update(loss.item())
-
-
         end = time.time()
 
-# In[Save model parameters]
-    model_name = "model_OE_minibatch_200.pkl"
+    # In[Save model parameters]
+#    model_name = "model_SS_150step_nonoise.pkl"
+    model_name = "model_SS_200step_nonoise.pkl"
+
     if not os.path.exists("models"):
         os.makedirs("models")
     torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", model_name))    
@@ -137,7 +116,7 @@ if __name__ == '__main__':
         loss = torch.mean(torch.abs(x_sim_torch - x_meas_fit_torch))
         x_sim = np.array(x_sim_torch)
     # In[1]
-    n_plot = 100
+    n_plot = 200
 
     fig,ax = plt.subplots(2,1,sharex=True)
     ax[0].plot(t_fit[:n_plot], x_fit[:n_plot, 0], label='True')

@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 sys.path.append(os.path.join(".."))
-from torchid.ssfitter import  NeuralStateSpaceSimulator, RunningAverageMeter
+from torchid.ssfitter import  NeuralStateSpaceSimulator
 from torchid.ssmodels import MechanicalStateSpaceModel
 
 # In[Load data]
@@ -24,7 +24,6 @@ if __name__ == '__main__':
     t = np.array(df_X[COL_T], dtype=np.float32)
     y = np.array(df_X[COL_Y],dtype=np.float32)
     x = np.array(df_X[COL_X],dtype=np.float32)
-    #u = np.array(df_X[COL_U],dtype=np.float32)
     u = np.array(df_X[COL_U],dtype=np.float32)
     Ts = t[1] - t[0]
     x_noise = x
@@ -44,15 +43,13 @@ if __name__ == '__main__':
     x_meas_fit_torch = torch.from_numpy(x_fit)
     t_fit_torch = torch.from_numpy(t_fit)
     
-    num_iter = 10000
-    test_freq = 1
+    num_iter = 40000
+    test_freq = 100
 
     params = list(nn_solution.ss_model.parameters())
     optimizer = optim.Adam(params, lr=1e-4)
     end = time.time()
-    time_meter = RunningAverageMeter(0.97)
-    loss_meter = RunningAverageMeter(0.97)
-    
+
     #scale_error = 1./np.std(x_noise, axis=0)
     #scale_error = scale_error/np.sum(scale_error)
     #scale_error = 1e0*np.ones(4)/4
@@ -72,9 +69,6 @@ if __name__ == '__main__':
         loss.backward()
         optimizer.step()
 
-        time_meter.update(time.time() - end)
-        loss_meter.update(loss.item())
-
         if itr % test_freq == 0:
             with torch.no_grad():
                 print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
@@ -85,7 +79,7 @@ if __name__ == '__main__':
     if not os.path.exists("models"):
         os.makedirs("models")
 
-    model_name = "model_ARX_FE_nonoise.pkl"
+    model_name = "model_SS_1step_nonoise.pkl"
     torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", model_name))
 
 

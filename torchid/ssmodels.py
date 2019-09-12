@@ -113,12 +113,14 @@ class MechanicalStateSpaceModel(nn.Module):
         self.net = nn.Sequential(
             nn.Linear(5, 64),  # 4 states, 1 input
             nn.ReLU(),
-            nn.Linear(64,2) # 2 state equations (the other 2 are fixed by basic physics)
+            nn.Linear(64,32), # 2 state equations (the other 2 are fixed by basic physics)
+            nn.ReLU(),
+            nn.Linear(32, 2),  # 2 state equations (the other 2 are fixed by basic physics)
         )
-        for m in self.net.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight, mean=0, std=1e-3)
-                nn.init.constant_(m.bias, val=0)
+        #for m in self.net.modules():
+        #    if isinstance(m, nn.Linear):
+        #        nn.init.normal_(m.weight, mean=0, std=1e-3)
+        #        nn.init.constant_(m.bias, val=0)
 
         self.AL = nn.Linear(4,4, bias=False)
         self.AL.weight = torch.nn.Parameter(torch.tensor([[0.,Ts,0.,0.],
