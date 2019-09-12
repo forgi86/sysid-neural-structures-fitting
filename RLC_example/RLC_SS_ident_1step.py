@@ -70,19 +70,16 @@ if __name__ == '__main__':
 
         if itr % test_freq == 0:
             print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
-
+            
+        LOSS.append(loss.item())
         loss.backward()
         optimizer.step()
-
-        LOSS.append(loss.item())
-        
 
     train_time = time.time() - start_time
     print(f"\nTrain time: {train_time:.2f}")
 
     if not os.path.exists("models"):
         os.makedirs("models")
-
     if add_noise:
         model_filename = "model_SS_1step_noise.pkl"
     else:

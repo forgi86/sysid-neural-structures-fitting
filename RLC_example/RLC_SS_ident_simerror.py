@@ -9,11 +9,15 @@ import sys
 
 sys.path.append(os.path.join(".."))
 from torchid.ssfitter import  NeuralStateSpaceSimulator
-from torchid.util import RunningAverageMeter
 from torchid.ssmodels import NeuralStateSpaceModel
 
 if __name__ == '__main__':
 
+    add_noise = True
+    t_fit = 2e-3 #2e-3
+    num_iter = 10000
+    test_freq = 100
+    
     COL_T = ['time']
     COL_X = ['V_C', 'I_L']
     COL_U = ['V_IN']
@@ -27,18 +31,17 @@ if __name__ == '__main__':
     u = np.array(df_X[COL_U],dtype=np.float32)
     x0_torch = torch.from_numpy(x[0,:])
 
-    std_noise_V = 0.0 * 10.0
-    std_noise_I = 0.0 * 1.0
+    std_noise_V = add_noise * 10.0
+    std_noise_I = add_noise * 1.0
     std_noise = np.array([std_noise_V, std_noise_I])
 
     x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
     x_noise = x_noise.astype(np.float32)
 
     Ts = time_data[1] - time_data[0]
-    t_fit = 0.5e-3 #2e-3
+
     n_fit = int(t_fit//Ts)#x.shape[0]
-    num_iter = 1000
-    test_freq = 100
+
 
     input_data = u[0:n_fit]
     state_data = x_noise[0:n_fit]
@@ -49,7 +52,7 @@ if __name__ == '__main__':
     nn_solution = NeuralStateSpaceSimulator(ss_model)
 
     params = list(nn_solution.ss_model.parameters())
-    optimizer = optim.Adam(params, lr=1e-4)
+    optimizer = optim.Adam(params, lr=1e-3)
     end = time.time()
 
     with torch.no_grad():
@@ -58,7 +61,8 @@ if __name__ == '__main__':
         scale_error = torch.sqrt(torch.mean((err_init)**2, dim=(0))) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
 
     start_time = time.time()
-    ii = 0
+
+    LOSS = []
     for itr in range(1, num_iter + 1):
         optimizer.zero_grad()
         x_est_torch = nn_solution.f_sim(x0_torch, u_torch)
@@ -68,15 +72,25 @@ if __name__ == '__main__':
 
         if itr % test_freq == 0:
             print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
-            ii += 1
 
+        LOSS.append(loss.item())
         loss.backward()
         optimizer.step()
 
         end = time.time()
 
     train_time = time.time() - start_time
-#    torch.save(nn_solution.state_dict(), 'model.pkl')
+    print(f"\nTrain time: {train_time:.2f}") # 7312.95 seconds!
+    
+    if not os.path.exists("models"):
+        os.makedirs("models")
+
+    if add_noise:
+        model_filename = "model_SS_simerr_noise.pkl"
+    else:
+        model_filename = "model_SS_simerr_nonoise.pkl"
+
+    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", model_filename))
 
     t_val = 5e-3
     n_val = int(t_val//Ts)#x.shape[0]
@@ -108,3 +122,19 @@ if __name__ == '__main__':
 
     ax[2].plot(np.array(u_torch_val), label='Input')
     ax[2].grid(True)
+
+    if not os.path.exists("fig"):
+        os.makedirs("fig")
+
+    fig,ax = plt.subplots(1,1, figsize=(7.5,6))
+    ax.plot(LOSS)
+    ax.grid(True)
+    ax.set_ylabel("Loss (-)")
+    ax.set_xlabel("Iteration (-)")
+
+    if add_noise:
+        fig_name = "RLC_SS_loss_simerr_noise.pdf"
+    else:
+        fig_name = "RLC_SS_loss_simerr_nonoise.pdf"
+
+    fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')

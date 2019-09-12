@@ -1,7 +1,5 @@
 import os
 import pandas as pd
-from scipy.integrate import odeint
-from scipy.interpolate import interp1d
 
 import numpy as np
 import torch
@@ -13,10 +11,12 @@ import matplotlib.pyplot as plt
 
 from torchid.ssfitter import  NeuralStateSpaceSimulator
 from torchid.util import RunningAverageMeter
-from torchid.ssmodels import NeuralStateSpaceModelLin, NeuralStateSpaceModel
+from torchid.ssmodels import NeuralStateSpaceModel
 
 
 if __name__ == '__main__':
+
+    add_noise = False
 
     COL_T = ['time']
     COL_Y = ['Ca']
@@ -71,7 +71,7 @@ if __name__ == '__main__':
         batch_x = torch.tensor(x_fit[batch_idx]) #torch.stack([x_meas_torch_fit[batch_start[i]:batch_start[i] + seq_len] for i in range(batch_size)], dim=0)
 
         return batch_t, batch_x0, batch_u, batch_x 
-    
+
 
 #    ss_model = NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
     ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64) #NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
@@ -81,25 +81,21 @@ if __name__ == '__main__':
     params = list(nn_solution.ss_model.parameters())
     optimizer = optim.Adam(params, lr=1e-4)
     end = time.time()
-    time_meter = RunningAverageMeter(0.97)
-    loss_meter = RunningAverageMeter(0.97)
-
 
     with torch.no_grad():
         batch_t, batch_x0, batch_u, batch_x = get_batch(batch_size, seq_len)
         batch_x_pred = nn_solution.f_sim_minibatch(batch_x0, batch_u)    
-        err = batch_x[:,0:,:] - batch_x_pred[:,0:,:]
+        err = batch_x - batch_x_pred
         loss_scale = torch.mean(err**2)
     
-        
-    ii = 0
     LOSS = []
+    start_time = time.time()
     for itr in range(0, num_iter):
 
         optimizer.zero_grad()
         batch_t, batch_x0, batch_u, batch_x = get_batch(batch_size, seq_len)
         batch_x_pred = nn_solution.f_sim_minibatch(batch_x0, batch_u)
-        err = batch_x[:,0:,:] - batch_x_pred[:,0:,:]
+        err = batch_x - batch_x_pred
         err_scaled = err  
         loss = torch.mean(err_scaled**2)
         loss_sc = loss/loss_scale
@@ -107,18 +103,20 @@ if __name__ == '__main__':
         if itr % test_freq == 0:
             with torch.no_grad():
                 print('Iter {:04d} | Loss {:.6f}, Scaled Loss {:.6f}'.format(itr, loss.item(), loss_sc.item()))
-                ii += 1
-                
+
+        LOSS.append(loss_sc.item())
         loss_sc.backward()
         optimizer.step()
 
-        time_meter.update(time.time() - end)
-        loss_meter.update(loss.item())
+    train_time = time.time() - start_time
+    print(f"\nTrain time: {train_time:.2f}")
 
+    if add_noise:
+        model_filename = f"model_SS_{seq_len}step_noise.pkl"
+    else:
+        model_filename = f"model_SS_{seq_len}step_nonoise.pkl"
 
-        LOSS.append(loss.val())
-
-    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", "model_ss_16step_from1.pkl"))
+    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", model_filename))
 
     # In[Validate model]
     t_val = time_data[-1]

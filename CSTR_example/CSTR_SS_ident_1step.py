@@ -9,11 +9,12 @@ import sys
 
 sys.path.append(os.path.join(".."))
 from torchid.ssfitter import  NeuralStateSpaceSimulator
-from torchid.util import RunningAverageMeter
 from torchid.ssmodels import NeuralStateSpaceModel
 
 
 if __name__ == '__main__':
+
+    add_noise = False
 
     COL_T = ['time']
     COL_Y = ['Ca']
@@ -32,15 +33,13 @@ if __name__ == '__main__':
     x = np.array(df_X[COL_X],dtype=np.float32)
     u = np.array(df_X[COL_U],dtype=np.float32)
     x0_torch = torch.from_numpy(x[0,:])
-
-
     x_noise = np.copy(x) #+ np.random.randn(*x.shape)*std_noise
     x_noise = x_noise.astype(np.float32)
 
     Ts = time_data[1] - time_data[0]
     t_fit = time_data[-1]
-    n_fit = int(t_fit//Ts)#x.shape[0]
-    num_iter = 200000
+    n_fit = int(t_fit//Ts)
+    num_iter = 300000
     test_freq = 100
 
     input_data = u[0:n_fit]
@@ -50,44 +49,39 @@ if __name__ == '__main__':
     
     ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
-    #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_IO_1step.pkl")))
 
-    optimizer = optim.Adam(nn_solution.ss_model.parameters(), lr=1e-4)
+    #optimizer = optim.Adam(nn_solution.ss_model.parameters(), lr=5e-4)
+    optimizer = optim.Adam(nn_solution.ss_model.parameters(), lr=5e-4)
     #optimizer = optim.LBFGS(nn_solution.ss_model.parameters(), lr=1e-2)
-    
-    end = time.time()
-    time_meter = RunningAverageMeter(0.97)
-    loss_meter = RunningAverageMeter(0.97)
-    
-#    scale_error = 1./np.std(x_noise, axis=0)
-#    scale_error = scale_error/np.sum(scale_error)
-    scale_error = torch.tensor(1e2)
 
-    ii = 0
+    with torch.no_grad():
+        x_est_torch = nn_solution.f_onestep(x_true_torch, u_torch)
+        err_init = x_est_torch - x_true_torch
+        scale_error = torch.sqrt(torch.mean((err_init)**2, dim=0)) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
+
+    #scale_error = torch.tensor(1e2)
+
     LOSS = []
-    for itr in range(1, num_iter + 1):
+    start_time = time.time()
+    for itr in range(0, num_iter):
         def closure():
             optimizer.zero_grad()
             x_pred_torch = nn_solution.f_onestep(x_true_torch, u_torch)
             err = x_pred_torch - x_true_torch
-            err_scaled = err * scale_error
-            loss = torch.mean((err_scaled)**2) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
+            err_scaled = err / scale_error
+            loss = torch.mean((err_scaled)**2)
             loss.backward()
             return loss
 
         loss = optimizer.step(closure)
-
-        time_meter.update(time.time() - end)
-        loss_meter.update(loss.item())
+        LOSS.append(loss.item())
 
         if itr % test_freq == 0:
-#            with torch.no_grad():
-#                x_pred_torch = nn_solution.f_onestep(x_true_torch, u_torch) #func(x_true_torch, u_torch)
-#                loss = torch.mean((x_pred_torch - x_true_torch) ** 2)
             print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
-            ii += 1
-        
-        LOSS.append(loss.item())
+
+
+    train_time = time.time() - start_time
+    print(f"\nTrain time: {train_time:.2f}")
 
     if not os.path.exists("models"):
         os.makedirs("models")
@@ -96,9 +90,7 @@ if __name__ == '__main__':
 
 
     # In[Plot]
-
     x_0 = state_data[0,:]
-
     time_start = time.time()
     with torch.no_grad():
         x_sim = nn_solution.f_sim(torch.tensor(x_0), torch.tensor(input_data))
@@ -106,14 +98,12 @@ if __name__ == '__main__':
     time_arr = time.time() - time_start
 
     x_sim = np.array(x_sim)
-    fig, ax = plt.subplots(3,1,sharex=True)
+    fig, ax = plt.subplots(3, 1, sharex=True)
     ax[0].plot(np.array(x_true_torch[:,0]), 'k+',  label='True')
-    #ax[0].plot(np.array(x_pred_torch[:,0].detach()), 'b', label='Pred')
     ax[0].plot(x_sim[:,0],'r', label='Sim')
     ax[0].legend()
     ax[0].grid(True)
     ax[1].plot(np.array(x_true_torch[:,1]), 'k+', label='True')
-    #ax[1].plot(np.array(x_pred_torch[:,1].detach()), 'b', label='Pred')
     ax[1].plot(x_sim[:,1],'r', label='Sim')
     ax[1].legend()
     ax[1].grid(True)
@@ -121,3 +111,19 @@ if __name__ == '__main__':
     ax[2].plot(u, 'b', label='Input')
     ax[2].legend()
     ax[2].grid(True)
+
+    if not os.path.exists("fig"):
+        os.makedirs("fig")
+
+    fig, ax = plt.subplots(1, 1, figsize=(7.5, 6))
+    ax.plot(LOSS)
+    ax.grid(True)
+    ax.set_ylabel("Loss (-)")
+    ax.set_xlabel("Iteration (-)")
+
+    if add_noise:
+        fig_name = "CSTR_SS_loss_1step_noise.pdf"
+    else:
+        fig_name = "CSTR_SS_loss_1step_nonoise.pdf"
+
+    fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')
