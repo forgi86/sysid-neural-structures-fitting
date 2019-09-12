@@ -1,16 +1,9 @@
 import pandas as pd
 import numpy as np
 import torch
-import torch.optim as optim
-import time
 import matplotlib.pyplot as plt
 import os
 import sys
-
-sys.path.append(os.path.join(".."))
-from torchid.ssfitter import  NeuralStateSpaceSimulator
-from torchid.util import RunningAverageMeter
-from torchid.ssmodels import NeuralStateSpaceModel
 
 
 if __name__ == '__main__':
@@ -22,6 +15,7 @@ if __name__ == '__main__':
 
     df_X = pd.read_csv(os.path.join("data", "cstr.dat"), header=None, sep="\t")
     df_X.columns = ['time', 'q', 'Ca', 'T', 'None']
+
 
     df_X['q'] = df_X['q']/100
     df_X['Ca'] = df_X['Ca']*10

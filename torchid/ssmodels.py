@@ -15,28 +15,57 @@ class NeuralStateSpaceModel(nn.Module):
     n_u: Final[int]
     n_feat: Final[int]
 
-    def __init__(self, n_x, n_u, n_feat=64):
+    def __init__(self, n_x, n_u, n_feat=64, init_small=True):
         super(NeuralStateSpaceModel, self).__init__()
         self.n_x = n_x
         self.n_u = n_u
-        self.n_feat = 64
+        self.n_feat = n_feat
         self.net = nn.Sequential(
             nn.Linear(n_x+n_u, n_feat),  # 2 states, 1 input
             nn.ReLU(),
             nn.Linear(n_feat, n_x)
         )
 
-        for m in self.net.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight, mean=0, std=1e-4)
-                nn.init.constant_(m.bias, val=0)
+        if init_small:
+            for m in self.net.modules():
+                if isinstance(m, nn.Linear):
+                    nn.init.normal_(m.weight, mean=0, std=1e-4)
+                    nn.init.constant_(m.bias, val=0)
     
     def forward(self, X,U):
         XU = torch.cat((X,U),-1)
         DX = self.net(XU)
         return DX
-    
-    
+
+
+class NeuralStateSpaceModel2Hidden(nn.Module):
+    n_x: Final[int]
+    n_u: Final[int]
+    n_feat: Final[int]
+
+    def __init__(self, n_x, n_u, n_feat=32):
+        super(NeuralStateSpaceModel2Hidden, self).__init__()
+        self.n_x = n_x
+        self.n_u = n_u
+        self.n_feat = n_feat
+        self.net = nn.Sequential(
+            nn.Linear(n_x + n_u, n_feat),  # 2 states, 1 input
+            nn.Linear(n_feat, n_feat),
+            nn.ReLU(),
+            nn.Linear(n_feat, n_x)
+        )
+
+        #for m in self.net.modules():
+        #    if isinstance(m, nn.Linear):
+        #        nn.init.normal_(m.weight, mean=0, std=1e-4)
+        #        nn.init.constant_(m.bias, val=0)
+
+    def forward(self, X, U):
+        XU = torch.cat((X, U), -1)
+        DX = self.net(XU)
+        return DX
+
+
 class NeuralStateSpaceModelLin(nn.Module):
     def __init__(self, AL, BL):
         super(NeuralStateSpaceModelLin, self).__init__()

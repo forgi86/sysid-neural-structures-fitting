@@ -24,12 +24,15 @@ if __name__ == '__main__':
     COL_X = ['Ca', 'T']
     COL_U = ['q']
 
-    df_X = pd.read_csv(os.path.join("data", "cstr.dat"), header=None, sep="\t")
-    df_X.columns = ['time', 'q', 'Ca', 'T', 'None']
+    #df_X = pd.read_csv(os.path.join("data", "cstr.dat"), header=None, sep="\t")
+    #df_X.columns = ['time', 'q', 'Ca', 'T', 'None']
 
-    df_X['q'] = df_X['q']/100
-    df_X['Ca'] = df_X['Ca']*10
-    df_X['T'] = df_X['T']/400
+    #df_X['q'] = df_X['q']/100
+    #df_X['Ca'] = df_X['Ca']*10
+    #df_X['T'] = df_X['T']/400
+
+    df_X = pd.read_csv(os.path.join("data", "CSTR_data_id.csv"))
+
 
     t = np.array(df_X[COL_T], dtype=np.float32)
     #y = np.array(df_X[COL_Y], dtype=np.float32)

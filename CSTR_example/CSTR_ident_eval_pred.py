@@ -8,21 +8,26 @@ import sys
 sys.path.append(os.path.join(".."))
 from torchid.ssfitter import NeuralStateSpaceSimulator
 from torchid.ssmodels import NeuralStateSpaceModel
-import scipy.linalg
-from torchid.util import get_random_batch_idx, get_sequential_batch_idx
+from torchid.util import get_sequential_batch_idx
 
 if __name__ == '__main__':
+
+    seq_len = 256 #256 # prediction sequence length
+
     COL_T = ['time']
     COL_Y = ['Ca']
     COL_X = ['Ca', 'T']
     COL_U = ['q']
 
-    df_X = pd.read_csv(os.path.join("data", "cstr.dat"), header=None, sep="\t")
-    df_X.columns = ['time', 'q', 'Ca', 'T', 'None']
+#    df_X = pd.read_csv(os.path.join("data", "cstr.dat"), header=None, sep="\t")
+#    df_X.columns = ['time', 'q', 'Ca', 'T', 'None']
+#    df_X['q'] =  1.0*df_X['q']/100.0
+#    df_X['Ca'] = 1.0*df_X['Ca']*10.0
+#    df_X['T'] = 1.0*df_X['T']/400.0
 
-    df_X['q'] = df_X['q'] / 100
-    df_X['Ca'] = df_X['Ca'] * 10
-    df_X['T'] = df_X['T'] / 400
+    df_X = pd.read_csv(os.path.join("data", "cstr_val.dat"), sep="\t")
+
+
 
     time_data = np.array(df_X[COL_T], dtype=np.float32)
     y = np.array(df_X[COL_Y], dtype=np.float32)
@@ -45,8 +50,10 @@ if __name__ == '__main__':
     # Initialize optimization
     ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64) #NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
+    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_SS_1step.pkl")))
 #    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_ss_16step_from1.pkl")))
-    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_ss_128step_from16.pkl")))
+#    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_ss_128step_from16.pkl")))
+
 
     # In[Validate model]
     t_val_start = 0
@@ -62,7 +69,6 @@ if __name__ == '__main__':
 
 
     # Predict batch data
-    seq_len = 256
     batch_start, batch_idx = get_sequential_batch_idx(y_val.shape[0], seq_len)
     batch_time = torch.tensor(time_val[batch_idx])  # torch.stack([time_torch_fit[batch_start[i]:batch_start[i] + seq_len] for i in range(batch_size)], dim=0)
     batch_x0 = torch.tensor(x_val[batch_start])  # x_meas_torch_fit[batch_start, :]  # (M, D)

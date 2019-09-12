@@ -61,7 +61,7 @@ if __name__ == '__main__':
     def get_batch(batch_size, seq_len):
         num_train_samples = x_meas_torch_fit.shape[0]
         batch_max_idx = num_train_samples - seq_len
-        batch_start = np.random.choice(np.arange(batch_max_idx, dtype=np.int64), batch_size, replace=False)
+        batch_start = np.random.choice(np.arange(batch_max_idx, dtype=np.int64), batch_size, replace=True)
         batch_idx = batch_start[:, np.newaxis] + np.arange(seq_len)  # batch all indices
 
         batch_t = torch.tensor(time_fit[
@@ -77,7 +77,7 @@ if __name__ == '__main__':
 
     ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64)  # NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
-    # nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_ss_1step.pkl")))
+    # nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_SS_1step.pkl")))
 
     params = list(nn_solution.ss_model.parameters())
     optimizer = optim.Adam(params, lr=1e-5)
@@ -150,3 +150,17 @@ if __name__ == '__main__':
 
     ax[2].plot(np.array(u_torch_val), label='Input')
     ax[2].grid(True)
+
+
+    fig, ax = plt.subplots(1,1)
+    ax.plot(LOSS)
+    ax.grid(True)
+    ax.set_ylabel("Loss (-)")
+    ax.set_xlabel("Iteration (-)")
+
+    if add_noise:
+        fig_name = f"CSRT_SS_loss_{seq_len}step_noise.pdf"
+    else:
+        fig_name = f"CSTR_SS_loss_{seq_len}step_nonoise.pdf"
+
+    fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')
