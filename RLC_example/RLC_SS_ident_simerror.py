@@ -16,7 +16,7 @@ if __name__ == '__main__':
     add_noise = True
     t_fit = 2e-3 #2e-3
     num_iter = 10000
-    test_freq = 100
+    test_freq = 10
     
     COL_T = ['time']
     COL_X = ['V_C', 'I_L']

@@ -51,6 +51,7 @@ if __name__ == '__main__':
     loss_object = tf.keras.losses.MeanSquaredError()
     optimizer = tf.keras.optimizers.Adam(lr=1e-4)
 
+    compile_start = time.time()
     @tf.function
     def train_step():
         with tf.GradientTape() as tape:
@@ -59,6 +60,9 @@ if __name__ == '__main__':
         gradients = tape.gradient(loss, nn_solution.trainable_variables)
         optimizer.apply_gradients(zip(gradients, nn_solution.trainable_variables))
         return loss
+    loss = train_step()
+    compile_time = time.time() - compile_start
+    print(f"\nCompile time: {compile_time:.2f}")
 
     train_start = time.time()
     LOSS = []
@@ -71,16 +75,7 @@ if __name__ == '__main__':
     train_time = time.time() - train_start
     print(f"\nTrain time: {train_time:.2f}")
 
-    @tf.function
-    def sim_step(x0, u):
-        x_sim = nn_solution.f_sim(x0,u)
-        return x_sim
-
-    #x_sim = sim_step(x[0, :], u_fit)
-
-
     x_sim = nn_solution.f_sim(x[0, :], u_fit)
-
 
     fig, ax = plt.subplots(2,1,sharex=True)
     ax[0].plot(x_targ_fit[:,0], 'k',  label='True')

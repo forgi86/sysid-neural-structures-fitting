@@ -11,9 +11,17 @@ class NeuralStateSpaceModel(tensorflow.keras.Model):
         self.n_feat = n_feat
         input_shape = self.n_x + self.n_u
         self.net = tensorflow.keras.Sequential([
-            tf.keras.layers.Dense(n_feat, input_shape=(input_shape, ), activation='relu'),
-            tf.keras.layers.Dense(n_x, input_shape=(n_feat,)),
-            ]
+            tf.keras.layers.Dense(n_feat, input_shape=(input_shape, ),
+                                  activation='relu',
+                                  kernel_initializer = tf.random_normal_initializer(mean=0.0, stddev=1.0e-4),
+                                  bias_initializer = tf.constant_initializer(0.0)
+                                  ),
+            tf.keras.layers.Dense(n_x,
+                                  input_shape=(n_feat,),
+                                  kernel_initializer = tf.random_normal_initializer(mean=0.0, stddev=1.0e-4),
+                                  bias_initializer = tf.constant_initializer(0.0),
+                                  ),
+        ]
         )
 
     def call(self, X, U):

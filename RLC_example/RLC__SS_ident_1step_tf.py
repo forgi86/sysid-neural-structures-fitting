@@ -52,19 +52,24 @@ if __name__ == '__main__':
     loss_object = tf.keras.losses.MeanSquaredError()
     optimizer = tf.keras.optimizers.Adam(lr=1e-4)
 
+    x_est_init = nn_solution(x_targ_fit, u_fit)
+    loss_init = loss_object(x_est_init, x_targ_fit)
+
+
     @tf.function
     def train_step():
         with tf.GradientTape() as tape:
             x_est = nn_solution(x_targ_fit, u_fit)
-            loss = loss_object(x_est, x_targ_fit)
-        gradients = tape.gradient(loss, nn_solution.trainable_variables)
+            loss_unscaled = loss_object(x_est, x_targ_fit)
+            loss_scaled = loss_unscaled/loss_init
+        gradients = tape.gradient(loss_scaled, nn_solution.trainable_variables)
         optimizer.apply_gradients(zip(gradients, nn_solution.trainable_variables))
-        return loss
+        return loss_scaled
 
     train_start = time.time()
     LOSS = []
     for itr in range(num_iter):
-        loss=train_step()
+        loss = train_step()
         LOSS.append(np.float32(loss))
         if itr % test_freq == 0:
             print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss))
