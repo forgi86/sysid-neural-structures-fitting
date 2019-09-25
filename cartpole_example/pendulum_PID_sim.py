@@ -1,5 +1,4 @@
 import numpy as np
-import scipy.sparse as sparse
 from ltisim import LinearStateSpaceSystem
 from pendulum_model import *
 from scipy.integrate import ode
@@ -7,9 +6,8 @@ from scipy.interpolate import interp1d
 import time
 import control
 import control.matlab
-import numpy.random
 import pandas as pd
-
+import os
 
 k_def = 9
 tau_def = 20e-3
@@ -30,7 +28,7 @@ rp_fun = interp1d(t_ref_vec, p_ref_vec, kind='linear')
 def xref_fun_def(t):
     return np.array([rp_fun(t), 0.0, 0.0, 0.0])
 
-Ts_slower_loop_def = 5e-3#Ts_fast
+Ts_slower_loop_def = 5e-3 #Ts_fast
 
 
 DEFAULTS_PENDULUM_MPC = {
@@ -334,4 +332,4 @@ if __name__ == '__main__':
 
     COL = COL_T + COL_X + COL_U + COL_Y + COL_D
     df_X = pd.DataFrame(X, columns=COL)
-    df_X.to_csv("pendulum_data_PID.csv", index=False)
+    df_X.to_csv(os.path.join("data", "pendulum_data_PID.csv"), index=False)

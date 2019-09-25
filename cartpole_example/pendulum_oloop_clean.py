@@ -7,13 +7,10 @@ from scipy.interpolate import interp1d
 import time
 import control
 import control.matlab
+import numpy.random
 import pandas as pd
-import os
-from torchid.ssfitter import  NeuralStateSpaceSimulator
-from torchid.ssmodels import MechanicalStateSpaceModel
 
-
-Ts_PID = 10e-3
+Ts_faster_loop = 1e-3
 
 Ac_def = np.array([[0, 1, 0, 0],
                [0, -b / M, -(g * m) / M, (ftheta * m) / M],
@@ -35,26 +32,26 @@ rp_fun = interp1d(t_ref_vec, p_ref_vec, kind='linear')
 def xref_fun_def(t):
     return np.array([rp_fun(t), 0.0, 0.0, 0.0])
 
-Ts_slower = 10e-3
+Ts_slower_loop_def = 5e-3#Ts_fast
+
 
 DEFAULTS_PENDULUM_MPC = {
     'xref_fun': xref_fun_def,
     'uref':  np.array([0.0]), # N
     'std_npos': 0*0.001,  # m
     'std_nphi': 0*0.00005,  # rad
-    'std_dF': 0.1,  # N
-    'w_F': 5,  # rad
+    'std_dF': 5,  # N
+    'w_F': 1,  # rad
     'len_sim': 40, #s
 
     'Ac': Ac_def,
     'Bc': Bc_def,
-    'Ts_slower_loop': Ts_slower,
+    'Ts_slower_loop': Ts_slower_loop_def,
     'Q_kal':  np.diag([0.1, 10, 0.1, 10]),
     'R_kal': 1*np.eye(2),
-    'seed_val': 42
+    'seed_val': None
 
 }
-
 
 
 def get_parameter(sim_options, par_name):
@@ -85,7 +82,7 @@ def simulate_pendulum_MPC(sim_options):
     ny = np.shape(Cc)[0]
 
     Ts_slower_loop = get_parameter(sim_options, 'Ts_slower_loop')
-    ratio_Ts = int(Ts_slower_loop // Ts_PID)
+    ratio_Ts = int(Ts_slower_loop // Ts_faster_loop)
 
     # Brutal forward euler discretization
     Ad = np.eye(nx) + Ac*Ts_slower_loop
@@ -106,47 +103,48 @@ def simulate_pendulum_MPC(sim_options):
     tau_F = 1 / w_F
     Hu = control.TransferFunction([1], [1 / w_F, 1])
     Hu = Hu * Hu
-    Hud = control.matlab.c2d(Hu, Ts_PID)
-    N_sim_imp = tau_F / Ts_PID * 20
-    t_imp = np.arange(N_sim_imp) * Ts_PID
+    Hud = control.matlab.c2d(Hu, Ts_faster_loop)
+    N_sim_imp = tau_F / Ts_faster_loop * 20
+    t_imp = np.arange(N_sim_imp) * Ts_faster_loop
     t, y = control.impulse_response(Hud, t_imp)
     y = y[0]
     std_tmp = np.sqrt(np.sum(y ** 2))  # np.sqrt(trapz(y**2,t))
     Hu = Hu / (std_tmp) * std_dF
 
 
-    N_skip = int(20 * tau_F // Ts_PID) # skip initial samples to get a regime sample of d
+    N_skip = int(20 * tau_F // Ts_faster_loop) # skip initial samples to get a regime sample of d
     t_sim_d = get_parameter(sim_options, 'len_sim')  # simulation length (s)
-    N_sim_d = int(t_sim_d // Ts_PID)
+    N_sim_d = int(t_sim_d // Ts_faster_loop)
     N_sim_d = N_sim_d + N_skip + 1
     e = np.random.randn(N_sim_d)
-    te = np.arange(N_sim_d) * Ts_PID
+    te = np.arange(N_sim_d) * Ts_faster_loop
     _, d, _ = control.forced_response(Hu, te, e)
     d = d.ravel()
-    angle_ref = d[N_skip:]
+    d = d[N_skip:]
+    ##angle_ref = d[N_skip:]
     
 
     # Initialize simulation system
     t0 = 0
-    phi0 = 0.0*2*np.pi/360
+    phi0 = 10*2*np.pi/360
     x0 = np.array([0, 0, phi0, 0]) # initial state
     system_dyn = ode(f_ODE_wrapped).set_integrator('vode', method='bdf') #    dopri5
 #    system_dyn = ode(f_ODE_wrapped).set_integrator('dopri5')
     system_dyn.set_initial_value(x0, t0)
     system_dyn.set_f_params(0.0)
 
-    # Default controller parameters -
-    P = -100.0
-    I = -1
-    D = -10
-    N = 100.0
+    #K_NUM = [0,   -35000000,  -105000000,   -70000000]
+    #K_DEN = [1,        2000,     1000000,           0]
 
-    kP = control.tf(P, 1, Ts_PID)
-    kI = I * Ts_PID * control.tf([0, 1], [1, -1], Ts_PID)
-    kD = D*control.tf([N, -N], [1.0, Ts_PID * N - 1], Ts_PID)
-    PID_tf = kP + kD + kI
-    PID_ss = control.ss(PID_tf)
-    k_PID = LinearStateSpaceSystem(A=PID_ss.A, B=PID_ss.B, C=PID_ss.C, D=PID_ss.D)
+    K_NUM = [-2100, -10001, -100]
+    K_DEN = [1,   100,     0]
+    #K_NUM = [-300,       -1001,         -10]
+    #K_DEN = [1,    10,     0]
+
+    K = control.tf(K_NUM,K_DEN)
+    Kd_tf = control.c2d(K, Ts_slower_loop)
+    Kd_ss = control.ss(Kd_tf)
+    Kd = LinearStateSpaceSystem(A=Kd_ss.A, B=Kd_ss.B, C=Kd_ss.C, D=Kd_ss.D)
 
     # Simulate in closed loop
     len_sim = get_parameter(sim_options, 'len_sim')  # simulation length (s)
@@ -160,7 +158,7 @@ def simulate_pendulum_MPC(sim_options):
     y_meas_vec = np.zeros((nsim, ny))
     u_vec = np.zeros((nsim, nu))
 
-    nsim_fast = int(len_sim // Ts_PID)
+    nsim_fast = int(len_sim // Ts_faster_loop)
     t_vec_fast = np.zeros((nsim_fast, 1))
     x_vec_fast = np.zeros((nsim_fast, nx)) # finer integration grid for performance evaluation
     ref_angle_vec_fast = np.zeros((nsim_fast, 1))
@@ -197,22 +195,22 @@ def simulate_pendulum_MPC(sim_options):
                 u_vec[idx_inner_controller, :] = u_PID
 
         # PID angle CONTROLLER
-        ref_angle =  angle_ref[idx_fast]
+        ref_angle =  0.0 #angle_ref[idx_fast]
         error_angle = ref_angle - ymeas_step[1]
-        u_PID = k_PID.output(error_angle)
+        u_PID = Kd.output(error_angle)
         u_PID[u_PID > 10.0] = 10.0
         u_PID[u_PID < -10.0] = -10.0
-        u_TOT = u_PID
+        u_TOT = 0*u_PID + d[idx_fast]
 
         # Ts_fast outputs
         t_vec_fast[idx_fast,:] = t_step
         x_vec_fast[idx_fast, :] = x_step #system_dyn.y
         u_vec_fast[idx_fast,:] = u_TOT
-        Fd_vec_fast[idx_fast,:] = 0.0
+        Fd_vec_fast[idx_fast,:] = d[idx_fast]
         ref_angle_vec_fast[idx_fast,:] = ref_angle
 
         ## Update to step i+1
-        k_PID.update(error_angle)
+        Kd.update(error_angle)
 
         # Controller simulation step at rate Ts_slower_loop
         if run_inner_controller:
@@ -221,18 +219,18 @@ def simulate_pendulum_MPC(sim_options):
         # System simulation step at rate Ts_fast
         time_integrate_start = time.perf_counter()
         system_dyn.set_f_params(u_TOT)
-        system_dyn.integrate(t_step + Ts_PID)
+        system_dyn.integrate(t_step + Ts_faster_loop)
         x_step = system_dyn.y
         #x_step = x_step + f_ODE_jit(t_step, x_step, u_TOT)*Ts_fast
         #x_step = x_step + f_ODE(0.0, x_step, u_TOT) * Ts_fast
         t_int_vec_fast[idx_fast,:] = time.perf_counter() - time_integrate_start
 
         # Time update
-        t_step += Ts_PID
+        t_step += Ts_faster_loop
 
     simout = {'t': t_vec, 'x': x_vec, 'u': u_vec, 'y': y_vec, 'y_meas': y_meas_vec, 'x_ref': x_ref_vec,  'status': status_vec, 'Fd_fast': Fd_vec_fast,
               't_fast': t_vec_fast, 'x_fast': x_vec_fast, 'x_ref_fast': x_ref_vec_fast, 'u_fast': u_vec_fast, 'y_meas_fast': y_meas_vec_fast, 'emergency_fast': emergency_vec_fast,
-              'K': k_PID, 'nsim': nsim, 'Ts_slower_loop': Ts_slower_loop, 't_calc': t_calc_vec, 'ref_angle_fast': ref_angle_vec_fast,
+              'K': K, 'nsim': nsim, 'Ts_slower_loop': Ts_slower_loop, 't_calc': t_calc_vec, 'ref_angle_fast': ref_angle_vec_fast,
               't_int_fast': t_int_vec_fast
               }
 
@@ -276,9 +274,9 @@ if __name__ == '__main__':
 
     y_ref = x_ref[:, [0, 2]]
 
-    fig, axes = plt.subplots(3,1, figsize=(10,10), sharex=True)
-    axes[0].plot(t, y_meas[:, 0], "b", label='p_meas')
-    axes[0].plot(t_fast, x_fast[:, 0], "k", label='p')
+    fig,axes = plt.subplots(3,1, figsize=(10,10), sharex=True)
+    #axes[0].plot(t, y_meas[:, 0], "b", label='p_meas')
+    axes[0].plot(t_fast, x_fast[:, 1], "k", label='p')
     idx_pred = 0
     axes[0].set_ylim(-20,20.0)
     axes[0].set_title("Position (m)")
@@ -289,14 +287,14 @@ if __name__ == '__main__':
     axes[1].plot(t_fast, ref_phi_fast[:,0]*RAD_TO_DEG, "k--", label="phi_ref")
 
     idx_pred = 0
-    axes[1].set_ylim(-20,20)
+    #axes[1].set_ylim(-700, 700)
     axes[1].set_title("Angle (deg)")
 
     axes[2].plot(t, u[:,0], label="u")
     axes[2].plot(t_fast, F_input, "k", label="Fd")
     axes[2].plot(t, uref*np.ones(np.shape(t)), "r--", label="u_ref")
 
-    axes[2].set_ylim(-20,20)
+    axes[2].set_ylim(-20, 20)
     axes[2].set_title("Force (N)")
 
     for ax in axes:
@@ -312,4 +310,4 @@ if __name__ == '__main__':
 
     COL = COL_T + COL_X + COL_U + COL_Y + COL_D
     df_X = pd.DataFrame(X, columns=COL)
-    df_X.to_csv(os.path.join("data", "pendulum_data_PID.csv"), index=False)
+    df_X.to_csv("pendulum_data_oloop.csv", index=False)

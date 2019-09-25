@@ -13,13 +13,16 @@ from torchid.ssmodels import MechanicalStateSpaceModel
 
 # In[Load data]
 if __name__ == '__main__':
-    
+
+    add_noise = False
+
     COL_T = ['time']
     COL_Y = ['p_meas', 'theta_meas']
     COL_X = ['p', 'v', 'theta', 'omega']
     COL_U = ['u']
     COL_R = ['r']
-    df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref.csv"))
+    #df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref.csv"))
+    df_X = pd.read_csv(os.path.join("data", "pendulum_data_PID.csv"))
 
     t = np.array(df_X[COL_T], dtype=np.float32)
     y = np.array(df_X[COL_Y],dtype=np.float32)
@@ -43,35 +46,41 @@ if __name__ == '__main__':
     x_meas_fit_torch = torch.from_numpy(x_fit)
     t_fit_torch = torch.from_numpy(t_fit)
     
-    num_iter = 40000
+    num_iter = 20000
     test_freq = 100
 
     params = list(nn_solution.ss_model.parameters())
     optimizer = optim.Adam(params, lr=1e-4)
     end = time.time()
 
-    #scale_error = 1./np.std(x_noise, axis=0)
-    #scale_error = scale_error/np.sum(scale_error)
-    #scale_error = 1e0*np.ones(4)/4
-    #scale_error = 1./np.mean(np.abs(np.diff(x_fit, axis = 0)), axis=0)
-    scale_error = 1./np.std(np.diff(x_fit, axis = 0), axis=0)
-    scale_error = torch.tensor(scale_error.astype(np.float32))
+    with torch.no_grad():
+        x_est_torch = nn_solution.f_onestep(x_meas_fit_torch, u_fit_torch)
+        err_init = x_est_torch - x_meas_fit_torch
+        scale_error = torch.sqrt(torch.mean((err_init)**2, dim=0)) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
+        #scale_error[0] = 0.0
+        #scale_error[3] = 0.0
+
+    #scale_error = 1./np.std(np.diff(x_fit, axis = 0), axis=0)
+    #scale_error = torch.tensor(scale_error.astype(np.float32))
 
 # In[Fit model]
+    LOSS = []
+    time_start = time.time()
     ii = 0
     for itr in range(1, num_iter + 1):
         optimizer.zero_grad()
         x_pred_torch = nn_solution.f_onestep(x_meas_fit_torch, u_fit_torch)
         err = x_pred_torch - x_meas_fit_torch
-        err_scaled = err * scale_error
-        loss = torch.mean((err_scaled)**2) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
+        err_scaled = err / scale_error
+        loss_sc = torch.mean((err_scaled[:,[1,3]]) ** 2) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
 
-        loss.backward()
+        LOSS.append(loss_sc.item())
+        loss_sc.backward()
         optimizer.step()
 
         if itr % test_freq == 0:
             with torch.no_grad():
-                print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
+                print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss_sc.item()))
                 ii += 1
         end = time.time()
 
@@ -88,7 +97,7 @@ if __name__ == '__main__':
     x_0 = x_fit[0, :]
     with torch.no_grad():
         x_sim_torch = nn_solution.f_sim(torch.tensor(x_0), torch.tensor(u_fit))
-        loss = torch.mean(torch.abs(x_sim_torch - x_meas_fit_torch))
+        loss_sc = torch.mean(torch.abs(x_sim_torch - x_meas_fit_torch))
         x_sim = np.array(x_sim_torch)
     # In[1]
     n_plot = 150
@@ -105,3 +114,20 @@ if __name__ == '__main__':
     ax[1].set_ylabel("Angle (rad)")
     ax[1].legend()
     ax[1].grid()
+
+
+    if not os.path.exists("fig"):
+        os.makedirs("fig")
+
+    fig, ax = plt.subplots(1, 1, figsize=(7.5, 6))
+    ax.plot(LOSS)
+    ax.grid(True)
+    ax.set_ylabel("Loss (-)")
+    ax.set_xlabel("Iteration (-)")
+
+    if add_noise:
+        fig_name = "cartpole_SS_loss_1step_noise.pdf"
+    else:
+        fig_name = "cartpole_SS_loss_1step_nonoise.pdf"
+
+    fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')

@@ -9,6 +9,8 @@ import control
 import control.matlab
 import pandas as pd
 import os
+
+import torch
 from torchid.ssfitter import  NeuralStateSpaceSimulator
 from torchid.ssmodels import MechanicalStateSpaceModel
 
@@ -55,7 +57,11 @@ DEFAULTS_PENDULUM_MPC = {
 
 }
 
-
+ss_model = MechanicalStateSpaceModel(Ts=Ts_slower)
+nn_solution = NeuralStateSpaceSimulator(ss_model, Ts=Ts_PID)
+model_name = "model_SS_1step_nonoise.pkl"
+nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", model_name)))
+f_ODE_wrapped = nn_solution.f_ODE
 
 def get_parameter(sim_options, par_name):
     return sim_options.get(par_name, DEFAULTS_PENDULUM_MPC[par_name])
@@ -276,9 +282,9 @@ if __name__ == '__main__':
 
     y_ref = x_ref[:, [0, 2]]
 
-    fig, axes = plt.subplots(3,1, figsize=(10,10), sharex=True)
-    axes[0].plot(t, y_meas[:, 0], "b", label='p_meas')
-    axes[0].plot(t_fast, x_fast[:, 0], "k", label='p')
+    fig,axes = plt.subplots(3,1, figsize=(10,10), sharex=True)
+    #axes[0].plot(t, y_meas[:, 0], "b", label='p_meas')
+    axes[0].plot(t_fast, x_fast[:, 1], "k", label='p')
     idx_pred = 0
     axes[0].set_ylim(-20,20.0)
     axes[0].set_title("Position (m)")
@@ -312,4 +318,4 @@ if __name__ == '__main__':
 
     COL = COL_T + COL_X + COL_U + COL_Y + COL_D
     df_X = pd.DataFrame(X, columns=COL)
-    df_X.to_csv(os.path.join("data", "pendulum_data_PID.csv"), index=False)
+    df_X.to_csv(os.path.join("data", "pendulum_data_PID_NN_model.csv"), index=False)
