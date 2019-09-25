@@ -50,7 +50,7 @@ def xref_fun_def(t):
 #QDu_def = 0.01 * sparse.eye(1)       # Quadratic cost for Du0, Du1, ...., Du_N-1
 
 Ts_MPC_def = 10e-3
-Qx_def = 1.0 * sparse.diags([1.0, 0, 5.0, 0])   # Quadratic cost for states x0, x1, ..., x_N-1
+Qx_def = 1.0 * sparse.diags([1.0, 0, 5.0, 1.0])   # Quadratic cost for states x0, x1, ..., x_N-1
 QxN_def = Qx_def
 
 Qu_def = 0.0 * sparse.eye(1)        # Quadratic cost for u0, u1, ...., u_N-1
@@ -61,8 +61,8 @@ DEFAULTS_PENDULUM_MPC = {
     'uref':  np.array([0.0]), # N
     'std_npos': 0.0001,  # m
     'std_nphi': 0.0001,  # rad
-    'std_dF': 0.8,  # N
-    'w_F': 0.6,  # rad
+    'std_dF': 1.0,  # N
+    'w_F': 0.3,  # rad
     'len_sim': 40, #s
 
     'Ac': Ac_def,
@@ -81,7 +81,7 @@ DEFAULTS_PENDULUM_MPC = {
     'QP_eps_rel': 1e-3,
     'seed_val': 42,
 
-    'use_NN_model': True
+    'use_NN_model': False
 
 }
 
@@ -498,6 +498,6 @@ if __name__ == '__main__':
 
 
     if simout['use_NN_model']:
-        df_X.to_csv(os.path.join("data", "pendulum_data_MPC_ref_NN_model.csv"), index=False)
+        df_X.to_csv(os.path.join("data", "pendulum_data_MPC_ref_id_NN_model.csv"), index=False)
     else:
-        df_X.to_csv(os.path.join("data", "pendulum_data_MPC_ref.csv"), index=False)
+        df_X.to_csv(os.path.join("data", "pendulum_data_MPC_ref_id.csv"), index=False)
