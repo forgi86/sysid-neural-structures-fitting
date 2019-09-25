@@ -59,6 +59,7 @@ if __name__ == '__main__':
         err_init = x_est_torch - x_true_torch
         scale_error = torch.sqrt(torch.mean((err_init)**2,dim=0)) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
 
+
     LOSS = []
     start_time = time.time()
     for itr in range(0, num_iter):

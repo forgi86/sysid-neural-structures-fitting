@@ -21,8 +21,8 @@ if __name__ == '__main__':
     COL_X = ['p', 'v', 'theta', 'omega']
     COL_U = ['u']
     COL_R = ['r']
-    #df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref.csv"))
-    df_X = pd.read_csv(os.path.join("data", "pendulum_data_PID.csv"))
+    df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref.csv"))
+    #df_X = pd.read_csv(os.path.join("data", "pendulum_data_PID.csv"))
 
     t = np.array(df_X[COL_T], dtype=np.float32)
     y = np.array(df_X[COL_Y],dtype=np.float32)

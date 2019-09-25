@@ -4,8 +4,9 @@ import numpy as np
  
         
 class NeuralStateSpaceSimulator():
-    def __init__(self, ss_model):
+    def __init__(self, ss_model, Ts=1.0):
         self.ss_model = ss_model
+        self.Ts = Ts
 
     def f_onestep(self, X, U):
         X_pred = torch.empty(X.shape)
@@ -95,9 +96,10 @@ class NeuralStateSpaceSimulator():
         return X_pred
 
     def f_ODE(self,t,x,u):
-        x = torch.tensor(x.reshape(1,-1).astype(np.float32))
-        u = torch.tensor(u.reshape(1,-1).astype(np.float32))
-        return np.array(self.nn_derivative(x,u)).ravel().astype(np.float64)
+        with torch.no_grad():
+            x = torch.tensor(x.reshape(1,-1).astype(np.float32))
+            u = torch.tensor(u.reshape(1,-1).astype(np.float32))
+            return np.array(self.ss_model(x,u)).ravel().astype(np.float64)/self.Ts
 
 
 class NeuralSumODE():

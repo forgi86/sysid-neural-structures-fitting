@@ -123,15 +123,15 @@ class MechanicalStateSpaceModel(nn.Module):
         #        nn.init.constant_(m.bias, val=0)
 
         self.AL = nn.Linear(4,4, bias=False)
-        self.AL.weight = torch.nn.Parameter(torch.tensor([[0.,Ts,0.,0.],
-                                                          [0.,0.,0.,0.],
-                                                          [0.,0.,0.,Ts],
-                                                          [0.,0.,0.,0.]]), requires_grad=False)
+        self.AL.weight = torch.nn.Parameter(torch.tensor([[0., Ts, 0., 0.],
+                                                          [0., 0., 0., 0.],
+                                                          [0., 0., 0., Ts],
+                                                          [0., 0., 0., 0.]]), requires_grad=False)
         self.WL = nn.Linear(2,4, bias=False)
-        self.WL.weight = torch.nn.Parameter(torch.tensor([[0.,0.],
-                                                          [1.,0.],
-                                                          [0.,0.],
-                                                          [0.,1.]]), requires_grad=False)
+        self.WL.weight = torch.nn.Parameter(torch.tensor([[0., 0.],
+                                                          [1., 0.],
+                                                          [0., 0.],
+                                                          [0., 1.]]), requires_grad=False)
 
     def forward(self, X, U):
         XU = torch.cat((X,U),-1)

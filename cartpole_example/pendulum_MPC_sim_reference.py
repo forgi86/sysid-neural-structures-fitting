@@ -12,6 +12,11 @@ import numpy.random
 import pandas as pd
 import os
 
+import torch
+from torchid.ssfitter import  NeuralStateSpaceSimulator
+from torchid.ssmodels import MechanicalStateSpaceModel
+
+
 Ts_fast = 1e-3
 
 Ac_def = np.array([[0, 1, 0, 0],
@@ -56,8 +61,8 @@ DEFAULTS_PENDULUM_MPC = {
     'uref':  np.array([0.0]), # N
     'std_npos': 0.0001,  # m
     'std_nphi': 0.0001,  # rad
-    'std_dF': 0.5,  # N
-    'w_F': 1.0,  # rad
+    'std_dF': 0.8,  # N
+    'w_F': 0.2,  # rad
     'len_sim': 40, #s
 
     'Ac': Ac_def,
@@ -72,9 +77,11 @@ DEFAULTS_PENDULUM_MPC = {
     'QxN': QxN_def,
     'Qu': Qu_def,
     'QDu': QDu_def,
-    'QP_eps_abs': 1e-5,
-    'QP_eps_rel': 1e-5,
-    'seed_val': None
+    'QP_eps_abs': 1e-3,
+    'QP_eps_rel': 1e-3,
+    'seed_val': 42,
+
+    'use_NN_model': True
 
 }
 
@@ -90,6 +97,18 @@ def get_default_parameters(sim_options):
 
 
 def simulate_pendulum_MPC(sim_options):
+
+
+    use_NN_model = get_parameter(sim_options, 'use_NN_model')
+
+    if use_NN_model:
+        ss_model = MechanicalStateSpaceModel(Ts=Ts_fast)
+        nn_solution = NeuralStateSpaceSimulator(ss_model, Ts=Ts_fast)
+        model_name = "model_SS_1step_nonoise.pkl"
+        nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", model_name)))
+        f_ODE = nn_solution.f_ODE
+    else:
+        f_ODE = f_ODE_wrapped
 
     seed_val = get_parameter(sim_options,'seed_val')
     if seed_val is not None:
@@ -168,8 +187,8 @@ def simulate_pendulum_MPC(sim_options):
     uminus1 = np.array([0.0])     # input at time step negative one - used to penalize the first delta u at time instant 0. Could be the same as uref.
 
     # Constraints
-    xmin = np.array([-1.5, -100, -100, -100])
-    xmax = np.array([1.5,   100.0, 100, 100])
+    xmin = np.array([-10, -100, -100, -100])
+    xmax = np.array([10,   100.0, 100, 100])
 
     umin = np.array([-10])
     umax = np.array([10])
@@ -180,8 +199,8 @@ def simulate_pendulum_MPC(sim_options):
     # Initialize simulation system
     phi0 = 0.0#10*2*np.pi/360
     x0 = np.array([0, 0, phi0, 0]) # initial state
-    system_dyn = ode(f_ODE_wrapped).set_integrator('vode', method='bdf') #    dopri5
-#    system_dyn = ode(f_ODE_wrapped).set_integrator('dopri5')
+#    system_dyn = ode(f_ODE_wrapped).set_integrator('vode', method='bdf') #    dopri5
+    system_dyn = ode(f_ODE).set_integrator('dopri5')
     system_dyn.set_initial_value(x0, t0)
     system_dyn.set_f_params(0.0)
 
@@ -321,7 +340,7 @@ def simulate_pendulum_MPC(sim_options):
         #system_dyn.set_f_params(u_fast)
         #system_dyn.integrate(t_step + Ts_fast)
         #x_step = system_dyn.y
-        x_step = x_step + f_ODE_jit(t_step, x_step, u_fast)*Ts_fast
+        x_step = x_step + f_ODE(t_step, x_step, u_fast)*Ts_fast
         t_int_vec_fast[idx_fast,:] = time.perf_counter() - time_integrate_start
 
         # Time update
@@ -330,7 +349,7 @@ def simulate_pendulum_MPC(sim_options):
     simout = {'t': t_vec, 'x': x_vec, 'u': u_vec, 'y': y_vec, 'y_meas': y_meas_vec, 'x_ref': x_ref_vec, 'x_MPC_pred': x_MPC_pred, 'status': status_vec, 'Fd_fast': Fd_vec_fast,
               't_fast': t_vec_fast, 'x_fast': x_vec_fast, 'x_ref_fast': x_ref_vec_fast, 'u_fast': u_vec_fast, 'emergency_fast': emergency_vec_fast,
               'KF': KF, 'K': K, 'nsim': nsim, 'Ts_MPC': Ts_MPC, 't_calc': t_calc_vec,
-              't_int_fast': t_int_vec_fast
+              't_int_fast': t_int_vec_fast, 'use_NN_model': use_NN_model
               }
 
     return simout
@@ -393,7 +412,7 @@ if __name__ == '__main__':
     axes[0].plot(t[idx_pred:idx_pred+Np+1], y_MPC_pred[0, :, 0], 'c', label='MPC k-step prediction' )
     axes[0].plot(t[idx_pred:idx_pred+Np+1], y_OL_err[0, :, 0], 'r--', label='Off-line prediction error')
     axes[0].plot(t[idx_pred:idx_pred+Np+1], y_MPC_err[0, :, 0], 'c--', label='MPC prediction error')
-    axes[0].set_ylim(-2.0,2.0)
+    axes[0].set_ylim(-3.0,3.0)
     axes[0].set_title("Position (m)")
 
 
@@ -475,4 +494,9 @@ if __name__ == '__main__':
 
     COL = COL_T + COL_X + COL_U + COL_Y + COL_R
     df_X = pd.DataFrame(X, columns=COL)
-    df_X.to_csv(os.path.join("data", "pendulum_data_MPC_ref.csv"), index=False)
+
+
+    if simout['use_NN_model']:
+        df_X.to_csv(os.path.join("data", "pendulum_data_MPC_ref_NN_model.csv"), index=False)
+    else:
+        df_X.to_csv(os.path.join("data", "pendulum_data_MPC_ref.csv"), index=False)
