@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse as sparse
 from pyMPC.mpc import MPCController
 from kalman import kalman_design_simple, LinearStateEstimator
-from pendulum_model import *
+from cartpole_model import *
 from scipy.integrate import ode
 from scipy.interpolate import interp1d
 import time
@@ -61,9 +61,9 @@ DEFAULTS_PENDULUM_MPC = {
     'uref':  np.array([0.0]), # N
     'std_npos': 0.0001,  # m
     'std_nphi': 0.0001,  # rad
-    'std_dF': 1.0,  # N
-    'w_F': 0.3,  # rad
-    'len_sim': 40, #s
+    'std_dF': 0.7,  # N
+    'w_F': 1.5,  # rad
+    'len_sim': 80, #s
 
     'Ac': Ac_def,
     'Bc': Bc_def,
@@ -158,7 +158,7 @@ def simulate_pendulum_MPC(sim_options):
     Hu = Hu / (std_tmp) * std_dF
 
 
-    N_skip = int(20 * tau_F // Ts_MPC) # skip initial samples to get a regime sample of d
+    N_skip = 1#int(20 * tau_F // Ts_MPC) # skip initial samples to get a regime sample of d
     t_sim_d = get_parameter(sim_options, 'len_sim')  # simulation length (s)
     N_sim_d = int(t_sim_d // Ts_MPC)
     N_sim_d = N_sim_d + N_skip + 1
@@ -188,8 +188,8 @@ def simulate_pendulum_MPC(sim_options):
     uminus1 = np.array([0.0])     # input at time step negative one - used to penalize the first delta u at time instant 0. Could be the same as uref.
 
     # Constraints
-    xmin = np.array([-100, -100, -100, -100])
-    xmax = np.array([100,   100.0, 100, 100])
+    xmin = np.array([-1000, -1000, -1000, -1000])
+    xmax = np.array([1000,   1000.0, 1000, 1000])
 
     umin = np.array([-10])
     umax = np.array([10])
@@ -211,8 +211,8 @@ def simulate_pendulum_MPC(sim_options):
     # Emergency exit conditions
     
     EMERGENCY_STOP = False
-    EMERGENCY_POS = 2.0
-    EMERGENCY_ANGLE = 30*DEG_TO_RAD
+    EMERGENCY_POS = 30.0
+    EMERGENCY_ANGLE = 90*DEG_TO_RAD
 
     K = MPCController(Ad,Bd,Np=Np,Nc=Nc,x0=x0,xref=xref_MPC,uminus1=uminus1,
                       Qx=Qx, QxN=QxN, Qu=Qu,QDu=QDu,
@@ -413,7 +413,7 @@ if __name__ == '__main__':
     axes[0].plot(t[idx_pred:idx_pred+Np+1], y_MPC_pred[0, :, 0], 'c', label='MPC k-step prediction' )
     axes[0].plot(t[idx_pred:idx_pred+Np+1], y_OL_err[0, :, 0], 'r--', label='Off-line prediction error')
     axes[0].plot(t[idx_pred:idx_pred+Np+1], y_MPC_err[0, :, 0], 'c--', label='MPC prediction error')
-    axes[0].set_ylim(-3.0,3.0)
+    #axes[0].set_ylim(-3.0,3.0)
     axes[0].set_title("Position (m)")
 
 
@@ -424,7 +424,7 @@ if __name__ == '__main__':
     axes[1].plot(t[idx_pred:idx_pred+Np+1], y_MPC_pred[0, :, 1]*RAD_TO_DEG, 'c',label='MPC k-step prediction' )
     axes[1].plot(t[idx_pred:idx_pred+Np+1], y_OL_err[0, :, 1]*RAD_TO_DEG, 'r--', label='Off-line prediction error' )
     axes[1].plot(t[idx_pred:idx_pred+Np+1], y_MPC_err[0, :, 1]*RAD_TO_DEG, 'c--', label='MPC prediction error')
-    axes[1].set_ylim(-20,20)
+    #axes[1].set_ylim(-20,20)
     axes[1].set_title("Angle (deg)")
 
     axes[2].plot(t, u[:,0], label="u")

@@ -26,11 +26,6 @@ w, h = signal.freqz(taps, [1], worN=2000)
 plot_response(fs, w, h, "Low-pass Filter")
 """
 
-len_fit = 40
-seq_len = 50
-test_freq = 20
-num_iter = 16000
-test_freq = 50
 add_noise = True
 
 
@@ -38,7 +33,7 @@ COL_T = ['time']
 COL_Y = ['p_meas', 'theta_meas']
 COL_X = ['p', 'v', 'theta', 'omega']
 COL_U = ['u']
-df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref.csv"))
+df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref_id.csv"))
 
 std_noise_p = add_noise * 0.02
 std_noise_theta = add_noise * 0.004
@@ -54,10 +49,10 @@ y_meas = np.copy(y) + np.random.randn(*y.shape)*std_noise
 
 Ts = np.float(t[1] - t[0])
 fs = 1/Ts       # Sample rate, Hz
-cutoff = 1.0    # Desired cutoff frequency, Hz
+cutoff = 2.0    # Desired cutoff frequency, Hz
 trans_width = 3.0  # Width of transition from pass band to stop band, Hz
 numtaps = 40      # Size of the FIR filter.
-taps = signal.remez(numtaps, [0, cutoff, cutoff + trans_width, 0.5*fs], [2*np.pi*cutoff*10*1.5, 0], Hz=fs, type='differentiator')
+taps = signal.remez(numtaps, [0, cutoff, cutoff + trans_width, 0.5*fs], [2*np.pi*2*np.pi*10*1.5, 0], Hz=fs, type='differentiator')
 w, h = signal.freqz(taps, [1], worN=2000)
 plot_response(fs, w[1:], h[1:], "Derivative Filter")
 
@@ -68,8 +63,8 @@ plt.plot(taps)
 x_est = np.zeros((y_meas.shape[0], 4), dtype=np.float32)
 x_est[:, 0] = y_meas[:, 0]
 x_est[:, 2] = y_meas[:, 1]
-x_est[:,1] = np.convolve(x_est[:,0],taps, 'same')*2*np.pi#signal.lfilter(taps, 1, y_meas[:,0])*2*np.pi
-x_est[:,3] = np.convolve(x_est[:,2],taps, 'same')*2*np.pi#signal.lfilter(taps, 1, y_meas[:,1])*2*np.pi
+x_est[:,1] = np.convolve(x_est[:,0],taps, 'same')#signal.lfilter(taps, 1, y_meas[:,0])*2*np.pi
+x_est[:,3] = np.convolve(x_est[:,2],taps, 'same')#signal.lfilter(taps, 1, y_meas[:,1])*2*np.pi
 
 
 fig,ax = plt.subplots(4,1,sharex=True)
