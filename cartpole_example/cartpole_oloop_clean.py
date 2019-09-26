@@ -9,6 +9,7 @@ import control
 import control.matlab
 import numpy.random
 import pandas as pd
+import os
 
 Ts_faster_loop = 1e-3
 
@@ -40,7 +41,7 @@ DEFAULTS_PENDULUM_MPC = {
     'uref':  np.array([0.0]), # N
     'std_npos': 0*0.001,  # m
     'std_nphi': 0*0.00005,  # rad
-    'std_dF': 5,  # N
+    'std_dF': 15,  # N
     'w_F': 1,  # rad
     'len_sim': 40, #s
 
@@ -49,7 +50,7 @@ DEFAULTS_PENDULUM_MPC = {
     'Ts_slower_loop': Ts_slower_loop_def,
     'Q_kal':  np.diag([0.1, 10, 0.1, 10]),
     'R_kal': 1*np.eye(2),
-    'seed_val': None
+    'seed_val': 42
 
 }
 
@@ -126,7 +127,7 @@ def simulate_pendulum_MPC(sim_options):
 
     # Initialize simulation system
     t0 = 0
-    phi0 = 10*2*np.pi/360
+    phi0 = 0*2*np.pi/360
     x0 = np.array([0, 0, phi0, 0]) # initial state
     system_dyn = ode(f_ODE_wrapped).set_integrator('vode', method='bdf') #    dopri5
 #    system_dyn = ode(f_ODE_wrapped).set_integrator('dopri5')
@@ -310,4 +311,4 @@ if __name__ == '__main__':
 
     COL = COL_T + COL_X + COL_U + COL_Y + COL_D
     df_X = pd.DataFrame(X, columns=COL)
-    df_X.to_csv("pendulum_data_oloop.csv", index=False)
+    df_X.to_csv(os.path.join("data", "pendulum_data_oloop.csv"), index=False)

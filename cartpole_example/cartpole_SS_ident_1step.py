@@ -14,6 +14,10 @@ from torchid.ssmodels import MechanicalStateSpaceModel
 # In[Load data]
 if __name__ == '__main__':
 
+    num_iter = 20000
+    test_freq = 100
+    len_fit = 40
+
     add_noise = False
 
     COL_T = ['time']
@@ -23,6 +27,8 @@ if __name__ == '__main__':
     COL_R = ['r']
     df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref.csv"))
     #df_X = pd.read_csv(os.path.join("data", "pendulum_data_PID.csv"))
+    #df_X = pd.read_csv(os.path.join("data", "pendulum_data_oloop.csv"))
+    #df_X = df_X.iloc[0:-1:10]
 
     t = np.array(df_X[COL_T], dtype=np.float32)
     y = np.array(df_X[COL_Y],dtype=np.float32)
@@ -37,7 +43,6 @@ if __name__ == '__main__':
    
 # In[Setup optimization problem]
 
-    len_fit = 40
     n_fit = int(len_fit//Ts)
     u_fit = u[0:n_fit]
     x_fit = x_noise[0:n_fit]
@@ -46,8 +51,6 @@ if __name__ == '__main__':
     x_meas_fit_torch = torch.from_numpy(x_fit)
     t_fit_torch = torch.from_numpy(t_fit)
     
-    num_iter = 20000
-    test_freq = 100
 
     params = list(nn_solution.ss_model.parameters())
     optimizer = optim.Adam(params, lr=1e-4)

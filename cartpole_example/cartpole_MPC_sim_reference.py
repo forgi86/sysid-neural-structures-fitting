@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse as sparse
 from pyMPC.mpc import MPCController
 from kalman import kalman_design_simple, LinearStateEstimator
-from pendulum_model import *
+from cartpole_model import *
 from scipy.integrate import ode
 from scipy.interpolate import interp1d
 import time
@@ -62,7 +62,7 @@ DEFAULTS_PENDULUM_MPC = {
     'std_npos': 0.0001,  # m
     'std_nphi': 0.0001,  # rad
     'std_dF': 0.8,  # N
-    'w_F': 0.2,  # rad
+    'w_F': 0.6,  # rad
     'len_sim': 40, #s
 
     'Ac': Ac_def,
@@ -81,7 +81,7 @@ DEFAULTS_PENDULUM_MPC = {
     'QP_eps_rel': 1e-3,
     'seed_val': 42,
 
-    'use_NN_model': True
+    'use_NN_model': False
 
 }
 
@@ -102,8 +102,9 @@ def simulate_pendulum_MPC(sim_options):
     use_NN_model = get_parameter(sim_options, 'use_NN_model')
 
     if use_NN_model:
-        ss_model = MechanicalStateSpaceModel(Ts=Ts_fast)
-        nn_solution = NeuralStateSpaceSimulator(ss_model, Ts=Ts_fast)
+        Ts_fit = 10e-3 # model was fitted with this sampling time
+        ss_model = MechanicalStateSpaceModel(Ts=Ts_fit)
+        nn_solution = NeuralStateSpaceSimulator(ss_model, Ts=Ts_fit)
         model_name = "model_SS_1step_nonoise.pkl"
         nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", model_name)))
         f_ODE = nn_solution.f_ODE
@@ -187,8 +188,8 @@ def simulate_pendulum_MPC(sim_options):
     uminus1 = np.array([0.0])     # input at time step negative one - used to penalize the first delta u at time instant 0. Could be the same as uref.
 
     # Constraints
-    xmin = np.array([-10, -100, -100, -100])
-    xmax = np.array([10,   100.0, 100, 100])
+    xmin = np.array([-100, -100, -100, -100])
+    xmax = np.array([100,   100.0, 100, 100])
 
     umin = np.array([-10])
     umax = np.array([10])
@@ -337,10 +338,10 @@ def simulate_pendulum_MPC(sim_options):
 
         # System simulation step at rate Ts_fast
         time_integrate_start = time.perf_counter()
-        #system_dyn.set_f_params(u_fast)
-        #system_dyn.integrate(t_step + Ts_fast)
-        #x_step = system_dyn.y
-        x_step = x_step + f_ODE(t_step, x_step, u_fast)*Ts_fast
+        system_dyn.set_f_params(u_fast)
+        system_dyn.integrate(t_step + Ts_fast)
+        x_step = system_dyn.y
+        #x_step = x_step + f_ODE(t_step, x_step, u_fast)*Ts_fast
         t_int_vec_fast[idx_fast,:] = time.perf_counter() - time_integrate_start
 
         # Time update
