@@ -6,26 +6,20 @@ import os
 import sys
 
 sys.path.append(os.path.join(".."))
-from torchid.ssfitter import NeuralStateSpaceSimulator
-from torchid.ssmodels import NeuralStateSpaceModel
+from torchid.ssfitter import  NeuralStateSpaceSimulator
+from torchid.ssmodels import MechanicalStateSpaceModel
 from torchid.util import get_sequential_batch_idx
 
 if __name__ == '__main__':
 
-    seq_len = 256 #256 # prediction sequence length
+    seq_len = 50 #256 # prediction sequence length
 
     COL_T = ['time']
-    COL_Y = ['Ca']
-    COL_X = ['Ca', 'T']
-    COL_U = ['q']
+    COL_Y = ['p_meas', 'theta_meas']
+    COL_X = ['p', 'v', 'theta', 'omega']
+    COL_U = ['u']
 
-#    df_X = pd.read_csv(os.path.join("data", "cstr.dat"), header=None, sep="\t")
-#    df_X.columns = ['time', 'q', 'Ca', 'T', 'None']
-#    df_X['q'] =  1.0*df_X['q']/100.0
-#    df_X['Ca'] = 1.0*df_X['Ca']*10.0
-#    df_X['T'] = 1.0*df_X['T']/400.0
-
-    df_X = pd.read_csv(os.path.join("data", "cstr_val.dat"), sep="\t")
+    df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref.csv"), sep=",")
 
 
 
@@ -43,16 +37,15 @@ if __name__ == '__main__':
     std_noise_I = 0.0 * 0.5
     std_noise = np.array([std_noise_V, std_noise_I])
 
-    x_noise = np.copy(x) + np.random.randn(*x.shape) * std_noise
+    x_noise = np.copy(x) #+ np.random.randn(*x.shape) * std_noise
     x_noise = x_noise.astype(np.float32)
     y_noise = np.copy(y)
 
     # Initialize optimization
-    ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64) #NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
+    ss_model = MechanicalStateSpaceModel(Ts, init_small=True)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
-    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_SS_1step.pkl")))
-#    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_ss_16step_from1.pkl")))
-#    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_ss_128step_from16.pkl")))
+    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_SS_50step_nonoise.pkl")))
+
 
 
     # In[Validate model]
@@ -85,8 +78,8 @@ if __name__ == '__main__':
     ax[0].plot(batch_time_np.T, batch_x_pred_np[:,:,0].T, 'r')
     ax[0].grid(True)
 
-    ax[1].plot(time_val, x_val[:,1], 'b')
-    ax[1].plot(batch_time_np.T, batch_x_pred_np[:,:,1].T, 'r')
+    ax[1].plot(time_val, x_val[:,2], 'b')
+    ax[1].plot(batch_time_np.T, batch_x_pred_np[:,:,2].T, 'r')
     ax[1].grid(True)
 
     ax[2].plot(time_val, u_val, label='Input')

@@ -17,8 +17,8 @@ if __name__ == '__main__':
     len_fit = 40
     seq_len = 50
     test_freq = 20
-    num_iter = 2000
-    test_freq = 1
+    num_iter = 16000
+    test_freq = 50
     add_noise = False
 
     COL_T = ['time']
@@ -31,9 +31,14 @@ if __name__ == '__main__':
     y = np.array(df_X[COL_Y],dtype=np.float32)
     x = np.array(df_X[COL_X],dtype=np.float32)
     u = np.array(df_X[COL_U],dtype=np.float32)
+    y_meas = np.copy(y)
     Ts = t[1] - t[0]
-    x_noise = x
- 
+
+    #x_est = x
+    x_est = np.zeros((y.shape[0], 4), dtype=np.float32)
+    x_est[:, 0] = y_meas[:, 0]
+    x_est[:, 2] = y_meas[:, 1]
+
     n_x = x.shape[-1]
     ss_model = MechanicalStateSpaceModel(Ts, init_small=True)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
@@ -44,35 +49,19 @@ if __name__ == '__main__':
     n_fit = int(len_fit//Ts)
     time_fit = t[0:n_fit]
     u_fit = u[0:n_fit]
-    x_meas_fit = x_noise[0:n_fit]
+    x_est_fit = x_est[0:n_fit]
     y_meas_fit = y[0:n_fit]
     batch_size = n_fit//seq_len
 
-    x_hidden_fit = torch.tensor(x_meas_fit, requires_grad=True)  # this is an optimization variable!
+    x_hidden_fit = torch.tensor(x_est_fit, requires_grad=True)  # this is an optimization variable!
 
-    params = list(nn_solution.ss_model.parameters())
-    optimizer = optim.Adam(params, lr=1e-4)
+    params = list(nn_solution.ss_model.parameters()) + [x_hidden_fit]
+    optimizer = optim.Adam(params, lr=1e-5)
     end = time.time()
 
 
-# In[Batch function]
-
-    def get_batch(batch_size, seq_len):
-        num_train_samples = x_meas_fit.shape[0]
-        batch_start = np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False)
-        batch_idx = batch_start[:, np.newaxis] + np.arange(seq_len) # batch all indices
-
-        batch_x0 = torch.tensor(x_meas_fit[batch_start, :])
-        batch_t = torch.tensor(time_fit[batch_idx])
-        batch_u = torch.tensor(u_fit[batch_idx])
-        batch_x = torch.tensor(x_meas_fit[batch_idx])
-        
-        return batch_t, batch_x0, batch_u, batch_x
-
-
-
     def get_sequential_batch(seq_len):
-        num_train_samples = x_meas_fit.shape[0]
+        num_train_samples = x_est_fit.shape[0]
         batch_size = num_train_samples//seq_len
         batch_start = np.arange(0, batch_size, dtype=np.int64) * seq_len
         batch_idx = batch_start[:,np.newaxis] + np.arange(seq_len) # batch all indices
@@ -113,17 +102,20 @@ if __name__ == '__main__':
         end = time.time()
 
     # In[Save model parameters]
-#    model_name = "model_SS_150step_nonoise.pkl"
-    model_name = "model_SS_200step_nonoise.pkl"
-
     if not os.path.exists("models"):
         os.makedirs("models")
-    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", model_name))    
-    
+
+    if add_noise:
+        model_filename = f"model_SS_{seq_len}step_noise.pkl"
+    else:
+        model_filename = f"model_SS_{seq_len}step_nonoise.pkl"
+
+    torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", model_filename))
+
 # In[Simulate model]
-    x_0 = x_meas_fit[0, :]
+    x_0 = x_est_fit[0, :]
     with torch.no_grad():
-        x_meas_fit_torch = torch.tensor(x_meas_fit)
+        x_meas_fit_torch = torch.tensor(x_est_fit)
         x_sim_torch = nn_solution.f_sim(torch.tensor(x_0), torch.tensor(u_fit))
         loss = torch.mean(torch.abs(x_sim_torch - x_meas_fit_torch))
         x_sim = np.array(x_sim_torch)
@@ -133,7 +125,7 @@ if __name__ == '__main__':
     idx_plot_start = 0
 
     fig,ax = plt.subplots(2,1,sharex=True)
-    ax[0].plot(time_fit[idx_plot_start:idx_plot_start+n_plot,:], x_meas_fit[idx_plot_start:idx_plot_start+n_plot, 0], label='True')
+    ax[0].plot(time_fit[idx_plot_start:idx_plot_start+n_plot,:], x_est_fit[idx_plot_start:idx_plot_start + n_plot, 0], label='True')
     ax[0].plot(time_fit[idx_plot_start:idx_plot_start+n_plot], x_sim[idx_plot_start:idx_plot_start+n_plot, 0], label='Simulated')
     ax[0].set_xlabel("Time (s)")
     ax[0].set_ylabel("Position (m)")
