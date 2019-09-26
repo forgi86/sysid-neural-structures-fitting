@@ -55,11 +55,11 @@ y_meas = np.copy(y) + np.random.randn(*y.shape)*std_noise
 Ts = np.float(t[1] - t[0])
 fs = 1/Ts       # Sample rate, Hz
 cutoff = 1.0    # Desired cutoff frequency, Hz
-trans_width = 0.2  # Width of transition from pass band to stop band, Hz
-numtaps = 20      # Size of the FIR filter.
+trans_width = 3.0  # Width of transition from pass band to stop band, Hz
+numtaps = 40      # Size of the FIR filter.
 taps = signal.remez(numtaps, [0, cutoff, cutoff + trans_width, 0.5*fs], [2*np.pi*cutoff*10*1.5, 0], Hz=fs, type='differentiator')
 w, h = signal.freqz(taps, [1], worN=2000)
-plot_response(fs, w, h, "Derivative Filter")
+plot_response(fs, w[1:], h[1:], "Derivative Filter")
 
 
 plt.figure()
