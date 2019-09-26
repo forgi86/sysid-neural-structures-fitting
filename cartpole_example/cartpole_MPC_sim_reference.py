@@ -2,7 +2,7 @@ import numpy as np
 import scipy.sparse as sparse
 from pyMPC.mpc import MPCController
 from kalman import kalman_design_simple, LinearStateEstimator
-from pendulum_model import *
+from cartpole_model import *
 from scipy.integrate import ode
 from scipy.interpolate import interp1d
 import time
@@ -81,7 +81,7 @@ DEFAULTS_PENDULUM_MPC = {
     'QP_eps_rel': 1e-3,
     'seed_val': 42,
 
-    'use_NN_model': True
+    'use_NN_model': False
 
 }
 

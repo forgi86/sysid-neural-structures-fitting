@@ -35,7 +35,7 @@ if __name__ == '__main__':
     x_noise = x
  
     n_x = x.shape[-1]
-    ss_model = MechanicalStateSpaceModel(Ts)
+    ss_model = MechanicalStateSpaceModel(Ts, init_small=True)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
     #model_name = "model_SS_1step_nonoise.pkl"
     #model_name = "model_SS_150step_nonoise.pkl"
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     x_hidden_fit = torch.tensor(x_meas_fit, requires_grad=True)  # this is an optimization variable!
 
     params = list(nn_solution.ss_model.parameters())
-    optimizer = optim.Adam(params, lr=1e-5)
+    optimizer = optim.Adam(params, lr=1e-4)
     end = time.time()
 
 
@@ -59,13 +59,13 @@ if __name__ == '__main__':
 
     def get_batch(batch_size, seq_len):
         num_train_samples = x_meas_fit.shape[0]
-        batch_start = batch_start = np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False)
+        batch_start = np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False)
         batch_idx = batch_start[:, np.newaxis] + np.arange(seq_len) # batch all indices
 
         batch_x0 = torch.tensor(x_meas_fit[batch_start, :])
         batch_t = torch.tensor(time_fit[batch_idx])
-        batch_u = torch.tensor(u_fit[batch_idx]) #torch.stack([u_torch_fit[batch_start[i]:batch_start[i] + seq_len] for i in range(batch_size)], dim=0)
-        batch_x = torch.tensor(x_meas_fit[batch_idx]) #torch.stack([x_meas_torch_fit[batch_start[i]:batch_start[i] + seq_len] for i in range(batch_size)], dim=0)
+        batch_u = torch.tensor(u_fit[batch_idx])
+        batch_x = torch.tensor(x_meas_fit[batch_idx])
         
         return batch_t, batch_x0, batch_u, batch_x
 
@@ -128,17 +128,19 @@ if __name__ == '__main__':
         loss = torch.mean(torch.abs(x_sim_torch - x_meas_fit_torch))
         x_sim = np.array(x_sim_torch)
     # In[1]
-    n_plot = 50
+
+    n_plot = 100
+    idx_plot_start = 0
 
     fig,ax = plt.subplots(2,1,sharex=True)
-    ax[0].plot(time_fit[:n_plot], x_meas_fit[:n_plot, 0], label='True')
-    ax[0].plot(time_fit[:n_plot], x_sim[:n_plot, 0], label='Simulated')
+    ax[0].plot(time_fit[idx_plot_start:idx_plot_start+n_plot,:], x_meas_fit[idx_plot_start:idx_plot_start+n_plot, 0], label='True')
+    ax[0].plot(time_fit[idx_plot_start:idx_plot_start+n_plot], x_sim[idx_plot_start:idx_plot_start+n_plot, 0], label='Simulated')
     ax[0].set_xlabel("Time (s)")
     ax[0].set_ylabel("Position (m)")
     ax[0].legend()
     ax[0].grid()
-    ax[1].plot(time_fit[:n_plot], x[:n_plot, 2], label='True')
-    ax[1].plot(time_fit[:n_plot], x_sim[:n_plot, 2], label='Simulated')
+    ax[1].plot(time_fit[idx_plot_start:idx_plot_start+n_plot], x[idx_plot_start:idx_plot_start+n_plot, 2], label='True')
+    ax[1].plot(time_fit[idx_plot_start:idx_plot_start+n_plot], x_sim[idx_plot_start:idx_plot_start+n_plot, 2], label='Simulated')
     ax[1].set_xlabel("Time (s)")
     ax[1].set_ylabel("Angle (rad)")
     ax[1].legend()
