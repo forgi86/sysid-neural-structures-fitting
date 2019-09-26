@@ -91,13 +91,7 @@ if __name__ == '__main__':
         scale_error = torch.sqrt(torch.mean((err_init) ** 2, dim=(0, 1)))
 
     # In[Fit model]
-    ii = 0
-    loss = None
     for itr in range(0, num_iter):
-        if itr > 0 and itr % test_freq == 0:
-            with torch.no_grad():
-                print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
-                ii += 1
         optimizer.zero_grad()
         batch_t, batch_x0, batch_u, batch_x = get_batch(batch_size, seq_len)
 
@@ -105,6 +99,11 @@ if __name__ == '__main__':
         err = batch_x - batch_x_pred
         err_scaled = err * scale_error
         loss = torch.mean(err_scaled ** 2)
+
+        if itr > 0 and itr % test_freq == 0:
+            with torch.no_grad():
+                print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
+
         loss.backward()
         optimizer.step()
 
