@@ -1,14 +1,14 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
-from pendulum_model import RAD_TO_DEG, DEG_TO_RAD
+from cartpole_model import RAD_TO_DEG, DEG_TO_RAD
 
 if __name__ == '__main__':
 
     #df_model = pd.read_csv(os.path.join("data", "pendulum_data_PID.csv"))
     #df_nn = pd.read_csv(os.path.join("data", "pendulum_data_PID_NN_model.csv"))
-    df_meas = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref.csv"))
-    df_nn = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref_NN_model.csv"))
+    df_meas = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref_val.csv"))
+    df_nn = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref_val_NN_model.csv"))
 
 
     fig,axes = plt.subplots(3,1, figsize=(10,10), sharex=True)

@@ -61,8 +61,8 @@ DEFAULTS_PENDULUM_MPC = {
     'uref':  np.array([0.0]), # N
     'std_npos': 0.0001,  # m
     'std_nphi': 0.0001,  # rad
-    'std_dF': 0.8,  # N
-    'w_F': 0.6,  # rad
+    'std_dF': 0.7,  # N
+    'w_F': 0.2,  # rad
     'len_sim': 40, #s
 
     'Ac': Ac_def,
@@ -77,11 +77,11 @@ DEFAULTS_PENDULUM_MPC = {
     'QxN': QxN_def,
     'Qu': Qu_def,
     'QDu': QDu_def,
-    'QP_eps_abs': 1e-3,
-    'QP_eps_rel': 1e-3,
-    'seed_val': 42,
+    'QP_eps_abs': 1e-6,
+    'QP_eps_rel': 1e-6,
+    'seed_val': 33,
 
-    'use_NN_model': False
+    'use_NN_model': True
 
 }
 
@@ -105,7 +105,7 @@ def simulate_pendulum_MPC(sim_options):
         Ts_fit = 10e-3 # model was fitted with this sampling time
         ss_model = MechanicalStateSpaceModel(Ts=Ts_fit)
         nn_solution = NeuralStateSpaceSimulator(ss_model, Ts=Ts_fit)
-        model_name = "model_SS_1step_nonoise.pkl"
+        model_name = "model_SS_32step_noise.pkl"
         nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", model_name)))
         f_ODE = nn_solution.f_ODE
     else:
@@ -498,6 +498,6 @@ if __name__ == '__main__':
 
 
     if simout['use_NN_model']:
-        df_X.to_csv(os.path.join("data", "pendulum_data_MPC_ref_NN_model.csv"), index=False)
+        df_X.to_csv(os.path.join("data", "pendulum_data_MPC_ref_val_NN_model.csv"), index=False)
     else:
-        df_X.to_csv(os.path.join("data", "pendulum_data_MPC_ref.csv"), index=False)
+        df_X.to_csv(os.path.join("data", "pendulum_data_MPC_ref_val.csv"), index=False)

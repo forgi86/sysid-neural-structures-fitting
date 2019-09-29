@@ -12,14 +12,14 @@ from torchid.util import get_sequential_batch_idx
 
 if __name__ == '__main__':
 
-    seq_len = 50 #256 # prediction sequence length
+    seq_len = 64 #256 # prediction sequence length
 
     COL_T = ['time']
     COL_Y = ['p_meas', 'theta_meas']
     COL_X = ['p', 'v', 'theta', 'omega']
     COL_U = ['u']
 
-    df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref.csv"), sep=",")
+    df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref_id.csv"), sep=",")
 
 
 
@@ -33,10 +33,6 @@ if __name__ == '__main__':
     Ts = time_data[1] - time_data[0]
 
 
-    std_noise_V = 0.0 * 5.0
-    std_noise_I = 0.0 * 0.5
-    std_noise = np.array([std_noise_V, std_noise_I])
-
     x_noise = np.copy(x) #+ np.random.randn(*x.shape) * std_noise
     x_noise = x_noise.astype(np.float32)
     y_noise = np.copy(y)
@@ -44,7 +40,8 @@ if __name__ == '__main__':
     # Initialize optimization
     ss_model = MechanicalStateSpaceModel(Ts, init_small=True)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
-    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_SS_50step_nonoise.pkl")))
+    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_SS_100step_noise.pkl")))
+#    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_SS_50step_nonoise.pkl")))
 
 
 

@@ -136,6 +136,7 @@ if __name__ == '__main__':
         loss_consistency = loss_consistency
 
         err_fit = batch_y_pred - batch_y_meas #batch_h - batch_y_meas
+        #err_fit = batch_h - batch_y_meas
         loss_fit = torch.mean(err_fit**2)/loss_scale
 
         #loss = loss_consistency + loss_fit
@@ -146,7 +147,7 @@ if __name__ == '__main__':
         # Optimization step
         loss.backward()
 
-        optimizer.param_groups[0]['params'][-1].grad = 1e3*optimizer.param_groups[0]['params'][-1].grad
+        #optimizer.param_groups[0]['params'][-1].grad = 1e3*optimizer.param_groups[0]['params'][-1].grad
         optimizer.step()
 
 
