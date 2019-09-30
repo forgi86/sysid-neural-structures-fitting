@@ -112,7 +112,7 @@ class MechanicalStateSpaceModel(nn.Module):
         super(MechanicalStateSpaceModel, self).__init__()
         self.net = nn.Sequential(
             nn.Linear(5, 64),  # 4 states, 1 input
-            nn.ReLU(),
+            nn.ELU(),
             #nn.Linear(64,32), # 2 state equations (the other 2 are fixed by basic physics)
             #nn.ReLU(),
             nn.Linear(64, 2),  # 2 state equations (the other 2 are fixed by basic physics)
@@ -142,4 +142,38 @@ class MechanicalStateSpaceModel(nn.Module):
         return DX
 
 
+class MechanicalDeepStateSpaceModel(nn.Module):
+    def __init__(self, Ts, init_small=True):
+        super(MechanicalDeepStateSpaceModel, self).__init__()
+        self.net = nn.Sequential(
+            nn.Linear(5, 64),  # 4 states, 1 input
+            nn.ELU(),
+            nn.Linear(64,32), # 2 state equations (the other 2 are fixed by basic physics)
+            nn.ELU(),
+            #nn.Linear(32, 32),  # 2 state equations (the other 2 are fixed by basic physics)
+            #nn.ReLU(),
+            nn.Linear(32,2)
+        )
 
+        if init_small:
+            for m in self.net.modules():
+                if isinstance(m, nn.Linear):
+                    nn.init.normal_(m.weight, mean=0, std=1e-4)
+                    nn.init.constant_(m.bias, val=0)
+
+        self.AL = nn.Linear(4,4, bias=False)
+        self.AL.weight = torch.nn.Parameter(torch.tensor([[0., Ts, 0., 0.],
+                                                          [0., 0., 0., 0.],
+                                                          [0., 0., 0., Ts],
+                                                          [0., 0., 0., 0.]]), requires_grad=False)
+        self.WL = nn.Linear(2,4, bias=False)
+        self.WL.weight = torch.nn.Parameter(torch.tensor([[0., 0.],
+                                                          [1., 0.],
+                                                          [0., 0.],
+                                                          [0., 1.]]), requires_grad=False)
+
+    def forward(self, X, U):
+        XU = torch.cat((X,U),-1)
+        FX_TMP = self.net(XU)
+        DX = (self.WL(FX_TMP) + self.AL(X))
+        return DX

@@ -8,11 +8,13 @@ import sys
 sys.path.append(os.path.join(".."))
 from torchid.iofitter import NeuralIOSimulator
 from torchid.iomodels import NeuralIOModel
+from common import metrics
 
 if __name__ == '__main__':
 
-    dataset_type = 'id'
+    dataset_type = 'val'
     model_type = '32step_noise'
+    plot_input = False
 
     COL_T = ['time']
     COL_X = ['V_C', 'I_L']
@@ -87,8 +89,12 @@ if __name__ == '__main__':
         loss_val =  torch.mean((err_val)**2)
 
 
-    t_plot_start = 1e-3
+    if dataset_type == 'id':
+        t_plot_start = 0.2e-3
+    else:
+        t_plot_start = 1.0e-3
     t_plot_end = t_plot_start + 0.3e-3
+
     idx_plot_start = int(t_plot_start//Ts)#x.shape[0]
     idx_plot_end = int(t_plot_end//Ts)#x.shape[0]
 
@@ -96,7 +102,12 @@ if __name__ == '__main__':
     y_val_sim = np.array(y_val_sim_torch)
     time_val_us = time_val *1e6
 
-    fig,ax = plt.subplots(2,1, sharex=True)
+    if plot_input:
+        fig, ax = plt.subplots(2,1, sharex=True)
+    else:
+        fig, ax = plt.subplots(1, 1, sharex=True)
+        ax = [ax]
+
     ax[0].plot(time_val_us[idx_plot_start:idx_plot_end], y_val[idx_plot_start:idx_plot_end], 'k', label='True')
     ax[0].plot(time_val_us[idx_plot_start:idx_plot_end], y_val_sim[idx_plot_start:idx_plot_end], 'r--',  label='Model simulation')
     ax[0].legend(loc='upper right')
@@ -105,11 +116,15 @@ if __name__ == '__main__':
     ax[0].set_ylabel("Capacitor voltage $v_C$ (V)")
     ax[0].set_ylim([-400, 400])
 
-    ax[1].plot(time_val_us[idx_plot_start:idx_plot_end], u_val[idx_plot_start:idx_plot_end], 'k', label='Input')
-    #ax[1].legend()
-    ax[1].grid(True)
-    ax[1].set_xlabel("Time ($\mu$s)")
-    ax[1].set_ylabel("Input voltage $v_{in}$ (V)")
+    if plot_input:
+        ax[1].plot(time_val_us[idx_plot_start:idx_plot_end], u_val[idx_plot_start:idx_plot_end], 'k', label='Input')
+        #ax[1].legend()
+        ax[1].grid(True)
+        ax[1].set_xlabel("Time ($\mu$s)")
+        ax[1].set_ylabel("Input voltage $v_{in}$ (V)")
 
     fig_name = f"RLC_IO_{dataset_type}_{model_type}.pdf"
     fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')
+
+
+    R_sq = metrics.r_square(y_val, y_val_sim)

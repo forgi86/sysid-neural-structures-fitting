@@ -81,7 +81,7 @@ DEFAULTS_PENDULUM_MPC = {
     'QP_eps_rel': 1e-6,
     'seed_val': 33,
 
-    'use_NN_model': True
+    'use_NN_model': False
 
 }
 

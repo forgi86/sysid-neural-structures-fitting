@@ -9,16 +9,18 @@ import matplotlib.pyplot as plt
 
 sys.path.append(os.path.join(".."))
 from torchid.ssfitter import NeuralStateSpaceSimulator
-from torchid.ssmodels import MechanicalStateSpaceModel
+from torchid.ssmodels import MechanicalStateSpaceModel, MechanicalDeepStateSpaceModel
+
+#from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 # In[Load data]
 if __name__ == '__main__':
 
     len_fit = 80  # 80 seconds of training
-    seq_len = 64 # length of the training sequence
+    seq_len = 100 # length of the training sequence
     test_freq = 20
     num_iter = 1*40000
-    lr=1e-6
+    lr=1e-3
     test_freq = 100
     add_noise = False
 
@@ -41,11 +43,12 @@ if __name__ == '__main__':
     #x_est[:, 2] = y_meas[:, 1]
 
     n_x = x.shape[-1]
+    #ss_model = MechanicalDeepStateSpaceModel(Ts, init_small=True)
     ss_model = MechanicalStateSpaceModel(Ts, init_small=True)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
     # model_name = "model_SS_1step_nonoise.pkl"
-    model_name = "model_SS_64step_nonoise.pkl"
-    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", model_name )))
+    #model_name = "model_SS_64step_nonoise.pkl"
+    #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", model_name )))
 
     n_fit = int(len_fit // Ts)
     time_fit = t[0:n_fit]
@@ -58,8 +61,8 @@ if __name__ == '__main__':
 
     params = list(nn_solution.ss_model.parameters())# + [x_hidden_fit]
     optimizer = optim.Adam(params, lr=lr)
-    end = time.time()
 
+#    scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.1, patience=0, verbose=True, min_lr=1e-7)
 
     def get_sequential_batch(seq_len):
         num_train_samples = x_est_fit.shape[0]
@@ -99,6 +102,9 @@ if __name__ == '__main__':
 
         loss.backward()
         optimizer.step()
+
+        if itr > 4000:
+            optimizer.param_groups[0]['lr'] = 1e-4
 
         end = time.time()
 

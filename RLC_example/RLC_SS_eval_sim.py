@@ -10,17 +10,19 @@ from torchid.ssfitter import NeuralStateSpaceSimulator
 from torchid.ssmodels import NeuralStateSpaceModel
 import scipy.linalg
 from torchid.util import get_random_batch_idx, get_sequential_batch_idx
+from common import metrics
 
 if __name__ == '__main__':
 
-    #dataset_type = 'val'
-    dataset_type = 'id'
+    dataset_type = 'id'#'val'
+    #dataset_type = 'id'
 
-    #model_type = '128step_noise'
-    #model_type = '1step_nonoise'
+    model_type = '128step_noise'
     #model_type = '1step_noise'
-    model_type = 'simerr_noise'
-    
+    #model_type = '1slidtep_noise'
+    #model_type = 'simerr_noise'
+    plot_input = True
+
     COL_T = ['time']
     COL_X = ['V_C', 'I_L']
     COL_U = ['V_IN']
@@ -82,7 +84,10 @@ if __name__ == '__main__':
 
     # In[Plot]
     x_sim = np.array(x_sim_torch)
-    fig, ax = plt.subplots(2,1,sharex=True, figsize=(6,5))
+    if not plot_input:
+        fig, ax = plt.subplots(2,1,sharex=True, figsize=(6,5))
+    else:
+        fig, ax = plt.subplots(3, 1, sharex=True, figsize=(6, 7.5))
     time_val_us = time_val *1e6
 
     if dataset_type == 'id':
@@ -100,7 +105,7 @@ if __name__ == '__main__':
     ax[0].legend(loc='upper right')
     ax[0].grid(True)
     ax[0].set_xlabel("Time ($\mu$s)")
-    ax[0].set_ylabel("Capacitor Voltage (V)")
+    ax[0].set_ylabel("Capacitor voltage $v_C$ (V)")
     ax[0].set_ylim([-400, 400])
 
     ax[1].plot(time_val_us[idx_plot_start:idx_plot_end], np.array(x_true_val[idx_plot_start:idx_plot_end:,1]), 'k', label='True')
@@ -108,8 +113,20 @@ if __name__ == '__main__':
     ax[1].legend(loc='upper right')
     ax[1].grid(True)
     ax[1].set_xlabel("Time ($\mu$s)")
-    ax[1].set_ylabel("Inductor Current (A)")
+    ax[1].set_ylabel("Inductor current $i_L$ (A)")
     ax[1].set_ylim([-20, 20])
+
+    if plot_input:
+        ax[2].plot(time_val_us[idx_plot_start:idx_plot_end], u_val[idx_plot_start:idx_plot_end], 'k')
+        #ax[2].legend(loc='upper right')
+        ax[2].grid(True)
+        ax[2].set_xlabel("Time ($\mu$s)")
+        ax[2].set_ylabel("Input voltage $v_C$ (V)")
+        ax[2].set_ylim([-400, 400])
+
 
     fig_name = f"RLC_SS_{dataset_type}_{model_type}.pdf"
     fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')
+
+
+    R_sq = metrics.r_square(x_true_val, x_sim)

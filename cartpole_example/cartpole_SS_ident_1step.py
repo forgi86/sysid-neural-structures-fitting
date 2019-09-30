@@ -14,7 +14,7 @@ from torchid.ssmodels import MechanicalStateSpaceModel
 # In[Load data]
 if __name__ == '__main__':
 
-    num_iter = 20000
+    num_iter = 200000
     test_freq = 100
     len_fit = 40
 
@@ -25,7 +25,7 @@ if __name__ == '__main__':
     COL_X = ['p', 'v', 'theta', 'omega']
     COL_U = ['u']
     COL_R = ['r']
-    df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref.csv"))
+    df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref_id.csv"))
     #df_X = pd.read_csv(os.path.join("data", "pendulum_data_PID.csv"))
     #df_X = pd.read_csv(os.path.join("data", "pendulum_data_oloop.csv"))
     #df_X = df_X.iloc[0:-1:10]
@@ -75,17 +75,20 @@ if __name__ == '__main__':
         x_pred_torch = nn_solution.f_onestep(x_meas_fit_torch, u_fit_torch)
         err = x_pred_torch - x_meas_fit_torch
         err_scaled = err / scale_error
-        loss_sc = torch.mean((err_scaled[:,[1,3]]) ** 2) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
+        loss_sc = 1e4*torch.mean((err_scaled[:,[1,3]]) ** 2) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
 
         LOSS.append(loss_sc.item())
         loss_sc.backward()
         optimizer.step()
 
         if itr % test_freq == 0:
-            with torch.no_grad():
-                print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss_sc.item()))
-                ii += 1
-        end = time.time()
+            print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss_sc.item()))
+            ii += 1
+
+        if itr > 10000:
+            optimizer.param_groups[0]['lr'] = 1e-6
+
+    end = time.time()
 
 # In[Save model]
     if not os.path.exists("models"):

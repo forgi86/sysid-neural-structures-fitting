@@ -3,7 +3,7 @@ clc;
 
 %% Read data table 
 
-data_path = fullfile("data", "RLC_data_sat_FE.csv");
+data_path = fullfile("data", "RLC_data_id.csv");
 data_table = readtable(data_path);
 
 
@@ -13,11 +13,12 @@ t = data_table.time;
 Ts = t(2) - t(1);
 
 %% Add noise %%
-y_meas = y;
+STD_V = 10;
+y_meas = y + randn(size(y))*STD_V;
 
 %% Identification data %%
 
-data_id = iddata(y,u,Ts);
+data_id = iddata(y_meas,u,Ts);
 model_oe = oe(data_id, 'nb',2, 'nf', 2);
 y_sim = sim(model_oe, data_id);
 y_sim_val = y_sim.OutputData;
@@ -30,3 +31,11 @@ plot(t, y);
 hold on;
 plot(t, y_sim_val);
 legend('Measured', 'Simulated');
+
+
+%%
+SSE = sum((y - y_sim_val).^2);
+y_mean = mean(y);
+SST = sum((y - y_mean).^2);
+
+R_sq = 1 - SSE/SST;

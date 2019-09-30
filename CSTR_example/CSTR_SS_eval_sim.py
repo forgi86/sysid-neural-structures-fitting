@@ -7,6 +7,7 @@ import sys
 import pickle
 from torchid.ssfitter import NeuralStateSpaceSimulator
 from torchid.ssmodels import NeuralStateSpaceModel
+from utils import metrics
 
 if __name__ == '__main__':
 
@@ -80,16 +81,25 @@ if __name__ == '__main__':
     idx_plot_end = int(t_plot_end//Ts)#x.shape[0]
 
 
-    ax[0].plot(time_val[idx_plot_start:idx_plot_end], x_true_val[idx_plot_start:idx_plot_end,0]*scaler.scale_[0] + scaler.mean_[0], 'k',  label='True')
-    ax[0].plot(time_val[idx_plot_start:idx_plot_end], x_sim[idx_plot_start:idx_plot_end,0]*scaler.scale_[0] + scaler.mean_[0],'r--', label='Model simulation')
+    x_true_val_unsc = np.copy(x_true_val)
+    x_true_val_unsc[:, 0] = x_true_val[:,0]*scaler.scale_[0] + scaler.mean_[0]
+    x_true_val_unsc[:, 1] = x_true_val[:, 1]*scaler.scale_[1] + scaler.mean_[1]
+
+    x_sim_unsc = np.copy(x_sim)
+    x_sim_unsc[:, 0] = x_sim_unsc[:,0]*scaler.scale_[0] + scaler.mean_[0]
+    x_sim_unsc[:, 1] = x_sim_unsc[:, 1]*scaler.scale_[1] + scaler.mean_[1]
+
+
+    ax[0].plot(time_val[idx_plot_start:idx_plot_end], x_true_val_unsc[idx_plot_start:idx_plot_end,0], 'k',  label='True')
+    ax[0].plot(time_val[idx_plot_start:idx_plot_end], x_sim_unsc[idx_plot_start:idx_plot_end,0],'r--', label='Model simulation')
     ax[0].legend(loc='upper right')
     ax[0].grid(True)
     ax[0].set_xlabel("Time (s)")
     ax[0].set_ylabel("Concentration Ca (mol/L)")
 #    ax[0].set_ylim([-400, 400])
 
-    ax[1].plot(time_val[idx_plot_start:idx_plot_end], np.array(x_true_val[idx_plot_start:idx_plot_end:,1]*scaler.scale_[1] + scaler.mean_[1]), 'k', label='True')
-    ax[1].plot(time_val[idx_plot_start:idx_plot_end], x_sim[idx_plot_start:idx_plot_end:,1]*scaler.scale_[1] + scaler.mean_[1],'r--', label='Model simulation')
+    ax[1].plot(time_val[idx_plot_start:idx_plot_end],  x_true_val_unsc[idx_plot_start:idx_plot_end,1], 'k', label='True')
+    ax[1].plot(time_val[idx_plot_start:idx_plot_end], x_sim_unsc[idx_plot_start:idx_plot_end:,1],'r--', label='Model simulation')
     ax[1].legend(loc='upper right')
     ax[1].grid(True)
     ax[1].set_xlabel("Time (s)")

@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     num_iter = 10000  # 10000
     seq_len = 128  # int(n_fit/10)
-    test_freq = 10
+    test_freq = 100
     t_fit = 2e-3
     add_noise = True
 

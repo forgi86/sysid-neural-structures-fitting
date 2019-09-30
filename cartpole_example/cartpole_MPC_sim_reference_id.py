@@ -283,7 +283,7 @@ def simulate_pendulum_MPC(sim_options):
 
             if not EMERGENCY_STOP:
 #                u_MPC, info_MPC = K.output(return_x_seq=True, return_status=True)  # u[i] = k(\hat x[i]) possibly computed at time instant -1
-                u_MPC, info_MPC = K.output(return_status=True)  # u[i] = k(\hat x[i]) possibly computed at time instant -1
+                u_MPC, info_MPC = K.output(return_status=True, return_x_seq=True)  # u[i] = k(\hat x[i]) possibly computed at time instant -1
             else:
                 u_MPC = np.zeros(nu)
                 
@@ -292,8 +292,8 @@ def simulate_pendulum_MPC(sim_options):
                     EMERGENCY_STOP = True
                     
             if not EMERGENCY_STOP:
-                pass
-                #x_MPC_pred[idx_MPC, :, :] = info_MPC['x_seq']  # x_MPC_pred[i,i+1,...| possibly computed at time instant -1]
+                #pass
+                x_MPC_pred[idx_MPC, :, :] = info_MPC['x_seq']  # x_MPC_pred[i,i+1,...| possibly computed at time instant -1]
             u_vec[idx_MPC, :] = u_MPC
 
             y_step = Cd.dot(x_step)  # y[i] from the system
@@ -408,22 +408,22 @@ if __name__ == '__main__':
     axes[0].plot(t, y_meas[:, 0], "b", label='p_meas')
     axes[0].plot(t_fast, x_fast[:, 0], "k", label='p')
     axes[0].plot(t, y_ref[:,0], "k--", label="p_ref")
-    idx_pred = 0
-    axes[0].plot(t[idx_pred:idx_pred+Np+1], y_OL_pred[0, :, 0], 'r', label='Off-line k-step prediction')
-    axes[0].plot(t[idx_pred:idx_pred+Np+1], y_MPC_pred[0, :, 0], 'c', label='MPC k-step prediction' )
-    axes[0].plot(t[idx_pred:idx_pred+Np+1], y_OL_err[0, :, 0], 'r--', label='Off-line prediction error')
-    axes[0].plot(t[idx_pred:idx_pred+Np+1], y_MPC_err[0, :, 0], 'c--', label='MPC prediction error')
+    idx_pred = 1000
+    axes[0].plot(t[idx_pred:idx_pred+Np+1], y_OL_pred[idx_pred, :, 0], 'r', label='Off-line k-step prediction')
+    axes[0].plot(t[idx_pred:idx_pred+Np+1], y_MPC_pred[idx_pred, :, 0], 'c', label='MPC k-step prediction' )
+    axes[0].plot(t[idx_pred:idx_pred+Np+1], y_OL_err[idx_pred, :, 0], 'r--', label='Off-line prediction error')
+    axes[0].plot(t[idx_pred:idx_pred+Np+1], y_MPC_err[idx_pred, :, 0], 'c--', label='MPC prediction error')
     #axes[0].set_ylim(-3.0,3.0)
     axes[0].set_title("Position (m)")
 
 
     axes[1].plot(t, y_meas[:, 1]*RAD_TO_DEG, "b", label='phi_meas')
     axes[1].plot(t_fast, x_fast[:, 2]*RAD_TO_DEG, 'k', label="phi")
-    idx_pred = 0
-    axes[1].plot(t[idx_pred:idx_pred+Np+1], y_OL_pred[0, :, 1]*RAD_TO_DEG, 'r', label='Off-line k-step prediction')
-    axes[1].plot(t[idx_pred:idx_pred+Np+1], y_MPC_pred[0, :, 1]*RAD_TO_DEG, 'c',label='MPC k-step prediction' )
-    axes[1].plot(t[idx_pred:idx_pred+Np+1], y_OL_err[0, :, 1]*RAD_TO_DEG, 'r--', label='Off-line prediction error' )
-    axes[1].plot(t[idx_pred:idx_pred+Np+1], y_MPC_err[0, :, 1]*RAD_TO_DEG, 'c--', label='MPC prediction error')
+    idx_pred = 1000
+    axes[1].plot(t[idx_pred:idx_pred+Np+1], y_OL_pred[idx_pred, :, 1]*RAD_TO_DEG, 'r', label='Off-line k-step prediction')
+    axes[1].plot(t[idx_pred:idx_pred+Np+1], y_MPC_pred[idx_pred, :, 1]*RAD_TO_DEG, 'c',label='MPC k-step prediction' )
+    axes[1].plot(t[idx_pred:idx_pred+Np+1], y_OL_err[idx_pred, :, 1]*RAD_TO_DEG, 'r--', label='Off-line prediction error' )
+    axes[1].plot(t[idx_pred:idx_pred+Np+1], y_MPC_err[idx_pred, :, 1]*RAD_TO_DEG, 'c--', label='MPC prediction error')
     #axes[1].set_ylim(-20,20)
     axes[1].set_title("Angle (deg)")
 
