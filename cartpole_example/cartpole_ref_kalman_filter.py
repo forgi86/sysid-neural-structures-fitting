@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import sys
 sys.path.append(os.path.join(".."))
 from torchid.ssfitter import NeuralStateSpaceSimulator
-from torchid.ssmodels import MechanicalStateSpaceModel
+from torchid.ssmodels import CartPoleStateSpaceModel
 
 
 if __name__ == '__main__':
@@ -39,7 +39,7 @@ if __name__ == '__main__':
     y_noise = y_noise.astype(np.float32)
 
     # In[Load model]    
-    ss_model = MechanicalStateSpaceModel(Ts)
+    ss_model = CartPoleStateSpaceModel(Ts)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
     #model_name = "model_OE_minibatch_100.pkl" 
     model_name = "model_ARX_FE_ref_nonoise.pkl"

@@ -14,7 +14,7 @@ import os
 
 import torch
 from torchid.ssfitter import  NeuralStateSpaceSimulator
-from torchid.ssmodels import MechanicalStateSpaceModel
+from torchid.ssmodels import CartPoleStateSpaceModel
 
 
 Ts_fast = 1e-3
@@ -103,7 +103,7 @@ def simulate_pendulum_MPC(sim_options):
 
     if use_NN_model:
         Ts_fit = 10e-3 # model was fitted with this sampling time
-        ss_model = MechanicalStateSpaceModel(Ts=Ts_fit)
+        ss_model = CartPoleStateSpaceModel(Ts=Ts_fit)
         nn_solution = NeuralStateSpaceSimulator(ss_model, Ts=Ts_fit)
         model_name = "model_SS_1step_nonoise.pkl"
         nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", model_name)))

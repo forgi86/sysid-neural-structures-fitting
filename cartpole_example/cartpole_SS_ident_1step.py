@@ -9,14 +9,14 @@ import matplotlib.pyplot as plt
 
 sys.path.append(os.path.join(".."))
 from torchid.ssfitter import  NeuralStateSpaceSimulator
-from torchid.ssmodels import MechanicalStateSpaceModel
+from torchid.ssmodels import CartPoleStateSpaceModel
 
 # In[Load data]
 if __name__ == '__main__':
 
     num_iter = 200000
     test_freq = 100
-    len_fit = 40
+    len_fit = 80
 
     add_noise = False
 
@@ -25,9 +25,9 @@ if __name__ == '__main__':
     COL_X = ['p', 'v', 'theta', 'omega']
     COL_U = ['u']
     COL_R = ['r']
-    df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref_id.csv"))
+    #df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref_id.csv"))
     #df_X = pd.read_csv(os.path.join("data", "pendulum_data_PID.csv"))
-    #df_X = pd.read_csv(os.path.join("data", "pendulum_data_oloop.csv"))
+    df_X = pd.read_csv(os.path.join("data", "pendulum_data_PID_pos_id.csv"))
     #df_X = df_X.iloc[0:-1:10]
 
     t = np.array(df_X[COL_T], dtype=np.float32)
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     x_noise = x
  
 # In[Model]
-    ss_model = MechanicalStateSpaceModel(Ts)
+    ss_model = CartPoleStateSpaceModel(Ts)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
    
 # In[Setup optimization problem]
@@ -75,7 +75,7 @@ if __name__ == '__main__':
         x_pred_torch = nn_solution.f_onestep(x_meas_fit_torch, u_fit_torch)
         err = x_pred_torch - x_meas_fit_torch
         err_scaled = err / scale_error
-        loss_sc = 1e4*torch.mean((err_scaled[:,[1,3]]) ** 2) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
+        loss_sc = torch.mean((err_scaled[:,[1,3]]) ** 2) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
 
         LOSS.append(loss_sc.item())
         loss_sc.backward()
@@ -85,8 +85,8 @@ if __name__ == '__main__':
             print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss_sc.item()))
             ii += 1
 
-        if itr > 10000:
-            optimizer.param_groups[0]['lr'] = 1e-6
+#        if itr > 10000:
+#            optimizer.param_groups[0]['lr'] = 1e-6
 
     end = time.time()
 
@@ -106,7 +106,7 @@ if __name__ == '__main__':
         loss_sc = torch.mean(torch.abs(x_sim_torch - x_meas_fit_torch))
         x_sim = np.array(x_sim_torch)
     # In[1]
-    n_plot = 150
+    n_plot = 4000
     fig,ax = plt.subplots(2,1,sharex=True)
     ax[0].plot(t_fit[:n_plot], x_fit[:n_plot, 0], label='True')
     ax[0].plot(t_fit[:n_plot], x_sim[:n_plot,0], label='Simulated')

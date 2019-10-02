@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 sys.path.append(os.path.join(".."))
 from torchid.ssfitter import  NeuralStateSpaceSimulator, NeuralSumODE, RunningAverageMeter
-from torchid.ssmodels import MechanicalStateSpaceModel, NeuralStateSpaceModel
+from torchid.ssmodels import CartPoleStateSpaceModel, NeuralStateSpaceModel
 
 # In[Load data]
 if __name__ == '__main__':
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     x_noise = x
  
 # In[Model]
-    ss_model = MechanicalStateSpaceModel(Ts)
+    ss_model = CartPoleStateSpaceModel(Ts)
     model_name = "model_ARX_FE_nonoise.pkl"
     ss_model.load_state_dict(torch.load(os.path.join("models", model_name)))   
 

@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sparse
 from ltisim import LinearStateSpaceSystem
-from pendulum_model import *
+from cartpole_model import *
 from scipy.integrate import ode
 from scipy.interpolate import interp1d
 import time
@@ -9,8 +9,6 @@ import control
 import control.matlab
 import pandas as pd
 import os
-
-import torch
 from torchid.ssfitter import  NeuralStateSpaceSimulator
 from torchid.ssmodels import CartPoleStateSpaceModel
 
@@ -44,9 +42,9 @@ DEFAULTS_PENDULUM_MPC = {
     'uref':  np.array([0.0]), # N
     'std_npos': 0*0.001,  # m
     'std_nphi': 0*0.00005,  # rad
-    'std_dF': 0.1,  # N
-    'w_F': 5,  # rad
-    'len_sim': 40, #s
+    'std_dF': 0.6,  # N
+    'w_F': 0.5,  # rad
+    'len_sim': 80, #s
 
     'Ac': Ac_def,
     'Bc': Bc_def,
@@ -57,11 +55,7 @@ DEFAULTS_PENDULUM_MPC = {
 
 }
 
-ss_model = CartPoleStateSpaceModel(Ts=Ts_slower)
-nn_solution = NeuralStateSpaceSimulator(ss_model, Ts=Ts_PID)
-model_name = "model_SS_1step_nonoise.pkl"
-nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", model_name)))
-f_ODE_wrapped = nn_solution.f_ODE
+
 
 def get_parameter(sim_options, par_name):
     return sim_options.get(par_name, DEFAULTS_PENDULUM_MPC[par_name])
@@ -121,7 +115,7 @@ def simulate_pendulum_MPC(sim_options):
     Hu = Hu / (std_tmp) * std_dF
 
 
-    N_skip = int(20 * tau_F // Ts_PID) # skip initial samples to get a regime sample of d
+    N_skip = 1#int(20 * tau_F // Ts_PID) # skip initial samples to get a regime sample of d
     t_sim_d = get_parameter(sim_options, 'len_sim')  # simulation length (s)
     N_sim_d = int(t_sim_d // Ts_PID)
     N_sim_d = N_sim_d + N_skip + 1
@@ -129,12 +123,12 @@ def simulate_pendulum_MPC(sim_options):
     te = np.arange(N_sim_d) * Ts_PID
     _, d, _ = control.forced_response(Hu, te, e)
     d = d.ravel()
-    angle_ref = d[N_skip:]
+    pos_ref = d[N_skip:]
     
 
     # Initialize simulation system
     t0 = 0
-    phi0 = 0.0*2*np.pi/360
+    phi0 = np.pi#0.0*2*np.pi/360
     x0 = np.array([0, 0, phi0, 0]) # initial state
     system_dyn = ode(f_ODE_wrapped).set_integrator('vode', method='bdf') #    dopri5
 #    system_dyn = ode(f_ODE_wrapped).set_integrator('dopri5')
@@ -142,15 +136,15 @@ def simulate_pendulum_MPC(sim_options):
     system_dyn.set_f_params(0.0)
 
     # Default controller parameters -
-    P = -100.0
-    I = -1
-    D = -10
-    N = 100.0
+    P = 20.0#-100.0
+    #I = -1
+    #D = -10
+    #N = 100.0
 
     kP = control.tf(P, 1, Ts_PID)
-    kI = I * Ts_PID * control.tf([0, 1], [1, -1], Ts_PID)
-    kD = D*control.tf([N, -N], [1.0, Ts_PID * N - 1], Ts_PID)
-    PID_tf = kP + kD + kI
+    #kI = I * Ts_PID * control.tf([0, 1], [1, -1], Ts_PID)
+    #kD = D*control.tf([N, -N], [1.0, Ts_PID * N - 1], Ts_PID)
+    PID_tf = kP #+ kD + kI
     PID_ss = control.ss(PID_tf)
     k_PID = LinearStateSpaceSystem(A=PID_ss.A, B=PID_ss.B, C=PID_ss.C, D=PID_ss.D)
 
@@ -203,8 +197,8 @@ def simulate_pendulum_MPC(sim_options):
                 u_vec[idx_inner_controller, :] = u_PID
 
         # PID angle CONTROLLER
-        ref_angle =  angle_ref[idx_fast]
-        error_angle = ref_angle - ymeas_step[1]
+        ref_pos =  pos_ref[idx_fast]
+        error_angle = ref_pos - ymeas_step[0]
         u_PID = k_PID.output(error_angle)
         u_PID[u_PID > 10.0] = 10.0
         u_PID[u_PID < -10.0] = -10.0
@@ -215,7 +209,7 @@ def simulate_pendulum_MPC(sim_options):
         x_vec_fast[idx_fast, :] = x_step #system_dyn.y
         u_vec_fast[idx_fast,:] = u_TOT
         Fd_vec_fast[idx_fast,:] = 0.0
-        ref_angle_vec_fast[idx_fast,:] = ref_angle
+        ref_angle_vec_fast[idx_fast,:] = ref_pos
 
         ## Update to step i+1
         k_PID.update(error_angle)
@@ -273,7 +267,7 @@ if __name__ == '__main__':
     x_ref_fast = simout['x_ref_fast']
     F_input = simout['Fd_fast']
     status = simout['status']
-    ref_phi_fast = simout['ref_angle_fast']
+    ref_pos_fast = simout['ref_angle_fast']
 
     uref = get_parameter(simopt, 'uref')
     nsim = len(t)
@@ -282,20 +276,20 @@ if __name__ == '__main__':
 
     y_ref = x_ref[:, [0, 2]]
 
-    fig,axes = plt.subplots(3,1, figsize=(10,10), sharex=True)
-    #axes[0].plot(t, y_meas[:, 0], "b", label='p_meas')
-    axes[0].plot(t_fast, x_fast[:, 1], "k", label='p')
-    idx_pred = 0
-    axes[0].set_ylim(-20,20.0)
+    fig, axes = plt.subplots(3,1, figsize=(10,10), sharex=True)
+    axes[0].plot(t, y_meas[:, 0], "b", label='p_meas')
+    axes[0].plot(t_fast, x_fast[:, 0], "k", label='p')
+    axes[0].plot(t_fast, ref_pos_fast[:, 0], "k--", label="p_ref")
+    #axes[0].set_ylim(-20,20.0)
     axes[0].set_title("Position (m)")
 
 
     axes[1].plot(t, y_meas[:, 1]*RAD_TO_DEG, "b", label='phi_meas')
     axes[1].plot(t_fast, x_fast[:, 2]*RAD_TO_DEG, 'k', label="phi")
-    axes[1].plot(t_fast, ref_phi_fast[:,0]*RAD_TO_DEG, "k--", label="phi_ref")
+
 
     idx_pred = 0
-    axes[1].set_ylim(-20,20)
+    #axes[1].set_ylim(-20,20)
     axes[1].set_title("Angle (deg)")
 
     axes[2].plot(t, u[:,0], label="u")
@@ -318,4 +312,4 @@ if __name__ == '__main__':
 
     COL = COL_T + COL_X + COL_U + COL_Y + COL_D
     df_X = pd.DataFrame(X, columns=COL)
-    df_X.to_csv(os.path.join("data", "pendulum_data_PID_NN_model.csv"), index=False)
+    df_X.to_csv(os.path.join("data", "pendulum_data_PID_pos_id.csv"), index=False)

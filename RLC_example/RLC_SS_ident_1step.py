@@ -36,6 +36,10 @@ if __name__ == '__main__':
     x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
     x_noise = x_noise.astype(np.float32)
 
+    P_x = np.mean(x ** 2, axis=0)
+    P_n = std_noise**2
+    SNR = P_x/P_n
+
     Ts = time_data[1] - time_data[0]
     t_fit = 2e-3
     n_fit = int(t_fit//Ts)#x.shape[0]

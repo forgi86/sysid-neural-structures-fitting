@@ -107,12 +107,12 @@ class StateSpaceModelLin(nn.Module):
         return DX   
 
 
-class MechanicalStateSpaceModel(nn.Module):
+class CartPoleStateSpaceModel(nn.Module):
     def __init__(self, Ts, init_small=True):
-        super(MechanicalStateSpaceModel, self).__init__()
+        super(CartPoleStateSpaceModel, self).__init__()
         self.net = nn.Sequential(
             nn.Linear(5, 64),  # 4 states, 1 input
-            nn.ELU(),
+            nn.ReLU(),
             #nn.Linear(64,32), # 2 state equations (the other 2 are fixed by basic physics)
             #nn.ReLU(),
             nn.Linear(64, 2),  # 2 state equations (the other 2 are fixed by basic physics)
@@ -142,9 +142,9 @@ class MechanicalStateSpaceModel(nn.Module):
         return DX
 
 
-class MechanicalDeepStateSpaceModel(nn.Module):
+class CartPoleDeepStateSpaceModel(nn.Module):
     def __init__(self, Ts, init_small=True):
-        super(MechanicalDeepStateSpaceModel, self).__init__()
+        super(CartPoleDeepStateSpaceModel, self).__init__()
         self.net = nn.Sequential(
             nn.Linear(5, 64),  # 4 states, 1 input
             nn.ELU(),

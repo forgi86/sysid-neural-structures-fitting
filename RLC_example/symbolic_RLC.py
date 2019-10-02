@@ -9,7 +9,7 @@ import numba as nb
 from sympy import symbols, collect, cancel, init_printing, fraction
 import numpy as np
 import matplotlib.pyplot as plt
-
+import os
 # In[Symbols of the RLC circuit]
 
 R = symbols('R')
@@ -115,7 +115,10 @@ if __name__ == '__main__':
 
 
     I = np.arange(0.,20.,0.1)
-    plt.plot(I, 100.*saturation_formula(I))
-    plt.grid(True)
-    plt.xlabel('Inductor current (A)')
-    plt.ylabel('Inductor value (%) of $I_o$')
+
+    fig, ax = plt.subplots(1, 1, sharex=True, figsize=(4, 3))
+    ax.plot(I, L_val*1e6*saturation_formula(I), 'k')
+    ax.grid(True)
+    ax.set_xlabel('Inductor current $i_L$ (A)', fontsize=14)
+    ax.set_ylabel('Inductance $L$ ($\mu$H)', fontsize=14)
+    fig.savefig(os.path.join("fig", "RLC_characteristics.pdf"), bbox_inches='tight')

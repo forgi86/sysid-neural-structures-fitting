@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 sys.path.append(os.path.join(".."))
 from torchid.ssfitter import NeuralStateSpaceSimulator
-from torchid.ssmodels import MechanicalStateSpaceModel
+from torchid.ssmodels import CartPoleStateSpaceModel
 
 # In[Load data]
 if __name__ == '__main__':
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     x_noise = x
 
     n_x = x.shape[-1]
-    ss_model = MechanicalStateSpaceModel(Ts)
+    ss_model = CartPoleStateSpaceModel(Ts)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
     model_name = "model_SS_1step_nonoise.pkl"
     # model_name = "model_SS_150step_nonoise.pkl"

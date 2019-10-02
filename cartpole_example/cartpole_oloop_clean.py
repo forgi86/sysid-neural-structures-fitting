@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sparse
 from ltisim import LinearStateSpaceSystem
-from pendulum_model import *
+from cartpole_model import *
 from scipy.integrate import ode
 from scipy.interpolate import interp1d
 import time
@@ -11,7 +11,7 @@ import numpy.random
 import pandas as pd
 import os
 
-Ts_faster_loop = 1e-3
+Ts_faster_loop = 10e-3
 
 Ac_def = np.array([[0, 1, 0, 0],
                [0, -b / M, -(g * m) / M, (ftheta * m) / M],
@@ -33,17 +33,25 @@ rp_fun = interp1d(t_ref_vec, p_ref_vec, kind='linear')
 def xref_fun_def(t):
     return np.array([rp_fun(t), 0.0, 0.0, 0.0])
 
-Ts_slower_loop_def = 5e-3#Ts_fast
+Ts_slower_loop_def = 10e-3#Ts_fast
 
+
+def to_mpipi(x):
+    x_range = x - 2 * np.pi * ((x + np.pi) // (2 * np.pi))
+    return x_range
+
+def to_02pi(x):
+    x_range = x - 2 * np.pi * ((x) // (2 * np.pi))
+    return x_range
 
 DEFAULTS_PENDULUM_MPC = {
     'xref_fun': xref_fun_def,
     'uref':  np.array([0.0]), # N
     'std_npos': 0*0.001,  # m
     'std_nphi': 0*0.00005,  # rad
-    'std_dF': 15,  # N
-    'w_F': 1,  # rad
-    'len_sim': 40, #s
+    'std_dF': 3.0,  # N
+    'w_F': 3.0,  # rad
+    'len_sim': 80, #s
 
     'Ac': Ac_def,
     'Bc': Bc_def,
@@ -127,7 +135,7 @@ def simulate_pendulum_MPC(sim_options):
 
     # Initialize simulation system
     t0 = 0
-    phi0 = 0*2*np.pi/360
+    phi0 = 0.2*2*np.pi/360
     x0 = np.array([0, 0, phi0, 0]) # initial state
     system_dyn = ode(f_ODE_wrapped).set_integrator('vode', method='bdf') #    dopri5
 #    system_dyn = ode(f_ODE_wrapped).set_integrator('dopri5')
@@ -277,14 +285,14 @@ if __name__ == '__main__':
 
     fig,axes = plt.subplots(3,1, figsize=(10,10), sharex=True)
     #axes[0].plot(t, y_meas[:, 0], "b", label='p_meas')
-    axes[0].plot(t_fast, x_fast[:, 1], "k", label='p')
+    axes[0].plot(t_fast, x_fast[:, 0], "k", label='p')
     idx_pred = 0
-    axes[0].set_ylim(-20,20.0)
+    #axes[0].set_ylim(-20,20.0)
     axes[0].set_title("Position (m)")
 
 
-    axes[1].plot(t, y_meas[:, 1]*RAD_TO_DEG, "b", label='phi_meas')
-    axes[1].plot(t_fast, x_fast[:, 2]*RAD_TO_DEG, 'k', label="phi")
+    #axes[1].plot(t, to_02pi(y_meas[:, 1])*RAD_TO_DEG, "b", label='phi_meas')
+    axes[1].plot(t_fast, (x_fast[:, 2])*RAD_TO_DEG, 'k', label="phi")
     axes[1].plot(t_fast, ref_phi_fast[:,0]*RAD_TO_DEG, "k--", label="phi_ref")
 
     idx_pred = 0
@@ -311,4 +319,4 @@ if __name__ == '__main__':
 
     COL = COL_T + COL_X + COL_U + COL_Y + COL_D
     df_X = pd.DataFrame(X, columns=COL)
-    df_X.to_csv(os.path.join("data", "pendulum_data_oloop.csv"), index=False)
+    df_X.to_csv(os.path.join("data", "pendulum_data_oloop_id.csv"), index=False)

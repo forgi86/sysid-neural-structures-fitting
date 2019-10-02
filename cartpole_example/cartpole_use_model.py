@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import sys
 sys.path.append(os.path.join(".."))
 from torchid.ssfitter import NeuralStateSpaceSimulator
-from torchid.ssmodels import MechanicalStateSpaceModel
+from torchid.ssmodels import CartPoleStateSpaceModel
 
 
 if __name__ == '__main__':
@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
     x0_torch = torch.from_numpy(x[0,:])
 
-    ss_model = MechanicalStateSpaceModel(Ts)
+    ss_model = CartPoleStateSpaceModel(Ts)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
     nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_OE_minibatch.pkl")))
 

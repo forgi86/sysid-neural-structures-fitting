@@ -7,21 +7,23 @@ import sys
 
 sys.path.append(os.path.join(".."))
 from torchid.ssfitter import  NeuralStateSpaceSimulator
-from torchid.ssmodels import MechanicalStateSpaceModel, MechanicalDeepStateSpaceModel
+from torchid.ssmodels import CartPoleStateSpaceModel, CartPoleDeepStateSpaceModel
 from torchid.util import get_sequential_batch_idx
 
 if __name__ == '__main__':
 
-    seq_len = 32 #256 # prediction sequence length
+    seq_len = 256 #256 # prediction sequence length
 
     COL_T = ['time']
     COL_Y = ['p_meas', 'theta_meas']
     COL_X = ['p', 'v', 'theta', 'omega']
     COL_U = ['u']
 
-    df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref_id.csv"), sep=",")
-
-
+    #df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref_id.csv"), sep=",")
+    #df_X = pd.read_csv(os.path.join("data", "pendulum_data_oloop_id.csv"))
+    df_X = pd.read_csv(os.path.join("data", "pendulum_data_PID_pos_id.csv"))
+    #model_filename = "model_SS_64step_noise_hidden.pkl"
+    model_filename = "model_SS_1step_nonoise.pkl"
 
     time_data = np.array(df_X[COL_T], dtype=np.float32)
     y = np.array(df_X[COL_Y], dtype=np.float32)
@@ -39,9 +41,9 @@ if __name__ == '__main__':
 
     # Initialize optimization
     #ss_model = MechanicalDeepStateSpaceModel(Ts, init_small=True)
-    ss_model = MechanicalStateSpaceModel(Ts, init_small=True)
+    ss_model = CartPoleStateSpaceModel(Ts, init_small=True)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
-    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_SS_100step_nonoise.pkl")))
+    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", model_filename)))
 #    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_SS_50step_nonoise.pkl")))
 
 

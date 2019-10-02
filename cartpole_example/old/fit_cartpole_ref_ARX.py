@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 sys.path.append(os.path.join(".."))
 from torchid.ssfitter import  NeuralStateSpaceSimulator, RunningAverageMeter
-from torchid.ssmodels import NeuralStateSpaceModel, MechanicalStateSpaceModel
+from torchid.ssmodels import NeuralStateSpaceModel, CartPoleStateSpaceModel
 
 # In[Load data]
 if __name__ == '__main__':
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     x_noise = x
  
 # In[Model]
-    ss_model = MechanicalStateSpaceModel(Ts)#n_x=4, n_u=1, n_feat=64)
+    ss_model = CartPoleStateSpaceModel(Ts)#n_x=4, n_u=1, n_feat=64)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
    
 # In[Setup optimization problem]

@@ -10,7 +10,7 @@ import control.matlab
 import pandas as pd
 import os
 from torchid.ssfitter import  NeuralStateSpaceSimulator
-from torchid.ssmodels import MechanicalStateSpaceModel
+from torchid.ssmodels import CartPoleStateSpaceModel
 
 
 Ts_PID = 10e-3
