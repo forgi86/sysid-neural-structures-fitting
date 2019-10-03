@@ -17,9 +17,9 @@ from torchid.ssmodels import CartPoleStateSpaceModel, CartPoleDeepStateSpaceMode
 if __name__ == '__main__':
 
     len_fit = 80  # 80 seconds of training
-    seq_len = 64 # length of the training sequence
+    seq_len = 256 # length of the training sequence
     test_freq = 20
-    num_iter = 1*40000
+    num_iter = 1*10000
     lr=1e-4
     test_freq = 100
     add_noise = False
@@ -28,7 +28,10 @@ if __name__ == '__main__':
     COL_Y = ['p_meas', 'theta_meas']
     COL_X = ['p', 'v', 'theta', 'omega']
     COL_U = ['u']
-    df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref_id.csv"))
+#    df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref_id.csv"))
+#    df_X_1 = pd.read_csv(os.path.join("data", "pendulum_data_PID_pos_id.csv"))
+    df_X = pd.read_csv(os.path.join("data", "pendulum_data_PID_pos_id.csv"))
+
 
     t = np.array(df_X[COL_T], dtype=np.float32)
     y = np.array(df_X[COL_Y], dtype=np.float32)
@@ -92,7 +95,7 @@ if __name__ == '__main__':
         batch_x_sim = nn_solution.f_sim_minibatch(batch_x0_hidden, batch_u)
         err = batch_x_sim[:, :, [0, 2]] - batch_y_meas
         err_scaled = err / scale_error
-        loss = torch.mean(err_scaled ** 2)
+        loss = 1e3*torch.mean(err_scaled ** 2)
 
         LOSS.append(loss.item())
 
@@ -124,11 +127,11 @@ if __name__ == '__main__':
     with torch.no_grad():
         x_meas_fit_torch = torch.tensor(x_est)
         x_sim_torch = nn_solution.f_sim(torch.tensor(x_0), torch.tensor(u_fit))
-        loss = torch.mean(torch.abs(x_sim_torch - x_meas_fit_torch))
+        #loss = torch.mean(torch.abs(x_sim_torch - x_meas_fit_torch))
         x_sim = np.array(x_sim_torch)
     # In[1]
 
-    n_plot = 100
+    n_plot = 8000
     idx_plot_start = 0
 
     fig, ax = plt.subplots(2, 1, sharex=True)
@@ -140,6 +143,7 @@ if __name__ == '__main__':
     ax[0].set_ylabel("Position (m)")
     ax[0].legend()
     ax[0].grid()
+    
     ax[1].plot(time_fit[idx_plot_start:idx_plot_start + n_plot], x[idx_plot_start:idx_plot_start + n_plot, 2],
                label='True')
     ax[1].plot(time_fit[idx_plot_start:idx_plot_start + n_plot], x_sim[idx_plot_start:idx_plot_start + n_plot, 2],

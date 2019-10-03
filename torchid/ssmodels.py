@@ -112,9 +112,7 @@ class CartPoleStateSpaceModel(nn.Module):
         super(CartPoleStateSpaceModel, self).__init__()
         self.net = nn.Sequential(
             nn.Linear(5, 64),  # 4 states, 1 input
-            nn.ReLU(),
-            #nn.Linear(64,32), # 2 state equations (the other 2 are fixed by basic physics)
-            #nn.ReLU(),
+            nn.Tanh(),
             nn.Linear(64, 2),  # 2 state equations (the other 2 are fixed by basic physics)
         )
 
@@ -136,7 +134,8 @@ class CartPoleStateSpaceModel(nn.Module):
                                                           [0., 1.]]), requires_grad=False)
 
     def forward(self, X, U):
-        XU = torch.cat((X,U),-1)
+        X_feat = torch.cat((X[..., [1, 3]], torch.sin(X[..., [2]]), torch.cos(X[..., [2]])), dim=-1) # build relevant features!
+        XU = torch.cat((X_feat,U),-1)
         FX_TMP = self.net(XU)
         DX = (self.WL(FX_TMP) + self.AL(X))
         return DX
@@ -147,9 +146,9 @@ class CartPoleDeepStateSpaceModel(nn.Module):
         super(CartPoleDeepStateSpaceModel, self).__init__()
         self.net = nn.Sequential(
             nn.Linear(5, 64),  # 4 states, 1 input
-            nn.ELU(),
+            nn.ReLU(),
             nn.Linear(64,32), # 2 state equations (the other 2 are fixed by basic physics)
-            nn.ELU(),
+            nn.ReLU(),
             #nn.Linear(32, 32),  # 2 state equations (the other 2 are fixed by basic physics)
             #nn.ReLU(),
             nn.Linear(32,2)
@@ -173,7 +172,8 @@ class CartPoleDeepStateSpaceModel(nn.Module):
                                                           [0., 1.]]), requires_grad=False)
 
     def forward(self, X, U):
-        XU = torch.cat((X,U),-1)
+        X_feat = torch.cat((X[..., [1, 3]], torch.sin(X[..., [2]]), torch.cos(X[..., [2]])), dim=-1)
+        XU = torch.cat((X_feat,U),-1)
         FX_TMP = self.net(XU)
         DX = (self.WL(FX_TMP) + self.AL(X))
         return DX

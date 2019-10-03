@@ -36,9 +36,9 @@ if __name__ == '__main__':
     n_x = x.shape[-1]
     ss_model = CartPoleStateSpaceModel(Ts)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
-    model_name = "model_SS_1step_nonoise.pkl"
+    #model_name = "model_SS_1step_nonoise.pkl"
     # model_name = "model_SS_150step_nonoise.pkl"
-    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", model_name)))
+    #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", model_name)))
 
     n_fit = int(len_fit // Ts)
     time_fit = t[0:n_fit]

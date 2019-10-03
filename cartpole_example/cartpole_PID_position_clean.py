@@ -15,6 +15,10 @@ from torchid.ssmodels import CartPoleStateSpaceModel
 
 Ts_PID = 10e-3
 
+def to_02pi(x):
+    x_range = x - 2 * np.pi * ((x) // (2 * np.pi))
+    return x_range
+
 Ac_def = np.array([[0, 1, 0, 0],
                [0, -b / M, -(g * m) / M, (ftheta * m) / M],
                [0, 0, 0, 1],
@@ -42,9 +46,9 @@ DEFAULTS_PENDULUM_MPC = {
     'uref':  np.array([0.0]), # N
     'std_npos': 0*0.001,  # m
     'std_nphi': 0*0.00005,  # rad
-    'std_dF': 0.6,  # N
-    'w_F': 0.5,  # rad
-    'len_sim': 80, #s
+    'std_dF': 0.5,  # N
+    'w_F': 1.0,  # rad
+    'len_sim': 180, #s
 
     'Ac': Ac_def,
     'Bc': Bc_def,
@@ -105,7 +109,7 @@ def simulate_pendulum_MPC(sim_options):
     w_F = get_parameter(sim_options, 'w_F') # bandwidth of the force disturbance
     tau_F = 1 / w_F
     Hu = control.TransferFunction([1], [1 / w_F, 1])
-    Hu = Hu * Hu
+    Hu = Hu * Hu * Hu
     Hud = control.matlab.c2d(Hu, Ts_PID)
     N_sim_imp = tau_F / Ts_PID * 20
     t_imp = np.arange(N_sim_imp) * Ts_PID
@@ -130,13 +134,13 @@ def simulate_pendulum_MPC(sim_options):
     t0 = 0
     phi0 = np.pi#0.0*2*np.pi/360
     x0 = np.array([0, 0, phi0, 0]) # initial state
-    system_dyn = ode(f_ODE_wrapped).set_integrator('vode', method='bdf') #    dopri5
-#    system_dyn = ode(f_ODE_wrapped).set_integrator('dopri5')
+#    system_dyn = ode(f_ODE_wrapped).set_integrator('vode', method='bdf') #    dopri5
+    system_dyn = ode(f_ODE_wrapped).set_integrator('dopri5')
     system_dyn.set_initial_value(x0, t0)
     system_dyn.set_f_params(0.0)
 
     # Default controller parameters -
-    P = 20.0#-100.0
+    P = 30.0#-100.0
     #I = -1
     #D = -10
     #N = 100.0
@@ -286,6 +290,7 @@ if __name__ == '__main__':
 
     axes[1].plot(t, y_meas[:, 1]*RAD_TO_DEG, "b", label='phi_meas')
     axes[1].plot(t_fast, x_fast[:, 2]*RAD_TO_DEG, 'k', label="phi")
+    axes[1].plot(t_fast, to_02pi(x_fast[:, 2])*RAD_TO_DEG)
 
 
     idx_pred = 0
@@ -313,3 +318,4 @@ if __name__ == '__main__':
     COL = COL_T + COL_X + COL_U + COL_Y + COL_D
     df_X = pd.DataFrame(X, columns=COL)
     df_X.to_csv(os.path.join("data", "pendulum_data_PID_pos_id.csv"), index=False)
+

@@ -9,14 +9,15 @@ import matplotlib.pyplot as plt
 
 sys.path.append(os.path.join(".."))
 from torchid.ssfitter import  NeuralStateSpaceSimulator
-from torchid.ssmodels import CartPoleStateSpaceModel
+from torchid.ssmodels import CartPoleStateSpaceModel, CartPoleDeepStateSpaceModel
 
 # In[Load data]
 if __name__ == '__main__':
 
-    num_iter = 200000
+    num_iter = 50000
     test_freq = 100
     len_fit = 80
+    lr = 5e-5
 
     add_noise = False
 
@@ -25,9 +26,13 @@ if __name__ == '__main__':
     COL_X = ['p', 'v', 'theta', 'omega']
     COL_U = ['u']
     COL_R = ['r']
-    #df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref_id.csv"))
+
+    df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref_id.csv"))
     #df_X = pd.read_csv(os.path.join("data", "pendulum_data_PID.csv"))
-    df_X = pd.read_csv(os.path.join("data", "pendulum_data_PID_pos_id.csv"))
+
+    #df_X_1 = pd.read_csv(os.path.join("data", "pendulum_data_PID_pos_id.csv"))
+    #df_X_2 = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref_id.csv"))
+    #df_X = pd.concat((df_X_1, df_X_2))
     #df_X = df_X.iloc[0:-1:10]
 
     t = np.array(df_X[COL_T], dtype=np.float32)
@@ -53,7 +58,7 @@ if __name__ == '__main__':
     
 
     params = list(nn_solution.ss_model.parameters())
-    optimizer = optim.Adam(params, lr=1e-4)
+    optimizer = optim.Adam(params, lr=lr)
     end = time.time()
 
     with torch.no_grad():
