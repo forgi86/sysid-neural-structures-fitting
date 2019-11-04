@@ -17,7 +17,8 @@ if __name__ == '__main__':
     test_freq = 100
     t_fit = 2e-3
     alpha = 0.5
-    lr = 1e-3
+    lr_net = 1e-3
+    lr_hidden = 1e-2
     add_noise = True
 
     # Column names in the dataset
@@ -80,8 +81,13 @@ if __name__ == '__main__':
     ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
 
-    params = list(nn_solution.ss_model.parameters()) + [x_hidden_fit]
-    optimizer = optim.Adam(params, lr=lr)
+    params_net = list(nn_solution.ss_model.parameters())
+    params_hidden = [x_hidden_fit]
+#    optimizer = optim.Adam(params, lr=lr)
+    optimizer = optim.Adam([
+        {'params': params_net,    'lr': lr_net},
+        {'params': params_hidden, 'lr': lr_hidden},
+    ], lr=1e6)
 
     with torch.no_grad():
         batch_t, batch_x0_hidden, batch_u, batch_x, batch_x_hidden = get_batch(batch_size, seq_len)

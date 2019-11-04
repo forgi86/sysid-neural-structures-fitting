@@ -36,6 +36,7 @@ For the nonlinear RLC example (folder examples/RLC_example), the main scripts ar
  *   ``RLC_OE_comparison.m``: Linear Output Error (OE) model fit in Matlab
   
 
+# Software requirements:
 Simulations were performed on a Python 3.7 conda environment with
 
  * numpy
@@ -44,7 +45,7 @@ Simulations were performed on a Python 3.7 conda environment with
  * pandas
  * sympy
  * numba
- * pytorch
+ * pytorch (version 1.3)
  
 These dependencies may be installed through the commands:
 
