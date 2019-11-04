@@ -1,8 +1,9 @@
 # Efficient Calibration of Embedded MPC
 
-This repository contains the Python code to reproduce the results of the paper "Efficient Calibration of Embedded MPC" by Marco Forgione and Dario Piga
+This repository contains the Python code to reproduce the results of the paper "System identification with neural networks:
+custom model structures and fitting criteria" by Marco Forgione and Dario Piga.
 
-The following fitting methods for State-Space (SS) and Input-Output (IO) neural dynamical models are developed based on
+The following fitting methods for State-Space (SS) and Input-Output (IO) neural dynamical models are implemented
 
  * One-step prediction error minimization
  * Open-loop simulation error minimization
@@ -10,15 +11,15 @@ The following fitting methods for State-Space (SS) and Input-Output (IO) neural 
 
 
 # Folders:
-* examples: examples of fitting neural dynamical models
+* examples: examples of neural dynamical models fitting 
 * torchid:  pytorch implementation of the fitting methods
 * common:   definition of fitting metrics r-square, etc
 
-The examples considered in the examples/ folder are the following:
+The examples reported in the examples/ folder are the following:
 
 * `` RLC_example``: nonlinear RLC circuit thoroughly discussed in the paper
-* `` CSTR_example``: CSTR system from the DaISy dataset [https://homes.esat.kuleuven.be/~tokka/daisydata.html]
-* `` cartpole_example``: cart-pole system
+* `` CSTR_example``: CSTR system from the DaISy dataset https://homes.esat.kuleuven.be/~tokka/daisydata.html
+* `` cartpole_example``: cart-pole mechanical system (equations are the same used [here](https://github.com/forgi86/pyMPC/blob/master/examples/example_inverted_pendulum.ipynb)
 
 For the nonlinear RLC example (folder examples/RLC_example), the main scripts are:
 
