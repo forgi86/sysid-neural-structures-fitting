@@ -17,11 +17,12 @@ from torchid.ssmodels import NeuralStateSpaceModelLin, NeuralStateSpaceModel
 if __name__ == '__main__':
 
     np.random.seed(42)
-    num_iter = 5000 #5000  # 10000
+    num_iter = 10000 #5000  # 10000
     seq_len = 128  # int(n_fit/10)
     test_freq = 100
     t_fit = 2e-3
     alpha = 0.5
+    lr = 1e-3
     add_noise = True
 
     # Column names in the dataset
@@ -52,6 +53,7 @@ if __name__ == '__main__':
     # Get fit data #
     u_fit = u[0:n_fit]
     x_fit = x_noise[0:n_fit]
+    x_fit_nonoise = x[0:n_fit]
     y_fit = y[0:n_fit]
     time_fit = t[0:n_fit]
 
@@ -80,12 +82,11 @@ if __name__ == '__main__':
         return batch_t, batch_x0_hidden, batch_u, batch_x, batch_x_hidden
 
 
-    ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64, init_small=False)
+    ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
 
     params = list(nn_solution.ss_model.parameters()) + [x_hidden_fit]
-    optimizer = optim.Adam(params, lr=1e-4)
-    end = time.time()
+    optimizer = optim.Adam(params, lr=lr)
 
     with torch.no_grad():
         batch_t, batch_x0_hidden, batch_u, batch_x, batch_x_hidden = get_batch(batch_size, seq_len)
@@ -175,3 +176,18 @@ if __name__ == '__main__':
         fig_name = f"RLC_SS_loss_{seq_len}step_nonoise.pdf"
 
     fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')
+
+
+    x_hidden_fit_np = x_hidden_fit.detach().numpy()
+    fig, ax = plt.subplots(2, 1, sharex=True)
+    ax[0].plot(x_fit_nonoise[:, 0], label='True')
+    ax[0].plot(x_fit[:, 0], label='Measured')
+    ax[0].plot(x_hidden_fit_np[:,0], label='Hidden')
+    ax[0].legend()
+    ax[0].grid(True)
+
+    ax[1].plot(x_fit_nonoise[:, 1], label='True')
+    ax[1].plot(x_fit[:, 1], label='Measured')
+    ax[1].plot(x_hidden_fit_np[:,1], label='Hidden')
+    ax[1].legend()
+    ax[1].grid(True)
