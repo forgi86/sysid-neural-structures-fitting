@@ -40,6 +40,8 @@ Simulations were performed on a Python 3.7 conda environment with
  * pytorch
  
 These dependencies may be installed through the commands:
+
 ```
-conda install numpy scipy matplotlib pandas
+conda install numpy numba scipy sympy pandas matplotlib ipython
+conda install pytorch torchvision cpuonly -c pytorch
 ```
