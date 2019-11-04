@@ -11,8 +11,7 @@ import time
 import matplotlib.pyplot as plt
 
 from torchid.ssfitter import NeuralStateSpaceSimulator
-from torchid.util import RunningAverageMeter
-from torchid.ssmodels import NeuralStateSpaceModelLin, NeuralStateSpaceModel
+from torchid.ssmodels import NeuralStateSpaceModel
 
 if __name__ == '__main__':
 
