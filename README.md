@@ -17,6 +17,7 @@ The examples performed are the following:
 
 For the RLC example, the main scripts are:
 
+ *   ``symbolic_RLC.m``: Symbolic manipulation of the RLC model, constant definition
  * ``RLC_generate_id.py``:  generate the identification dataset 
  * ``RLC_generate_val.py``: generate the validation dataset 
  *  ``RLC_SS_fit_1step.py``: SS model, one-step prediction error minimization
