@@ -14,9 +14,10 @@ from common import metrics
 
 if __name__ == '__main__':
 
-    dataset_type = 'id'#'val'
+    dataset_type = 'val'
     #dataset_type = 'id'
 
+    #model_type = '64step_noise'
     model_type = '128step_noise'
     #model_type = '1step_noise'
     #model_type = '1slidtep_noise'

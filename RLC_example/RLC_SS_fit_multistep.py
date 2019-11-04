@@ -12,12 +12,12 @@ from torchid.ssmodels import NeuralStateSpaceModel
 if __name__ == '__main__':
 
     np.random.seed(42)
-    num_iter = 10000 #5000  # 10000
-    seq_len = 128  # int(n_fit/10)
+    num_iter = 20000  #5000  # 10000
+    seq_len = 64  # int(n_fit/10)
     test_freq = 100
     t_fit = 2e-3
     alpha = 0.5
-    lr = 1e-3
+    lr = 2e-4
     add_noise = True
 
     # Column names in the dataset
@@ -175,14 +175,14 @@ if __name__ == '__main__':
 
     x_hidden_fit_np = x_hidden_fit.detach().numpy()
     fig, ax = plt.subplots(2, 1, sharex=True)
-    ax[0].plot(x_fit_nonoise[:, 0], label='True')
-    ax[0].plot(x_fit[:, 0], label='Measured')
-    ax[0].plot(x_hidden_fit_np[:,0], label='Hidden')
+    ax[0].plot(x_fit_nonoise[:, 0], 'k', label='True')
+    ax[0].plot(x_fit[:, 0], 'b', label='Measured')
+    ax[0].plot(x_hidden_fit_np[:, 0], 'r', label='Hidden')
     ax[0].legend()
     ax[0].grid(True)
 
-    ax[1].plot(x_fit_nonoise[:, 1], label='True')
-    ax[1].plot(x_fit[:, 1], label='Measured')
-    ax[1].plot(x_hidden_fit_np[:,1], label='Hidden')
+    ax[1].plot(x_fit_nonoise[:, 1], 'k', label='True')
+    ax[1].plot(x_fit[:, 1], 'b', label='Measured')
+    ax[1].plot(x_hidden_fit_np[:, 1], 'r', label='Hidden')
     ax[1].legend()
     ax[1].grid(True)
