@@ -1,0 +1,5 @@
+conda create --name DL_ID python=3.7
+conda activate DL_ID
+conda install numpy numba scipy sympy pandas matplotlib ipython
+conda install pytorch torchvision cpuonly -c pytorch
+pip install control
