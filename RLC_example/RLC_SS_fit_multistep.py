@@ -12,12 +12,12 @@ from torchid.ssmodels import NeuralStateSpaceModel
 if __name__ == '__main__':
 
     np.random.seed(42)
-    num_iter = 20000  #5000  # 10000
+    num_iter = 10000  #5000  # 10000
     seq_len = 64  # int(n_fit/10)
     test_freq = 100
     t_fit = 2e-3
     alpha = 0.5
-    lr = 2e-4
+    lr = 1e-3
     add_noise = True
 
     # Column names in the dataset

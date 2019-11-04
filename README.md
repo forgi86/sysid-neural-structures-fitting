@@ -19,14 +19,14 @@ For the RLC example, the main scripts are:
 
  * ``RLC_generate_id.py``:  generate the identification dataset 
  * ``RLC_generate_val.py``: generate the validation dataset 
-
-For the SS model
  *  ``RLC_SS_fit_1step.py``: SS model, one-step prediction error minimization
  *  ``RLC_SS_fit_simerror.py``: SS model, open-loop simulation error minimization
  *  ``RLC_SS_fit_multistep.py``: SS model, multistep simulation error minimization
- *  ``RLC_SS_eval_sim.py``: SS model evaluate the simulation performance of the identified models, produce relevant plots 
- and model statistics
- 
+ *  ``RLC_SS_eval_sim.py``: SS model, evaluate the simulation performance of the identified models, produce relevant plots  and model statistics
+ *  ``RLC_IO_fit_1step.py``: IO model, one-step prediction error minimization
+ *  ``RLC_IO_fit_multistep.py``: IO model, multistep simulation error minimization
+ *  ``RLC_IO_eval_sim.py``: IO model, evaluate the simulation performance of the identified models, produce relevant plots  and model statistics
+ *   ``RLC_OE_comparison.m``: Linear Output Error (OE) model fit in Matlab
   
 Simulations were performed on a Python 3.7 conda environment with
 
