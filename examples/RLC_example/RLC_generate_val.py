@@ -6,7 +6,7 @@ import control.matlab
 import pandas as pd
 import os
 
-from RLC_example.symbolic_RLC import fxu_ODE, fxu_ODE_mod
+from examples.RLC_example.symbolic_RLC import fxu_ODE, fxu_ODE_mod
 
 if __name__ == '__main__':
 
@@ -15,8 +15,8 @@ if __name__ == '__main__':
     len_sim = 5e-3
     Ts = 5e-7
     
-    omega_input = 150e3
-    std_input = 80
+    omega_input = 70e3
+    std_input = 120
     
     tau_input = 1/omega_input
     Hu = control.TransferFunction([1], [1 / omega_input, 1])
@@ -95,4 +95,4 @@ if __name__ == '__main__':
     COL_Y = ['V_C']
     COL = COL_T + COL_X + COL_U + COL_Y
     df_X = pd.DataFrame(X, columns=COL)
-    df_X.to_csv(os.path.join("data", "RLC_data_id.csv"), index=False)
+    df_X.to_csv(os.path.join("data", "RLC_data_val.csv"), index=False)

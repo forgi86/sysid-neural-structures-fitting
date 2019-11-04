@@ -8,14 +8,19 @@ The following fitting methods for State-Space (SS) and Input-Output (IO) neural 
  * Open-loop simulation error minimization
  * Multistep simulation error minimization
 
-## Example folders: 
-The examples performed are the following:
+
+# Folders:
+* examples: examples of fitting neural dynamical models
+* torchid:  pytorch implementation of the fitting methods
+* common:   definition of fitting metrics r-square, etc
+
+The examples considered in the examples/ folder are the following:
 
 * `` RLC_example``: nonlinear RLC circuit thoroughly discussed in the paper
-* `` CSTR_example``: CSTR system from 
+* `` CSTR_example``: CSTR system from the DaISy dataset [https://homes.esat.kuleuven.be/~tokka/daisydata.html]
 * `` cartpole_example``: cart-pole system
 
-For the RLC example, the main scripts are:
+For the nonlinear RLC example (folder examples/RLC_example), the main scripts are:
 
  *   ``symbolic_RLC.m``: Symbolic manipulation of the RLC model, constant definition
  * ``RLC_generate_id.py``:  generate the identification dataset 
@@ -29,6 +34,7 @@ For the RLC example, the main scripts are:
  *  ``RLC_IO_eval_sim.py``: IO model, evaluate the simulation performance of the identified models, produce relevant plots  and model statistics
  *   ``RLC_OE_comparison.m``: Linear Output Error (OE) model fit in Matlab
   
+
 Simulations were performed on a Python 3.7 conda environment with
 
  * numpy
