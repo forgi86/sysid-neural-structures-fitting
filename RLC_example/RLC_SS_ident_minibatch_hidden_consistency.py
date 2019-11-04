@@ -1,11 +1,7 @@
 import os
 import pandas as pd
-from scipy.integrate import odeint
-from scipy.interpolate import interp1d
-
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.optim as optim
 import time
 import matplotlib.pyplot as plt
