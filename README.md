@@ -1,4 +1,4 @@
-# Efficient Calibration of Embedded MPC
+# System identification with neural networks: custom model structures and fitting criteria
 
 This repository contains the Python code to reproduce the results of the paper "System identification with neural networks:
 custom model structures and fitting criteria" by Marco Forgione and Dario Piga.
