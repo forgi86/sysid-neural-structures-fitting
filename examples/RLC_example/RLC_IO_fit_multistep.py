@@ -10,115 +10,126 @@ import scipy.linalg
 
 sys.path.append(os.path.join(".."))
 from torchid.iofitter import NeuralIOSimulator
-from torchid.util import RunningAverageMeter
 from torchid.iomodels import NeuralIOModel
-from torchid.util import get_torch_regressor_mat
 
 if __name__ == '__main__':
 
-    num_iter = 20000 # 40000
+    np.random.seed(42)
+
+    # Overall paramaters
+    num_iter = 20000 # number of iterations
     seq_len = 32  # int(n_fit/10)
-    test_freq = 100
-    t_fit = 2e-3
+    alpha = 0.5 # fit/consistency trade-off constant
+    lr = 4e-3 # learning rate
+    t_fit = 2e-3 # fit on 2 ms of data
+    test_freq = 100 # print message every test_freq iterations
+    n_a = 2 # autoregressive coefficients for y
+    n_b = 2 # autoregressive coefficients for u
     add_noise = True
 
+    # Column names in the dataset
     COL_T = ['time']
     COL_X = ['V_C', 'I_L']
     COL_U = ['V_IN']
     COL_Y = ['V_C']
     df_X = pd.read_csv(os.path.join("data", "RLC_data_id.csv"))
 
+    # Load dataset
     t = np.array(df_X[COL_T], dtype=np.float32)
     y = np.array(df_X[COL_Y], dtype=np.float32)
     x = np.array(df_X[COL_X], dtype=np.float32)
     u = np.array(df_X[COL_U], dtype=np.float32)
 
-    N = np.shape(y)[0]
-    Ts = t[1] - t[0]
-    n_fit = int(t_fit//Ts)#x.shape[0]
-
-    n_a = 2 # autoregressive coefficients for y
-    n_b = 2 # autoregressive coefficients for u
-    n_max = np.max((n_a, n_b)) # delay
-
-    # Batch learning parameters
-    batch_size = (n_fit - n_a) // seq_len
-
+    # Add measurement noise
     std_noise_V = add_noise * 10.0
     std_noise_I = add_noise * 1.0
     std_noise = np.array([std_noise_V, std_noise_I])
-
     x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
     x_noise = x_noise.astype(np.float32)
-    y_noise = x_noise[:,[0]]
+    y_noise = x_noise[:, [0]]
+
+    # Get fit data
+    N = np.shape(y)[0]
+    Ts = t[1] - t[0]
+    n_fit = int(t_fit//Ts) #
+    n_max = np.max((n_a, n_b)) # delay
+    batch_size = (n_fit - n_a) // seq_len
 
     # Build fit data
     u_fit = u[0:n_fit]
     y_fit = y[0:n_fit]
     y_meas_fit = y_noise[0:n_fit]
 
-    h_fit = np.copy(y_meas_fit)
-    h_fit = np.vstack((np.zeros(n_a).reshape(-1, 1), h_fit)).astype(np.float32)
+    y_hidden_fit_init = np.vstack((np.zeros(n_a).reshape(-1, 1), np.copy(y_meas_fit))).astype(np.float32)
+    y_hidden_fit_init_true = np.vstack((np.zeros(n_a).reshape(-1, 1), np.copy(y_fit))).astype(np.float32) # not used, just for reference
     v_fit = np.copy(u_fit)
     v_fit = np.vstack((np.zeros(n_b).reshape(-1, 1), v_fit)).astype(np.float32)
-
-    phi_fit_y = scipy.linalg.toeplitz(h_fit, h_fit[0:n_a])[n_max - 1:-1, :] # regressor 1
-    phi_fit_u = scipy.linalg.toeplitz(v_fit, v_fit[0:n_a])[n_max - 1:-1, :]
-    phi_fit = np.hstack((phi_fit_y, phi_fit_u))
+    phi_fit_u = scipy.linalg.toeplitz(v_fit, v_fit[0:n_a])[n_max - 1:-1, :] # used for the initial conditions on u
 
     # To pytorch tensors
-    phi_fit_u_torch = torch.tensor(phi_fit_u)
-    h_fit_torch = torch.tensor(h_fit, requires_grad=True) # this is an optimization variable!
-    phi_fit_h_torch = get_torch_regressor_mat(h_fit_torch.view(-1), n_a)
+    y_hidden_fit_torch = torch.tensor(y_hidden_fit_init, requires_grad=True) # hidden state. It is an optimization variable!
     y_meas_fit_torch = torch.tensor(y_meas_fit)
     u_fit_torch = torch.tensor(u_fit)
 
-    # Setup model an simulator
+    # Setup neural model structure
     io_model = NeuralIOModel(n_a=n_a, n_b=n_b, n_feat=64)
     io_solution = NeuralIOSimulator(io_model)
-    #io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_1step_nonoise.pkl")))
-    params = list(io_solution.io_model.parameters()) + [h_fit_torch]
-    optimizer = optim.Adam(params, lr=10e-4)
-    end = time.time()
-    loss_meter = RunningAverageMeter(0.97)
 
+    # Setup optimizer
+    params_net = list(io_solution.io_model.parameters())
+    params_hidden = [y_hidden_fit_torch]
+    optimizer = optim.Adam([
+        {'params': params_net,    'lr': lr},
+        {'params': params_hidden, 'lr': lr},
+    ], lr=lr)
+    
+#    params = list(io_solution.io_model.parameters()) + [y_hidden_fit_torch]
+#    optimizer = optim.Adam(params, lr=lr)
 
+    # Batch extraction function
     def get_batch(batch_size, seq_len):
+
+        # Select batch indexes
         num_train_samples = y_meas_fit_torch.shape[0]
         batch_start = np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False) # batch start indices
         batch_idx = batch_start[:, np.newaxis] + np.arange(seq_len) # batch all indices
-        batch_idx_seq_h =  batch_start[:, np.newaxis]  - 1 - np.arange(n_a)
+        batch_idx_initial_cond_y = batch_start[:, np.newaxis] - 1 - np.arange(n_a)
 
-        batch_h_seq = h_fit_torch[[batch_idx_seq_h + n_a]].squeeze() # regressor of hidden variables
-        batch_u_seq =  torch.tensor(phi_fit_u[batch_start]) # regressor of input variables
-
+        # Extract batch data
+        batch_y_hidden_initial_cond = y_hidden_fit_torch[[batch_idx_initial_cond_y + n_a]].squeeze()  # hidden y initial condition for all batch instances
+        batch_u_initial_cond = torch.tensor(phi_fit_u[batch_start])  # u initial condition for all batch instances
         batch_y_meas = torch.tensor(y_meas_fit[batch_idx])
         batch_u = torch.tensor(u_fit[batch_idx])
-        batch_h = h_fit_torch[[batch_idx + n_a]]
-        return batch_u, batch_y_meas, batch_h, batch_h_seq, batch_u_seq, batch_start
+        batch_y_hidden = y_hidden_fit_torch[[batch_idx + n_a]]
+
+        return batch_u, batch_y_meas, batch_y_hidden, batch_y_hidden_initial_cond, batch_u_initial_cond, batch_start
 
     def get_sequential_batch(seq_len):
+
+        # Select batch indexes
         num_train_samples = y_meas_fit_torch.shape[0]
         batch_size = num_train_samples//seq_len
         batch_start = np.arange(0, batch_size, dtype=np.int64) * seq_len
         batch_idx = batch_start[:,np.newaxis] + np.arange(seq_len) # batch all indices
-        batch_idx_seq_h =  batch_start[:, np.newaxis]  - 1 - np.arange(n_a)
+        batch_idx_initial_cond_y =  batch_start[:, np.newaxis] - 1 - np.arange(n_a)
 
-        batch_h_seq = h_fit_torch[[batch_idx_seq_h + n_a]].squeeze()  # regressor of hidden variables
-        batch_u_seq = torch.tensor(phi_fit_u[batch_start])  # regressor of input variables
+        # Extract batch data
+        batch_y_hidden_initial_cond = y_hidden_fit_torch[[batch_idx_initial_cond_y + n_a]].squeeze()  # hidden y initial condition for all batch instances
+        batch_u_initial_cond = torch.tensor(phi_fit_u[batch_start])  # u initial condition for all batch instances
+        batch_y_meas = torch.tensor(y_meas_fit[batch_idx]) # batch measured output
+        batch_u = torch.tensor(u_fit[batch_idx])           # batch input
+        batch_y_hidden = y_hidden_fit_torch[[batch_idx + n_a]]    # batch hidden output
 
-        batch_y_meas = torch.tensor(y_meas_fit[batch_idx])
-        batch_u = torch.tensor(u_fit[batch_idx])
-        batch_h = h_fit_torch[[batch_idx + n_a]]
-        return batch_u, batch_y_meas, batch_h, batch_h_seq, batch_u_seq, batch_start
+        return batch_u, batch_y_meas, batch_y_hidden, batch_y_hidden_initial_cond, batch_u_initial_cond, batch_start
 
-
+    # Scale loss with respect to the initial one
     with torch.no_grad():
-        batch_u, batch_y_meas, batch_h, batch_h_seq, batch_u_seq, batch_s  = get_batch(batch_size, seq_len)
-        batch_y_pred = io_solution.f_sim_minibatch(batch_u, batch_h_seq, batch_u_seq)
-        err = batch_y_meas - batch_y_pred
-        loss = torch.mean(err ** 2)
-        loss_scale = np.float32(loss)
+        #batch_u, batch_y_meas, batch_y_hidden, batch_y_hidden_initial_cond, batch_u_initial_cond, batch_start = get_sequential_batch(seq_len)
+        batch_u, batch_y_meas, batch_y_hidden, batch_y_hidden_initial_cond, batch_u_initial_cond, batch_start = get_sequential_batch(seq_len)
+        batch_y_sim = io_solution.f_sim_minibatch(batch_u, batch_y_hidden_initial_cond, batch_u_initial_cond)
+        err_fit = batch_y_meas - batch_y_sim
+        loss_fit = torch.mean(err_fit ** 2)
+        loss_scale = np.float32(loss_fit)
 
     LOSS = []
     ii = 0
@@ -126,29 +137,33 @@ if __name__ == '__main__':
     for itr in range(0, num_iter):
         optimizer.zero_grad()
 
-        # Predict
-#        batch_u, batch_y_meas, batch_h, batch_h_seq, batch_u_seq, batch_s = get_batch(batch_size, seq_len)
-        batch_u, batch_y_meas, batch_h, batch_h_seq, batch_u_seq, batch_start = get_sequential_batch(seq_len)
-        batch_y_pred = io_solution.f_sim_minibatch(batch_u, batch_h_seq, batch_u_seq)
+        # Simulate
+        batch_u, batch_y_meas, batch_y_hidden, batch_y_hidden_initial_cond, batch_u_initial_cond, batch_start = get_batch(batch_size, seq_len)
+        #batch_u, batch_y_meas, batch_h, batch_h_seq, batch_u_seq, batch_s = get_sequential_batch(seq_len)
+        batch_y_sim = io_solution.f_sim_minibatch(batch_u, batch_y_hidden_initial_cond, batch_u_initial_cond)
 
-        # Compute loss
-        err = batch_y_pred - batch_y_meas #batch_h - batch_y_meas
-        loss = torch.mean(err**2)
-        loss_sc = loss/loss_scale
+        # Compute fit loss
+        err_fit = batch_y_sim - batch_y_meas
+        loss_fit = torch.mean(err_fit ** 2)
+        loss_fit_sc = loss_fit / loss_scale
 
-        # Append to loss vector
+        # Compute consistency loss
+        err_consistency = batch_y_sim - batch_y_hidden
+        loss_consistency = torch.mean(err_consistency ** 2)
+        loss_consistency_sc = loss_consistency / loss_scale
+
+        # Compute trade-off loss
+        loss_sc = alpha*loss_fit_sc + (1.0-alpha)*loss_consistency_sc
+
+        # Statistics
         LOSS.append(loss_sc.item())
+        if itr > 0 and itr % test_freq == 0:
+            with torch.no_grad():
+                print(f'Iter {itr} | Tradeoff Loss {loss_sc:.4f}   Consistency Loss {loss_consistency:.4f}   Fit Loss {loss_fit:.4f}')
 
         # Optimization step
-        loss_sc.backward()
-        # optimizer.param_groups[0]['params'][-1].grad = 1e3*optimizer.param_groups[0]['params'][-1].grad
+        loss_fit_sc.backward()
         optimizer.step()
-
-        # Print message
-        if itr % test_freq == 0:
-            print('Iter {:04d} | Loss {:.6f}, Scaled Loss {:.6f}'.format(itr, loss.item(), loss_sc.item()))
-            ii += 1
-        end = time.time()
 
     train_time = time.time() - start_time
     print(f"\nTrain time: {train_time:.2f}")
@@ -160,7 +175,6 @@ if __name__ == '__main__':
         model_filename = f"model_IO_{seq_len}step_noise.pkl"
     else:
         model_filename = f"model_IO_{seq_len}step_nonoise.pkl"
-
 
     torch.save(io_solution.io_model.state_dict(), os.path.join("models", model_filename))
 
@@ -216,3 +230,13 @@ if __name__ == '__main__':
     ax.set_ylabel("Loss (-)")
     ax.set_xlabel("Iteration (-)")
     fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')
+
+    y_hidden_fit_optimized = y_hidden_fit_torch.detach().numpy()
+
+    fig, ax = plt.subplots(1, 1, sharex=True)
+    ax = [ax]
+    ax[0].plot(y_hidden_fit_init_true, 'k', label='True')
+    ax[0].plot(y_hidden_fit_init, 'b', label='Measured')
+    ax[0].plot(y_hidden_fit_optimized, 'r', label='Hidden')
+    ax[0].legend()
+    ax[0].grid(True)

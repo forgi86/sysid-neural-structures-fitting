@@ -12,12 +12,14 @@ from torchid.ssmodels import NeuralStateSpaceModel
 if __name__ == '__main__':
 
     np.random.seed(42)
+
+    # Overall paramaters
     num_iter = 15000  #5000  # 10000
     seq_len = 64  # int(n_fit/10)
-    test_freq = 100
-    t_fit = 2e-3
-    alpha = 0.5
-    lr = 1e-3
+    t_fit = 2e-3 # fit on 2 ms of data
+    alpha = 0.5 # fit/consistency trade-off constant
+    lr = 1e-3 # learning rate
+    test_freq = 100 # print message every test_freq iterations
     add_noise = True
 
     # Column names in the dataset
@@ -41,11 +43,10 @@ if __name__ == '__main__':
     x_noise = np.copy(x) + np.random.randn(*x.shape) * std_noise
     x_noise = x_noise.astype(np.float32)
 
+    # Get fit data #
     Ts = t[1] - t[0]
     n_fit = int(t_fit // Ts)  # x.shape[0]
     batch_size = n_fit // seq_len
-
-    # Get fit data #
     u_fit = u[0:n_fit]
     x_fit = x_noise[0:n_fit]
     x_fit_nonoise = x[0:n_fit]
@@ -57,12 +58,20 @@ if __name__ == '__main__':
     y_true_torch_fit = torch.from_numpy(y_fit)
     x_meas_torch_fit = torch.from_numpy(x_fit)
     time_torch_fit = torch.from_numpy(time_fit)
+    x_hidden_fit = torch.tensor(x_fit, requires_grad=True)  # xidden state as an optimization variable
 
-    x_hidden_fit = torch.tensor(x_fit, requires_grad=True)  # this is an optimization variable!
+    # Setup neural model structure
+    ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64)
+    nn_solution = NeuralStateSpaceSimulator(ss_model)
 
+    # Setup optimizer
+    params = list(nn_solution.ss_model.parameters()) + [x_hidden_fit]
+    optimizer = optim.Adam(params, lr=lr)
+
+    # Batch extraction funtion
     def get_batch(batch_size, seq_len):
 
-        # Define batch indexes
+        # Select batch indexes
         num_train_samples = x_fit.shape[0]
         batch_start = np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False) # batch start indices
         batch_idx = batch_start[:, np.newaxis] + np.arange(seq_len) # batch samples indices
@@ -76,13 +85,7 @@ if __name__ == '__main__':
 
         return batch_t, batch_x0_hidden, batch_u, batch_x, batch_x_hidden
 
-
-    ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64)
-    nn_solution = NeuralStateSpaceSimulator(ss_model)
-
-    params = list(nn_solution.ss_model.parameters()) + [x_hidden_fit]
-    optimizer = optim.Adam(params, lr=lr)
-
+    # Scale loss with respect to the initial one
     with torch.no_grad():
         batch_t, batch_x0_hidden, batch_u, batch_x, batch_x_hidden = get_batch(batch_size, seq_len)
         batch_x_sim = nn_solution.f_sim_minibatch(batch_x0_hidden, batch_u)
@@ -94,29 +97,33 @@ if __name__ == '__main__':
     for itr in range(0, num_iter):
 
         optimizer.zero_grad()
+
+        # Simulate
         batch_t, batch_x0_hidden, batch_u, batch_x, batch_x_hidden = get_batch(batch_size, seq_len)
         batch_x_sim = nn_solution.f_sim_minibatch(batch_x0_hidden, batch_u)
 
-        # Fit loss
+        # Compute fit loss
         err_fit = batch_x_sim - batch_x
         err_fit_scaled = err_fit/scale_error
         loss_fit = torch.mean(err_fit_scaled**2)
 
-        # Consistency loss
+        # Compute consistency loss
         err_consistency = batch_x_sim - batch_x_hidden
         err_consistency_scaled = err_consistency/scale_error
         loss_consistency = torch.mean(err_consistency_scaled**2)
 
+        # Compute trade-off loss
         loss = alpha*loss_fit + (1.0-alpha)*loss_consistency
 
+        # Statistics
+        LOSS.append(loss.item())
         if itr > 0 and itr % test_freq == 0:
             with torch.no_grad():
                 print(f'Iter {itr} | Tradeoff Loss {loss:.4f}   Consistency Loss {loss_consistency:.4f}   Fit Loss {loss_fit:.4f}')
 
+        # Optimize
         loss.backward()
         optimizer.step()
-
-        LOSS.append(loss.item())
 
     train_time = time.time() - start_time
     print(f"\nTrain time: {train_time:.2f}")
@@ -171,7 +178,6 @@ if __name__ == '__main__':
         fig_name = f"RLC_SS_loss_{seq_len}step_nonoise.pdf"
 
     fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')
-
 
     x_hidden_fit_np = x_hidden_fit.detach().numpy()
     fig, ax = plt.subplots(2, 1, sharex=True)

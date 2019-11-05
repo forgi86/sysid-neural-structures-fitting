@@ -87,7 +87,7 @@ if __name__ == '__main__':
     optimizer = optim.Adam([
         {'params': params_net,    'lr': lr_net},
         {'params': params_hidden, 'lr': lr_hidden},
-    ], lr=1e6)
+    ], lr=lr_net)
 
     with torch.no_grad():
         batch_t, batch_x0_hidden, batch_u, batch_x, batch_x_hidden = get_batch(batch_size, seq_len)

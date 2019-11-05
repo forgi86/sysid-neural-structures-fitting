@@ -17,10 +17,10 @@ if __name__ == '__main__':
     dataset_type = 'val'
     #dataset_type = 'id'
 
-    model_type = '64step_noise'
+    #model_type = '64step_noise'
     #model_type = '128step_noise'
     #model_type = '1step_noise'
-    #model_type = '1slidtep_noise'
+    model_type = '1step_noise'
     #model_type = 'simerr_noise'
     plot_input = True
 

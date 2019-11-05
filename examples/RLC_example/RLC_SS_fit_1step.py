@@ -14,6 +14,12 @@ from torchid.ssmodels import NeuralStateSpaceModel
 
 if __name__ == '__main__':
 
+    np.random.seed(42)
+
+    t_fit = 2e-3
+    lr = 2e-4
+    num_iter = 40000
+    test_freq = 100
     add_noise = False
 
     COL_T = ['time']
@@ -41,10 +47,7 @@ if __name__ == '__main__':
     SNR = P_x/P_n
 
     Ts = time_data[1] - time_data[0]
-    t_fit = 2e-3
     n_fit = int(t_fit//Ts)#x.shape[0]
-    num_iter = 40000
-    test_freq = 100
 
     input_data = u[0:n_fit]
     state_data = x_noise[0:n_fit]
@@ -55,7 +58,7 @@ if __name__ == '__main__':
     nn_solution = NeuralStateSpaceSimulator(ss_model)
     #nn_solution.load_state_dict(torch.load(os.path.join("models", "model_ARX_FE_sat.pkl")))
 
-    optimizer = optim.Adam(nn_solution.ss_model.parameters(), lr=2e-4)
+    optimizer = optim.Adam(nn_solution.ss_model.parameters(), lr=lr)
 
 
     with torch.no_grad():
