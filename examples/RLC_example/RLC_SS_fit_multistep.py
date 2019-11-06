@@ -5,7 +5,8 @@ import torch
 import torch.optim as optim
 import time
 import matplotlib.pyplot as plt
-
+import sys
+sys.path.append(os.path.join("..", ".."))
 from torchid.ssfitter import NeuralStateSpaceSimulator
 from torchid.ssmodels import NeuralStateSpaceModel
 
@@ -14,9 +15,9 @@ if __name__ == '__main__':
     np.random.seed(42)
 
     # Overall paramaters
-    num_iter = 15000  #5000  # 10000
+    num_iter = 15000  # gradient-based optimization steps
     seq_len = 64  # int(n_fit/10)
-    t_fit = 2e-3 # fit on 2 ms of data
+    t_fit = 2e-3 # fitting on t_fit ms of data
     alpha = 0.5 # fit/consistency trade-off constant
     lr = 1e-3 # learning rate
     test_freq = 100 # print message every test_freq iterations
@@ -34,7 +35,6 @@ if __name__ == '__main__':
     y = np.array(df_X[COL_Y], dtype=np.float32)
     x = np.array(df_X[COL_X], dtype=np.float32)
     u = np.array(df_X[COL_U], dtype=np.float32)
-    x0_torch = torch.from_numpy(x[0, :])
 
     # Add measurement noise
     std_noise_V = add_noise * 10.0

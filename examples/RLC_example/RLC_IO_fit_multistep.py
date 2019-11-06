@@ -6,9 +6,8 @@ import time
 import matplotlib.pyplot as plt
 import os
 import sys
+sys.path.append(os.path.join("..", ".."))
 import scipy.linalg
-
-sys.path.append(os.path.join(".."))
 from torchid.iofitter import NeuralIOSimulator
 from torchid.iomodels import NeuralIOModel
 

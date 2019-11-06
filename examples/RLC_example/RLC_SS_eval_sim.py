@@ -20,7 +20,7 @@ if __name__ == '__main__':
     #model_type = '64step_noise'
     #model_type = '128step_noise'
     #model_type = '1step_noise'
-    model_type = '1step_noise'
+    model_type = '1step_nonoise'
     #model_type = 'simerr_noise'
     plot_input = True
 
