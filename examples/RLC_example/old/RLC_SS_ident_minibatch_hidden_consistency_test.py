@@ -85,7 +85,7 @@ if __name__ == '__main__':
 
     with torch.no_grad():
         batch_t, batch_x0_hidden, batch_u, batch_x, batch_x_hidden = get_batch(batch_size, seq_len)
-        batch_x_sim = nn_solution.f_sim_minibatch(batch_x0_hidden, batch_u)
+        batch_x_sim = nn_solution.f_sim_multistep(batch_x0_hidden, batch_u)
         err_init = batch_x_sim - batch_x
         scale_error = torch.sqrt(torch.mean((err_init) ** 2, dim=(0, 1)))
 
@@ -95,7 +95,7 @@ if __name__ == '__main__':
 
         optimizer.zero_grad()
         batch_t, batch_x0_hidden, batch_u, batch_x, batch_x_hidden = get_batch(batch_size, seq_len)
-        batch_x_sim = nn_solution.f_sim_minibatch(batch_x0_hidden, batch_u)
+        batch_x_sim = nn_solution.f_sim_multistep(batch_x0_hidden, batch_u)
 
         # Fit loss
         err_fit = batch_x_sim - batch_x

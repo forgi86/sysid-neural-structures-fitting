@@ -74,7 +74,7 @@ if __name__ == '__main__':
     batch_x0 = torch.tensor(x_val[batch_start])  # x_meas_torch_fit[batch_start, :]  # (M, D)
     batch_u = torch.tensor(u_val[batch_idx])  # torch.stack([u_torch_fit[batch_start[i]:batch_start[i] + seq_len] for i in range(batch_size)], dim=0)
     batch_x = torch.tensor(x_val[batch_idx])  # torch.stack([x_meas_torch_fit[batch_start[i]:batch_start[i] + seq_len] for i in range(batch_size)], dim=0)
-    batch_x_pred = nn_solution.f_sim_minibatch(batch_x0, batch_u)
+    batch_x_pred = nn_solution.f_sim_multistep(batch_x0, batch_u)
 
     # Plot data
     batch_x_pred_np = np.array(batch_x_pred.detach())

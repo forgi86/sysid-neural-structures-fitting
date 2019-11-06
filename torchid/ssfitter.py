@@ -9,6 +9,7 @@ class NeuralStateSpaceSimulator():
         self.Ts = Ts
 
     def f_onestep(self, X, U):
+        """One-step prediction computation"""
         X_pred = torch.empty(X.shape)
         X_pred[0,:] = X[0,:]
         DX = self.ss_model(X[0:-1], U[0:-1])
@@ -63,7 +64,8 @@ class NeuralStateSpaceSimulator():
             xstep = xstep + dx
         return X_pred
 
-    def f_sim_minibatch(self, x0_batch, U_batch):
+    def f_sim_multistep(self, x0_batch, U_batch):
+        """ Multistep simulation computation over a minibatch """
         batch_size = x0_batch.shape[0]
         n_x = x0_batch.shape[1]
         seq_len = U_batch.shape[1]

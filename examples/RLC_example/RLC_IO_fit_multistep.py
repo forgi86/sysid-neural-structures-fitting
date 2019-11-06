@@ -13,13 +13,15 @@ from torchid.iomodels import NeuralIOModel
 
 if __name__ == '__main__':
 
-    np.random.seed(42)
+    # Set seed for reproducibility
+    np.random.seed(0)
+    torch.manual_seed(0)
 
     # Overall paramaters
     num_iter = 20000 # number of iterations
     seq_len = 32  # int(n_fit/10)
     alpha = 0.5 # fit/consistency trade-off constant
-    lr = 4e-3 # learning rate
+    lr = 1e-3 # learning rate
     t_fit = 2e-3 # fit on 2 ms of data
     test_freq = 100 # print message every test_freq iterations
     n_a = 2 # autoregressive coefficients for y
@@ -79,7 +81,7 @@ if __name__ == '__main__':
     params_hidden = [y_hidden_fit_torch]
     optimizer = optim.Adam([
         {'params': params_net,    'lr': lr},
-        {'params': params_hidden, 'lr': lr},
+        {'params': params_hidden, 'lr': 10*lr},
     ], lr=lr)
     
 #    params = list(io_solution.io_model.parameters()) + [y_hidden_fit_torch]
@@ -123,23 +125,21 @@ if __name__ == '__main__':
 
     # Scale loss with respect to the initial one
     with torch.no_grad():
-        #batch_u, batch_y_meas, batch_y_hidden, batch_y_hidden_initial_cond, batch_u_initial_cond, batch_start = get_sequential_batch(seq_len)
-        batch_u, batch_y_meas, batch_y_hidden, batch_y_hidden_initial_cond, batch_u_initial_cond, batch_start = get_sequential_batch(seq_len)
-        batch_y_sim = io_solution.f_sim_minibatch(batch_u, batch_y_hidden_initial_cond, batch_u_initial_cond)
+        batch_u, batch_y_meas, batch_y_hidden, batch_y_hidden_initial_cond, batch_u_initial_cond, batch_start = get_batch(batch_size, seq_len)
+        batch_y_sim = io_solution.f_sim_multistep(batch_u, batch_y_hidden_initial_cond, batch_u_initial_cond)
         err_fit = batch_y_meas - batch_y_sim
         loss_fit = torch.mean(err_fit ** 2)
         loss_scale = np.float32(loss_fit)
 
     LOSS = []
-    ii = 0
     start_time = time.time()
+    # Training loop
     for itr in range(0, num_iter):
         optimizer.zero_grad()
 
         # Simulate
         batch_u, batch_y_meas, batch_y_hidden, batch_y_hidden_initial_cond, batch_u_initial_cond, batch_start = get_batch(batch_size, seq_len)
-        #batch_u, batch_y_meas, batch_h, batch_h_seq, batch_u_seq, batch_s = get_sequential_batch(seq_len)
-        batch_y_sim = io_solution.f_sim_minibatch(batch_u, batch_y_hidden_initial_cond, batch_u_initial_cond)
+        batch_y_sim = io_solution.f_sim_multistep(batch_u, batch_y_hidden_initial_cond, batch_u_initial_cond)
 
         # Compute fit loss
         err_fit = batch_y_sim - batch_y_meas
@@ -239,3 +239,5 @@ if __name__ == '__main__':
     ax[0].plot(y_hidden_fit_optimized, 'r', label='Hidden')
     ax[0].legend()
     ax[0].grid(True)
+
+    #Train time: 264.57

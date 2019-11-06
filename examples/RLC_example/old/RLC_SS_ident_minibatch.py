@@ -84,7 +84,7 @@ if __name__ == '__main__':
 
     with torch.no_grad():
         batch_t, batch_x0, batch_u, batch_x = get_batch(batch_size, seq_len)
-        batch_x_sim = nn_solution.f_sim_minibatch(batch_x0, batch_u)
+        batch_x_sim = nn_solution.f_sim_multistep(batch_x0, batch_u)
         err_init = batch_x_sim - batch_x
         scale_error = torch.sqrt(torch.mean((err_init) ** 2, dim=(0, 1)))
 
@@ -94,7 +94,7 @@ if __name__ == '__main__':
 
         optimizer.zero_grad()
         batch_t, batch_x0, batch_u, batch_x = get_batch(batch_size, seq_len)
-        batch_x_sim = nn_solution.f_sim_minibatch(batch_x0, batch_u)
+        batch_x_sim = nn_solution.f_sim_multistep(batch_x0, batch_u)
         err = batch_x_sim - batch_x
         err_scaled = err / scale_error
         loss = torch.mean(err_scaled ** 2)

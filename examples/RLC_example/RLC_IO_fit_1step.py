@@ -8,52 +8,52 @@ import os
 import sys
 import scipy.linalg
 
-
-sys.path.append(os.path.join(".."))
+sys.path.append(os.path.join("..", '..'))
 from torchid.iofitter import NeuralIOSimulator
-from torchid.util import RunningAverageMeter
 from torchid.iomodels import NeuralIOModel
 
 
 if __name__ == '__main__':
 
-    add_noise = False
+    # Set seed for reproducibility
+    np.random.seed(0)
+    torch.manual_seed(0)
 
+    t_fit = 2e-3 # fitting on t_fit ms of data
+    n_a = 2 # autoregressive coefficients for y
+    n_b = 2 # autoregressive coefficients for u
+    lr = 1e-4 # learning rate
+    num_iter = 40000 # gradient-based optimization steps
+    test_freq = 100 # print message every test_freq iterations
+    add_noise = True
+
+    # Column names in the dataset
     COL_T = ['time']
     COL_X = ['V_C', 'I_L']
     COL_U = ['V_IN']
     COL_Y = ['V_C']
     df_X = pd.read_csv(os.path.join("data", "RLC_data_id.csv"))
 
+    # Load dataset
     t = np.array(df_X[COL_T], dtype=np.float32)
-    #y = np.array(df_X[COL_Y], dtype=np.float32)
     x = np.array(df_X[COL_X], dtype=np.float32)
     u = np.array(df_X[COL_U], dtype=np.float32)
     y_var_idx = 0 # 0: voltage 1: current
-
     y = np.copy(x[:, [y_var_idx]])
 
-    N = np.shape(y)[0]
-    Ts = t[1] - t[0]
-    t_fit = 2e-3
-    n_fit = int(t_fit//Ts)#x.shape[0]
-    num_iter = 40000
-    test_freq = 100
-
-    n_a = 2 # autoregressive coefficients for y
-    n_b = 2 # autoregressive coefficients for u
-    n_max = np.max((n_a, n_b)) # delay
-
+    # Add measurement noise
     std_noise_V = add_noise * 10.0
     std_noise_I = add_noise * 1.0
-
     std_noise = np.array([std_noise_V, std_noise_I])
-
     x_noise = np.copy(x) + np.random.randn(*x.shape)*std_noise
     x_noise = x_noise.astype(np.float32)
     y_noise = x_noise[:,[y_var_idx]]
 
     # Build fit data
+    n_max = np.max((n_a, n_b)) # delay
+    N = np.shape(y)[0]
+    Ts = t[1] - t[0]
+    n_fit = int(t_fit//Ts)#x.shape[0]
     u_fit = u[0:n_fit]
     y_fit = y[0:n_fit]
     y_meas_fit = y_noise[0:n_fit]
@@ -66,37 +66,42 @@ if __name__ == '__main__':
     y_meas_fit = y_meas_fit[n_max:,:]
     u_fit = u_fit[n_max:, :]
 
-    # To Pytorch tensors
+    # Build fit data
     phi_fit_torch = torch.from_numpy(phi_fit)
     y_meas_fit_torch = torch.from_numpy(y_meas_fit)
 
-    # Initialize optimization
+    # Setup neural model structure
     io_model = NeuralIOModel(n_a=n_a, n_b=n_b, n_feat=64)
     io_solution = NeuralIOSimulator(io_model)
-    optimizer = optim.Adam(io_solution.io_model.parameters(), lr=1e-4)
+
+    # Setup optimizer
+    optimizer = optim.Adam(io_solution.io_model.parameters(), lr=lr)
     end = time.time()
 
-    ii = 0
     LOSS = []
+    start_time = time.time()
+    # Training loop
     for itr in range(1, num_iter + 1):
         optimizer.zero_grad()
 
-        # Predict
+        # Perform one-step ahead prediction
         y_est_torch = io_solution.f_onestep(phi_fit_torch)
 
-        # Compute loss
+        # Compute fit loss
         err = y_est_torch - y_meas_fit_torch
-        loss = torch.mean((err)**2)
+        loss = torch.mean(err**2)
+
+        # Statistics
+        LOSS.append(loss.item())
+        if itr % test_freq == 0:
+            print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
 
         # Optimization step
         loss.backward()
         optimizer.step()
 
-        # Print message
-        if itr % test_freq == 0:
-            print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
-        end = time.time()
-        LOSS.append(loss.item())
+    train_time = time.time() - start_time
+    print(f"\nTrain time: {train_time:.2f}")
 
     if not os.path.exists("models"):
         os.makedirs("models")

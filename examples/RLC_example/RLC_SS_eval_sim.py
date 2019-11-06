@@ -14,15 +14,15 @@ from common import metrics
 
 if __name__ == '__main__':
 
-    dataset_type = 'val'
-    #dataset_type = 'id'
+    dataset_type = 'id'
+    #dataset_type = 'val'
 
-    #model_type = '64step_noise'
+    model_type = '64step_noise'
     #model_type = '128step_noise'
     #model_type = '1step_noise'
-    model_type = '1step_nonoise'
+    #model_type = '1step_nonoise'
     #model_type = 'simerr_noise'
-    plot_input = True
+    plot_input = False
 
     COL_T = ['time']
     COL_X = ['V_C', 'I_L']
@@ -86,7 +86,7 @@ if __name__ == '__main__':
     # In[Plot]
     x_sim = np.array(x_sim_torch)
     if not plot_input:
-        fig, ax = plt.subplots(2,1,sharex=True, figsize=(6,5))
+        fig, ax = plt.subplots(2,1,sharex=True, figsize=(6, 5))
     else:
         fig, ax = plt.subplots(3, 1, sharex=True, figsize=(6, 7.5))
     time_val_us = time_val *1e6
@@ -95,26 +95,26 @@ if __name__ == '__main__':
         t_plot_start = 0.2e-3
     else:
         t_plot_start = 1.0e-3
-    t_plot_end = t_plot_start + 0.3e-3
+    t_plot_end = t_plot_start + 0.35e-3
 
     idx_plot_start = int(t_plot_start//Ts)#x.shape[0]
     idx_plot_end = int(t_plot_end//Ts)#x.shape[0]
 
 
-    ax[0].plot(time_val_us[idx_plot_start:idx_plot_end], x_true_val[idx_plot_start:idx_plot_end,0], 'k',  label='True')
-    ax[0].plot(time_val_us[idx_plot_start:idx_plot_end], x_sim[idx_plot_start:idx_plot_end,0],'r--', label='Model simulation')
+    ax[0].plot(time_val_us[idx_plot_start:idx_plot_end], x_true_val[idx_plot_start:idx_plot_end,0], 'k',  label='$v^{\mathrm{o}}$')
+    ax[0].plot(time_val_us[idx_plot_start:idx_plot_end], x_sim[idx_plot_start:idx_plot_end,0],'r--', label='$v^{\mathrm{sim}}$')
     ax[0].legend(loc='upper right')
     ax[0].grid(True)
     ax[0].set_xlabel("Time ($\mu$s)")
-    ax[0].set_ylabel("Capacitor voltage $v_C$ (V)")
+    ax[0].set_ylabel("Voltage (V)")
     ax[0].set_ylim([-400, 400])
 
-    ax[1].plot(time_val_us[idx_plot_start:idx_plot_end], np.array(x_true_val[idx_plot_start:idx_plot_end:,1]), 'k', label='True')
-    ax[1].plot(time_val_us[idx_plot_start:idx_plot_end], x_sim[idx_plot_start:idx_plot_end:,1],'r--', label='Model simulation')
+    ax[1].plot(time_val_us[idx_plot_start:idx_plot_end], np.array(x_true_val[idx_plot_start:idx_plot_end:,1]), 'k', label='$i_L^{\mathrm{o}}$')
+    ax[1].plot(time_val_us[idx_plot_start:idx_plot_end], x_sim[idx_plot_start:idx_plot_end:,1],'r--', label='$i_L^{\mathrm{sim}}$')
     ax[1].legend(loc='upper right')
     ax[1].grid(True)
     ax[1].set_xlabel("Time ($\mu$s)")
-    ax[1].set_ylabel("Inductor current $i_L$ (A)")
+    ax[1].set_ylabel("Current (A)")
     ax[1].set_ylim([-20, 20])
 
     if plot_input:
@@ -129,5 +129,5 @@ if __name__ == '__main__':
     fig_name = f"RLC_SS_{dataset_type}_{model_type}.pdf"
     fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')
 
-
     R_sq = metrics.r_square(x_true_val, x_sim)
+    print(f"R-squared metrics: {R_sq}")

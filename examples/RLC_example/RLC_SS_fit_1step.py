@@ -14,14 +14,16 @@ from torchid.ssmodels import NeuralStateSpaceModel
 
 if __name__ == '__main__':
 
-    np.random.seed(42)
+    # Set seed for reproducibility
+    np.random.seed(0)
+    torch.manual_seed(0)
 
     # Overall paramaters
     t_fit = 2e-3 # fitting on t_fit ms of data
     lr = 1e-4 # learning rate
     num_iter = 40000 # gradient-based optimization steps
-    test_freq = 100 # print message every test_freq iterations
-    add_noise = False
+    test_freq = 500 # print message every test_freq iterations
+    add_noise = True
 
     # Column names in the dataset
     COL_T = ['time']
@@ -58,7 +60,7 @@ if __name__ == '__main__':
     x_fit_torch = torch.from_numpy(state_data)
 
     # Setup neural model structure
-    ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64)
+    ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64, init_small=True)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
 
     # Setup optimizer
@@ -68,10 +70,11 @@ if __name__ == '__main__':
     with torch.no_grad():
         x_est_torch = nn_solution.f_onestep(x_fit_torch, u_torch)
         err_init = x_est_torch - x_fit_torch
-        scale_error = torch.sqrt(torch.mean((err_init)**2,dim=0))
+        scale_error = torch.sqrt(torch.mean(err_init**2, dim=0))
 
     LOSS = []
     start_time = time.time()
+    # Training loop
     for itr in range(0, num_iter):
         optimizer.zero_grad()
 

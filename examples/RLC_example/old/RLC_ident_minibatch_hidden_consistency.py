@@ -108,7 +108,7 @@ if __name__ == '__main__':
         optimizer.zero_grad()
         
         batch_t, batch_x0_hidden, batch_u, batch_x_meas, batch_x_hidden = get_batch(batch_size, seq_len)
-        batch_x_pred = nn_solution.f_sim_minibatch(batch_x0_hidden, batch_u)
+        batch_x_pred = nn_solution.f_sim_multistep(batch_x0_hidden, batch_u)
         err = batch_x_meas[:,0:,:] - batch_x_pred[:,0:,:]
         err_scaled = err * scale_error
         loss_pred = torch.mean((err_scaled)**2) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))

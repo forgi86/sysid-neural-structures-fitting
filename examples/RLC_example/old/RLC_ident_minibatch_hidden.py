@@ -118,7 +118,7 @@ if __name__ == '__main__':
         #batch_u = u_torch_fit[0:N].view(batch_size, seq_len, -1)
         #batch_x0 = batch_x[:, 0, :]
 
-        batch_x_pred = nn_solution.f_sim_minibatch(batch_x0_hidden, batch_u)
+        batch_x_pred = nn_solution.f_sim_multistep(batch_x0_hidden, batch_u)
 #        err = torch.abs(batch_x[:, 1:, :] - batch_x_pred[:, 1:, :])
 #        err[:,:,1] = err[:,:,1]*100.0
 #        loss = torch.mean(err)

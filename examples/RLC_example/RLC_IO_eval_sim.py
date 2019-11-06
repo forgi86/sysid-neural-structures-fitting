@@ -12,7 +12,8 @@ from common import metrics
 
 if __name__ == '__main__':
 
-    dataset_type = 'val'
+    dataset_type = 'id'
+    #dataset_type = 'val'
     model_type = '32step_noise'
     plot_input = False
 
@@ -128,3 +129,4 @@ if __name__ == '__main__':
 
 
     R_sq = metrics.r_square(y_val, y_val_sim)
+    print(f"R-squared metrics: {R_sq}")

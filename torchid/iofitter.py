@@ -8,6 +8,7 @@ class NeuralIOSimulator():
         self.io_model = io_model
 
     def f_onestep(self, PHI):
+        """ One-step ahead prediction """
         Y_pred = self.io_model(PHI)
         return Y_pred
         pass
@@ -78,8 +79,8 @@ class NeuralIOSimulator():
 
         return Y_pred
 
-    def f_sim_minibatch(self, batch_u, batch_y_seq, batch_u_seq):
-
+    def f_sim_multistep(self, batch_u, batch_y_seq, batch_u_seq):
+        """ Multistep simulation computation over a minibatch """
         batch_size = batch_u.shape[0] # number of training samples in the batch
         seq_len = batch_u.shape[1] # length of the training sequences
         n_a = batch_y_seq.shape[1] # number of autoregressive terms on y

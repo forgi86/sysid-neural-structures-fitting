@@ -12,7 +12,9 @@ from torchid.ssmodels import NeuralStateSpaceModel
 
 if __name__ == '__main__':
 
-    np.random.seed(42)
+    # Set seed for reproducibility
+    np.random.seed(0)
+    torch.manual_seed(0)
 
     # Overall paramaters
     num_iter = 15000  # gradient-based optimization steps
@@ -49,7 +51,7 @@ if __name__ == '__main__':
     batch_size = n_fit // seq_len
     u_fit = u[0:n_fit]
     x_fit = x_noise[0:n_fit]
-    x_fit_nonoise = x[0:n_fit]
+    x_fit_nonoise = x[0:n_fit] # not used, just for reference
     y_fit = y[0:n_fit]
     time_fit = t[0:n_fit]
 
@@ -65,8 +67,12 @@ if __name__ == '__main__':
     nn_solution = NeuralStateSpaceSimulator(ss_model)
 
     # Setup optimizer
-    params = list(nn_solution.ss_model.parameters()) + [x_hidden_fit]
-    optimizer = optim.Adam(params, lr=lr)
+    params_net = list(nn_solution.ss_model.parameters())
+    params_hidden = [x_hidden_fit]
+    optimizer = optim.Adam([
+        {'params': params_net,    'lr': lr},
+        {'params': params_hidden, 'lr': 10*lr},
+    ], lr=lr)
 
     # Batch extraction funtion
     def get_batch(batch_size, seq_len):
@@ -88,19 +94,20 @@ if __name__ == '__main__':
     # Scale loss with respect to the initial one
     with torch.no_grad():
         batch_t, batch_x0_hidden, batch_u, batch_x, batch_x_hidden = get_batch(batch_size, seq_len)
-        batch_x_sim = nn_solution.f_sim_minibatch(batch_x0_hidden, batch_u)
+        batch_x_sim = nn_solution.f_sim_multistep(batch_x0_hidden, batch_u)
         err_init = batch_x_sim - batch_x
         scale_error = torch.sqrt(torch.mean((err_init) ** 2, dim=(0, 1)))
 
     LOSS = []
     start_time = time.time()
+    # Training loop
     for itr in range(0, num_iter):
 
         optimizer.zero_grad()
 
         # Simulate
         batch_t, batch_x0_hidden, batch_u, batch_x, batch_x_hidden = get_batch(batch_size, seq_len)
-        batch_x_sim = nn_solution.f_sim_minibatch(batch_x0_hidden, batch_u)
+        batch_x_sim = nn_solution.f_sim_multistep(batch_x0_hidden, batch_u)
 
         # Compute fit loss
         err_fit = batch_x_sim - batch_x

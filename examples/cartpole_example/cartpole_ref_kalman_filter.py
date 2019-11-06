@@ -98,7 +98,7 @@ if __name__ == '__main__':
 
     # In[Predictor performance]
 
-    batch_x_pred = nn_solution.f_sim_minibatch(batch_x0, batch_u)
+    batch_x_pred = nn_solution.f_sim_multistep(batch_x0, batch_u)
     batch_x_np = batch_x_pred.clone().data.cpu().numpy()
     batch_t_np = batch_t.clone().data.cpu().numpy()
     #err = batch_x[:,1:,:] - batch_x_pred[:,1:,:]

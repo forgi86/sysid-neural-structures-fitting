@@ -115,7 +115,7 @@ if __name__ == '__main__':
 
     with torch.no_grad():
         batch_u, batch_y_meas, batch_h, batch_h_seq, batch_u_seq, batch_s  = get_batch(batch_size, seq_len)
-        batch_y_pred = io_solution.f_sim_minibatch(batch_u, batch_h_seq, batch_u_seq)
+        batch_y_pred = io_solution.f_sim_multistep(batch_u, batch_h_seq, batch_u_seq)
         err = batch_y_meas - batch_y_pred
         loss = torch.mean(err ** 2)
         loss_scale = np.float32(loss)
@@ -129,7 +129,7 @@ if __name__ == '__main__':
         # Predict
 #        batch_u, batch_y_meas, batch_h, batch_h_seq, batch_u_seq, batch_s = get_batch(batch_size, seq_len)
         batch_u, batch_y_meas, batch_h, batch_h_seq, batch_u_seq, batch_start = get_sequential_batch(seq_len)
-        batch_y_pred = io_solution.f_sim_minibatch(batch_u, batch_h_seq, batch_u_seq)
+        batch_y_pred = io_solution.f_sim_multistep(batch_u, batch_h_seq, batch_u_seq)
 
         # Compute loss
         err = batch_y_pred - batch_y_meas #batch_h - batch_y_meas

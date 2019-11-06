@@ -13,6 +13,10 @@ from torchid.ssmodels import NeuralStateSpaceModel
 
 if __name__ == '__main__':
 
+    # Set seed for reproducibility
+    np.random.seed(0)
+    torch.manual_seed(0)
+
     # Overall paramaters
     t_fit = 2e-3 #2e-3
     num_iter = 10000
@@ -65,6 +69,7 @@ if __name__ == '__main__':
 
     start_time = time.time()
     LOSS = []
+    # Training loop
     for itr in range(1, num_iter + 1):
         optimizer.zero_grad()
 
