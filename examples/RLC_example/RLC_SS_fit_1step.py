@@ -23,7 +23,7 @@ if __name__ == '__main__':
     lr = 1e-4 # learning rate
     num_iter = 40000 # gradient-based optimization steps
     test_freq = 500 # print message every test_freq iterations
-    add_noise = False
+    add_noise = True
 
     # Column names in the dataset
     COL_T = ['time']
@@ -48,7 +48,8 @@ if __name__ == '__main__':
     # Compute SNR
     P_x = np.mean(x ** 2, axis=0)
     P_n = std_noise**2
-    SNR = P_x/P_n
+    SNR = P_x/(P_n+1e-10)
+    SNR_db = 10*np.log10(SNR)
 
     Ts = time_data[1] - time_data[0]
     n_fit = int(t_fit//Ts)#x.shape[0]

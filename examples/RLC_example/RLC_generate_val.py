@@ -15,8 +15,8 @@ if __name__ == '__main__':
     len_sim = 5e-3
     Ts = 5e-7
     
-    omega_input = 70e3
-    std_input = 120
+    omega_input = 200e3
+    std_input = 60
     
     tau_input = 1/omega_input
     Hu = control.TransferFunction([1], [1 / omega_input, 1])

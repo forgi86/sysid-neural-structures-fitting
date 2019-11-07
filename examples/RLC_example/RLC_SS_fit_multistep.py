@@ -45,6 +45,12 @@ if __name__ == '__main__':
     x_noise = np.copy(x) + np.random.randn(*x.shape) * std_noise
     x_noise = x_noise.astype(np.float32)
 
+    # Compute SNR
+    P_x = np.mean(x ** 2, axis=0)
+    P_n = std_noise**2
+    SNR = P_x/(P_n+1e-10)
+    SNR_db = 10*np.log10(SNR)
+
     # Get fit data #
     Ts = t[1] - t[0]
     n_fit = int(t_fit // Ts)  # x.shape[0]
