@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import os
 import sys
 
-sys.path.append(os.path.join(".."))
+sys.path.append(os.path.join("..", ".."))
 from torchid.iofitter import NeuralIOSimulator
 from torchid.iomodels import NeuralIOModel
 from common import metrics
@@ -14,7 +14,13 @@ if __name__ == '__main__':
 
     dataset_type = 'id'
     #dataset_type = 'val'
+
+#    model_type = '16step_noise'
     model_type = '32step_noise'
+#    model_type = '64step_noise
+#    model_type = '1step_nonoise'
+#    model_type = '1step_noise'
+
     plot_input = False
 
     COL_T = ['time']

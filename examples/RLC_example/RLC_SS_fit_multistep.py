@@ -23,7 +23,7 @@ if __name__ == '__main__':
     alpha = 0.5 # fit/consistency trade-off constant
     lr = 1e-3 # learning rate
     test_freq = 100 # print message every test_freq iterations
-    add_noise = True
+    add_noise = False
 
     # Column names in the dataset
     COL_T = ['time']
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     y_true_torch_fit = torch.from_numpy(y_fit)
     x_meas_torch_fit = torch.from_numpy(x_fit)
     time_torch_fit = torch.from_numpy(time_fit)
-    x_hidden_fit = torch.tensor(x_fit, requires_grad=True)  # xidden state as an optimization variable
+    x_hidden_fit = torch.tensor(x_fit, requires_grad=True)  # hidden state is an optimization variable
 
     # Setup neural model structure
     ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64)
@@ -124,7 +124,7 @@ if __name__ == '__main__':
 
         # Statistics
         LOSS.append(loss.item())
-        if itr > 0 and itr % test_freq == 0:
+        if itr % test_freq == 0:
             with torch.no_grad():
                 print(f'Iter {itr} | Tradeoff Loss {loss:.4f}   Consistency Loss {loss_consistency:.4f}   Fit Loss {loss_fit:.4f}')
 
@@ -133,7 +133,7 @@ if __name__ == '__main__':
         optimizer.step()
 
     train_time = time.time() - start_time
-    print(f"\nTrain time: {train_time:.2f}")
+    print(f"\nTrain time: {train_time:.2f}") # 182 seconds
 
     if add_noise:
         model_filename = f"model_SS_{seq_len}step_noise.pkl"
@@ -199,3 +199,4 @@ if __name__ == '__main__':
     ax[1].plot(x_hidden_fit_np[:, 1], 'r', label='Hidden')
     ax[1].legend()
     ax[1].grid(True)
+

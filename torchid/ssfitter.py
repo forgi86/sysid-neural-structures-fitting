@@ -81,6 +81,10 @@ class NeuralStateSpaceSimulator():
         X_pred = torch.stack(X_pred_list, 1)#.squeeze(2)
         return X_pred
 
+    def f_residual_fullyobserved(self, X_batch, U_batch):
+        X_increment = X_batch[:, -1, :] - X_batch[:, 0, :]
+
+
     def f_sim_minibatch_transposed(self, x0_batch, U_batch):
         batch_size = x0_batch.shape[0]
         n_x = x0_batch.shape[1]
@@ -102,6 +106,7 @@ class NeuralStateSpaceSimulator():
             x = torch.tensor(x.reshape(1,-1).astype(np.float32))
             u = torch.tensor(u.reshape(1,-1).astype(np.float32))
             return np.array(self.ss_model(x,u)).ravel().astype(np.float64)/self.Ts
+
 
 
 class NeuralSumODE():

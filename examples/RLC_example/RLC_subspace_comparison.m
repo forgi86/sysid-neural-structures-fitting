@@ -1,5 +1,6 @@
 clear;
 clc;
+close all;
 
 %% Read data table 
 
@@ -24,39 +25,41 @@ y_meas = [vC_meas iL_meas];
 
 %% Identification data %%
 data_id = iddata(y_meas,vin,Ts);
-model_subs = oe(data_id, 'nb',[2; 2], 'nf', [2; 2]);
+model_subs = n4sid(data_id);%, 2)
 
-y_sim_id = sim(model_subs, data_id);
-y_sim_id = y_sim_id.OutputData;
+y_sim = sim(model_subs, data_id);
+y_sim_val = y_sim.OutputData;
 
+loss = mean((vC - y_sim_val).^2);
 
 %% Plot data %%
 
 figure()
 plot(t, vC, 'k');
 hold on;
-plot(t, y_sim_id(:,1), 'b');
+plot(t, y_sim_val(:,1), 'b');
 legend('True', 'Model');
 
 figure()
 plot(t, iL, 'k');
 hold on;
-plot(t, y_sim_id(:,2), 'b');
+plot(t, y_sim_val(:,2), 'b');
 legend('True', 'Model');
 
 %%
-SSE_v = sum((vC - y_sim_id(:,1)).^2);
+SSE_v = sum((vC - y_sim_val(:,1)).^2);
 y_mean_v = mean(vC);
 SST_v = sum((vC - y_mean_v).^2);
 R_sq_v = 1 - SSE_v/SST_v;
 
-SSE_i = sum((iL - y_sim_id(:,2)).^2);
+SSE_i = sum((iL - y_sim_val(:,2)).^2);
 y_mean_i = mean(iL);
 SST_i = sum((iL - y_mean_i).^2);
 R_sq_i = 1 - SSE_i/SST_i;
 
-fprintf("OE fitting performance");
-fprintf("Identification dataset:\nR-squred vC:%.3f\nR-squred iL:%.3f\n", R_sq_v, R_sq_i)
+fprintf("Subspace fitting performance\n");
+fprintf("R-squred vC:%.2f\nR-squred iL:%.2f\n", R_sq_v, R_sq_i)
+
 
 %% Read data table val
 

@@ -24,8 +24,8 @@ if __name__ == '__main__':
     n_b = 2 # autoregressive coefficients for u
     lr = 1e-4 # learning rate
     num_iter = 40000 # gradient-based optimization steps
-    test_freq = 100 # print message every test_freq iterations
-    add_noise = True
+    test_freq = 500 # print message every test_freq iterations
+    add_noise = False
 
     # Column names in the dataset
     COL_T = ['time']
@@ -71,7 +71,7 @@ if __name__ == '__main__':
     y_meas_fit_torch = torch.from_numpy(y_meas_fit)
 
     # Setup neural model structure
-    io_model = NeuralIOModel(n_a=n_a, n_b=n_b, n_feat=64)
+    io_model = NeuralIOModel(n_a=n_a, n_b=n_b, n_feat=64, small_init=True)
     io_solution = NeuralIOSimulator(io_model)
 
     # Setup optimizer
@@ -100,7 +100,7 @@ if __name__ == '__main__':
         loss.backward()
         optimizer.step()
 
-    train_time = time.time() - start_time
+    train_time = time.time() - start_time # 73 seconds
     print(f"\nTrain time: {train_time:.2f}")
 
     if not os.path.exists("models"):

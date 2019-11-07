@@ -35,8 +35,8 @@ class NeuralIOModel(nn.Module):
 
 
 class NeuralIOModelComplex(nn.Module):
-    def __init__(self, n_a, n_b, n_feat=64):
-        super(NeuralIOModel, self).__init__()
+    def __init__(self, n_a, n_b, n_feat=64, small_init=True):
+        super(NeuralIOModelComplex, self).__init__()
         self.n_a = n_a
         self.n_b = n_b
         self.n_feat = 64
@@ -47,16 +47,17 @@ class NeuralIOModelComplex(nn.Module):
 
         self.net = nn.Sequential(
             nn.Linear(n_a + n_b, n_feat),  # 2 states, 1 input
-            nn.ReLU(),
+            nn.ELU(),
             nn.Linear(n_feat, n_feat),
-            nn.ReLU(),
-            nn.Linear(n_feat,1)
+            nn.ELU(),
+            nn.Linear(n_feat, 1)
         )
 
-        for m in self.net.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight, mean=0, std=1e-3)
-                nn.init.constant_(m.bias, val=0)
+        if small_init:
+            for m in self.net.modules():
+                if isinstance(m, nn.Linear):
+                    nn.init.normal_(m.weight, mean=0, std=1e-3)
+                    nn.init.constant_(m.bias, val=0)
 
     def forward(self, phi):
         Y = self.net(phi) + torch.matmul(phi, self.const)

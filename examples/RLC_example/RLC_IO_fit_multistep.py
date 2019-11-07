@@ -18,7 +18,7 @@ if __name__ == '__main__':
     torch.manual_seed(0)
 
     # Overall paramaters
-    num_iter = 20000 # number of iterations
+    num_iter = 15000 # number of iterations
     seq_len = 32  # int(n_fit/10)
     alpha = 0.5 # fit/consistency trade-off constant
     lr = 1e-3 # learning rate
@@ -156,7 +156,7 @@ if __name__ == '__main__':
 
         # Statistics
         LOSS.append(loss_sc.item())
-        if itr > 0 and itr % test_freq == 0:
+        if itr % test_freq == 0:
             with torch.no_grad():
                 print(f'Iter {itr} | Tradeoff Loss {loss_sc:.4f}   Consistency Loss {loss_consistency:.4f}   Fit Loss {loss_fit:.4f}')
 
@@ -165,7 +165,7 @@ if __name__ == '__main__':
         optimizer.step()
 
     train_time = time.time() - start_time
-    print(f"\nTrain time: {train_time:.2f}")
+    print(f"\nTrain time: {train_time:.2f}") # 325 for 15000 iter
 
     if not os.path.exists("models"):
         os.makedirs("models")
@@ -240,4 +240,3 @@ if __name__ == '__main__':
     ax[0].legend()
     ax[0].grid(True)
 
-    #Train time: 264.57

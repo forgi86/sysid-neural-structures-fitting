@@ -91,7 +91,7 @@ if __name__ == '__main__':
         optimizer.step()
 
     train_time = time.time() - start_time
-    print(f"\nTrain time: {train_time:.2f}") # 7312.95 seconds!
+    print(f"\nTrain time: {train_time:.2f}") # 7230.39 seconds!
     
     if not os.path.exists("models"):
         os.makedirs("models")

@@ -23,7 +23,7 @@ if __name__ == '__main__':
     lr = 1e-4 # learning rate
     num_iter = 40000 # gradient-based optimization steps
     test_freq = 500 # print message every test_freq iterations
-    add_noise = True
+    add_noise = False
 
     # Column names in the dataset
     COL_T = ['time']
@@ -60,7 +60,7 @@ if __name__ == '__main__':
     x_fit_torch = torch.from_numpy(state_data)
 
     # Setup neural model structure
-    ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64, init_small=True)
+    ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
 
     # Setup optimizer
@@ -95,7 +95,7 @@ if __name__ == '__main__':
         loss.backward()
         optimizer.step()
 
-    train_time = time.time() - start_time
+    train_time = time.time() - start_time # 114 seconds
     print(f"\nTrain time: {train_time:.2f}")
 
     if not os.path.exists("models"):
@@ -107,7 +107,7 @@ if __name__ == '__main__':
 
     torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", model_filename))
 
-    x_0 = state_data[0,:]
+    x_0 = state_data[0, :]
 
     time_start = time.time()
     with torch.no_grad():

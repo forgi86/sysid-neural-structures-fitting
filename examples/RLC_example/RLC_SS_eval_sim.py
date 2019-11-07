@@ -5,22 +5,19 @@ import matplotlib.pyplot as plt
 import os
 import sys
 
-sys.path.append(os.path.join(".."))
+sys.path.append(os.path.join("..", ".."))
 from torchid.ssfitter import NeuralStateSpaceSimulator
 from torchid.ssmodels import NeuralStateSpaceModel
-import scipy.linalg
-from torchid.util import get_random_batch_idx, get_sequential_batch_idx
 from common import metrics
 
 if __name__ == '__main__':
 
-    dataset_type = 'id'
-    #dataset_type = 'val'
+    #dataset_type = 'id'
+    dataset_type = 'val'
 
-    model_type = '64step_noise'
-    #model_type = '128step_noise'
-    #model_type = '1step_noise'
     #model_type = '1step_nonoise'
+    model_type = '1step_noise'
+    #model_type = '64step_noise'
     #model_type = 'simerr_noise'
     plot_input = False
 
@@ -86,7 +83,7 @@ if __name__ == '__main__':
     # In[Plot]
     x_sim = np.array(x_sim_torch)
     if not plot_input:
-        fig, ax = plt.subplots(2,1,sharex=True, figsize=(6, 5))
+        fig, ax = plt.subplots(2,1,sharex=True, figsize=(6, 5.5))
     else:
         fig, ax = plt.subplots(3, 1, sharex=True, figsize=(6, 7.5))
     time_val_us = time_val *1e6
@@ -94,28 +91,28 @@ if __name__ == '__main__':
     if dataset_type == 'id':
         t_plot_start = 0.2e-3
     else:
-        t_plot_start = 1.0e-3
-    t_plot_end = t_plot_start + 0.35e-3
+        t_plot_start = 1.9e-3
+    t_plot_end = t_plot_start + 0.32e-3
 
     idx_plot_start = int(t_plot_start//Ts)#x.shape[0]
     idx_plot_end = int(t_plot_end//Ts)#x.shape[0]
 
 
-    ax[0].plot(time_val_us[idx_plot_start:idx_plot_end], x_true_val[idx_plot_start:idx_plot_end,0], 'k',  label='$v^{\mathrm{o}}$')
-    ax[0].plot(time_val_us[idx_plot_start:idx_plot_end], x_sim[idx_plot_start:idx_plot_end,0],'r--', label='$v^{\mathrm{sim}}$')
+    ax[0].plot(time_val_us[idx_plot_start:idx_plot_end], x_true_val[idx_plot_start:idx_plot_end,0], 'k',  label='$v_C$')
+    ax[0].plot(time_val_us[idx_plot_start:idx_plot_end], x_sim[idx_plot_start:idx_plot_end,0],'r--', label='$\hat{v}^{\mathrm{sim}}_C$')
     ax[0].legend(loc='upper right')
     ax[0].grid(True)
     ax[0].set_xlabel("Time ($\mu$s)")
     ax[0].set_ylabel("Voltage (V)")
-    ax[0].set_ylim([-400, 400])
+    ax[0].set_ylim([-300, 300])
 
-    ax[1].plot(time_val_us[idx_plot_start:idx_plot_end], np.array(x_true_val[idx_plot_start:idx_plot_end:,1]), 'k', label='$i_L^{\mathrm{o}}$')
-    ax[1].plot(time_val_us[idx_plot_start:idx_plot_end], x_sim[idx_plot_start:idx_plot_end:,1],'r--', label='$i_L^{\mathrm{sim}}$')
+    ax[1].plot(time_val_us[idx_plot_start:idx_plot_end], np.array(x_true_val[idx_plot_start:idx_plot_end:,1]), 'k', label='$i_L$')
+    ax[1].plot(time_val_us[idx_plot_start:idx_plot_end], x_sim[idx_plot_start:idx_plot_end:,1],'r--', label='$\hat i_L^{\mathrm{sim}}$')
     ax[1].legend(loc='upper right')
     ax[1].grid(True)
     ax[1].set_xlabel("Time ($\mu$s)")
     ax[1].set_ylabel("Current (A)")
-    ax[1].set_ylim([-20, 20])
+    ax[1].set_ylim([-25, 25])
 
     if plot_input:
         ax[2].plot(time_val_us[idx_plot_start:idx_plot_end], u_val[idx_plot_start:idx_plot_end], 'k')
