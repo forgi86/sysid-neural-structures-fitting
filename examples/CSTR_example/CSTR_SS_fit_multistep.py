@@ -14,46 +14,37 @@ from torchid.ssmodels import NeuralStateSpaceModel
 
 if __name__ == '__main__':
 
+    num_iter = 10000
+    test_freq = 100
+    seq_len = 128 #int(n_fit/10)
     add_noise = False
 
+    # Column names
     COL_T = ['time']
     COL_Y = ['Ca']
     COL_X = ['Ca', 'T']
     COL_U = ['q']
 
-    #df_X = pd.read_csv(os.path.join("data", "cstr.dat"), header=None, sep="\t")
-    #df_X.columns = ['time', 'q', 'Ca', 'T', 'None']
-
-    #df_X['q'] =  1.0*df_X['q']/100.0
-    #df_X['Ca'] = 1.0*df_X['Ca']*10.0
-    #df_X['T'] = 1.0*df_X['T']/400.0
-
+    # Load dataset
     df_X = pd.read_csv(os.path.join("data", "CSTR_data_id.csv"))
-
-    
     time_data = np.array(df_X[COL_T], dtype=np.float32)
     y = np.array(df_X[COL_Y],dtype=np.float32)
     x = np.array(df_X[COL_X],dtype=np.float32)
     u = np.array(df_X[COL_U],dtype=np.float32)
-    x0_torch = torch.from_numpy(x[0,:])
+    Ts = time_data[1] - time_data[0]
 
-
+    # Add noise
     x_noise = np.copy(x) #+ np.random.randn(*x.shape)*std_noise
     x_noise = x_noise.astype(np.float32)
 
-    Ts = time_data[1] - time_data[0]
-    t_fit = 500 #time_data[-1]
+    # Get fit data
+    t_fit = time_data[-1]
     n_fit = int(t_fit//Ts)#x.shape[0]
-    num_iter = 20000
-    test_freq = 100    
-    seq_len = 128 #int(n_fit/10)
-    batch_size = n_fit//seq_len
-
-    # Get fit data #
     u_fit = u[0:n_fit]
     x_fit = x_noise[0:n_fit]
     y_fit = y[0:n_fit]
     time_fit = time_data[0:n_fit]
+    batch_size = n_fit//seq_len
 
     # Fit data to pytorch tensors #
     u_torch_fit = torch.from_numpy(u_fit)
@@ -73,12 +64,12 @@ if __name__ == '__main__':
 
         return batch_t, batch_x0, batch_u, batch_x 
 
-
-#    ss_model = NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
+    # Setup neural model structure
     ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64) #NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
-    nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_SS_1step_nonoise.pkl")))
+    #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_SS_1step_nonoise.pkl")))
 
+    # Setup optimizer
     params = list(nn_solution.ss_model.parameters())
     optimizer = optim.Adam(params, lr=1e-5)
     end = time.time()

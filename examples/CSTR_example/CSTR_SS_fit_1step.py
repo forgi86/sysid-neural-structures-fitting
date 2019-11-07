@@ -6,66 +6,61 @@ import time
 import matplotlib.pyplot as plt
 import os
 import sys
-
-sys.path.append(os.path.join(".."))
+sys.path.append(os.path.join("..", ".."))
 from torchid.ssfitter import  NeuralStateSpaceSimulator
-from torchid.ssmodels import NeuralStateSpaceModel, NeuralStateSpaceModel2Hidden
-
+from torchid.ssmodels import NeuralStateSpaceModel
 
 if __name__ == '__main__':
 
+    # Set seed for reproducibility
+    np.random.seed(0)
+    torch.manual_seed(0)
+
+    # Overall paramaters
+    num_iter = 10000
+    lr=1e-4
+    test_freq = 100
     add_noise = False
 
+    # Column names
     COL_T = ['time']
     COL_Y = ['Ca']
     COL_X = ['Ca', 'T']
     COL_U = ['q']
 
-    #df_X = pd.read_csv(os.path.join("data", "cstr_id.dat"), header=None, sep="\t")
-    #df_X.columns = ['time', 'q', 'Ca', 'T', 'None']
-    #df_X['q'] =  1.0*df_X['q']/100.0
-    #df_X['Ca'] = 1.0*df_X['Ca']*10.0
-    #df_X['T'] = 1.0*df_X['T']/400.0
-
+    # Load dataset
     df_X = pd.read_csv(os.path.join("data", "CSTR_data_id.csv"))
-
-
-
     time_data = np.array(df_X[COL_T], dtype=np.float32)
     y = np.array(df_X[COL_Y],dtype=np.float32)
     x = np.array(df_X[COL_X],dtype=np.float32)
     u = np.array(df_X[COL_U],dtype=np.float32)
     x0_torch = torch.from_numpy(x[0,:])
-    x_noise = np.copy(x) #+ np.random.randn(*x.shape)*std_noise
+    x_noise = np.copy(x) # np.random.randn(*x.shape)*std_noise
     x_noise = x_noise.astype(np.float32)
-
     Ts = time_data[1] - time_data[0]
+
+    # Get fit data
     t_fit = time_data[-1] # use all data
     n_fit = int(t_fit//Ts)
-    num_iter = 20000
-    test_freq = 100
-
     input_data = u[0:n_fit]
     state_data = x_noise[0:n_fit]
     u_torch = torch.from_numpy(input_data)
     x_true_torch = torch.from_numpy(state_data)
-    
-    #ss_model = NeuralStateSpaceModel2Hidden(n_x=2, n_u=1, n_feat=64)
+
+    # Setup neural model structure
     ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64, init_small=False)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
-    #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_SS_1step.pkl")))
 
-    #optimizer = optim.Adam(nn_solution.ss_model.parameters(), lr=5e-4)
-    optimizer = optim.Adam(nn_solution.ss_model.parameters(), lr=1e-4)
-    #optimizer = optim.LBFGS(nn_solution.ss_model.parameters(), lr=1e-3)
+    # Setup optimizer
+    optimizer = optim.Adam(nn_solution.ss_model.parameters(), lr=lr)
 
+    # Scale loss with respect to the initial one
     with torch.no_grad():
         x_est_torch = nn_solution.f_onestep(x_true_torch, u_torch)
         err_init = x_est_torch - x_true_torch
-        scale_error = torch.sqrt(torch.mean((err_init)**2, dim=0)) #torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
+        scale_error = torch.sqrt(torch.mean(err_init**2, dim=0))
 
-    #scale_error = torch.tensor(1e2)
-
+    # Training loop
     LOSS = []
     start_time = time.time()
     for itr in range(0, num_iter):
@@ -84,7 +79,6 @@ if __name__ == '__main__':
         LOSS.append(loss_sc.item())
         loss_sc.backward()
         optimizer.step()
-
 
     train_time = time.time() - start_time
     print(f"\nTrain time: {train_time:.2f}")

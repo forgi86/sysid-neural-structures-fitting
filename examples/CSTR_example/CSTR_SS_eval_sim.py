@@ -7,7 +7,6 @@ import sys
 import pickle
 from torchid.ssfitter import NeuralStateSpaceSimulator
 from torchid.ssmodels import NeuralStateSpaceModel
-from utils import metrics
 
 if __name__ == '__main__':
 
@@ -96,7 +95,6 @@ if __name__ == '__main__':
     ax[0].grid(True)
     ax[0].set_xlabel("Time (s)")
     ax[0].set_ylabel("Concentration Ca (mol/L)")
-#    ax[0].set_ylim([-400, 400])
 
     ax[1].plot(time_val[idx_plot_start:idx_plot_end],  x_true_val_unsc[idx_plot_start:idx_plot_end,1], 'k', label='True')
     ax[1].plot(time_val[idx_plot_start:idx_plot_end], x_sim_unsc[idx_plot_start:idx_plot_end:,1],'r--', label='Model simulation')
@@ -104,7 +102,6 @@ if __name__ == '__main__':
     ax[1].grid(True)
     ax[1].set_xlabel("Time (s)")
     ax[1].set_ylabel("Reactor temperature T (K)")
-#    ax[1].set_ylim([-20, 20])
 
     fig_name = f"CSTR_SS_{dataset_type}_{model_type}.pdf"
     fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')
