@@ -14,9 +14,10 @@ from torchid.ssmodels import NeuralStateSpaceModel
 
 if __name__ == '__main__':
 
-    num_iter = 10000
+    num_iter = 5000
     test_freq = 100
-    seq_len = 128 #int(n_fit/10)
+    seq_len = 128
+    lr = 1e-3
     add_noise = False
 
     # Column names
@@ -71,7 +72,7 @@ if __name__ == '__main__':
 
     # Setup optimizer
     params = list(nn_solution.ss_model.parameters())
-    optimizer = optim.Adam(params, lr=1e-5)
+    optimizer = optim.Adam(params, lr=lr)
     end = time.time()
 
     with torch.no_grad():
