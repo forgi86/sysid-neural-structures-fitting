@@ -1,7 +1,6 @@
-# System identification with neural networks: model structures and fitting criteria
+# Model structures and fitting criteria for system identification with neural networks
 
-This repository contains the Python code to reproduce the results of the paper "System identification with neural networks:
-model structures and fitting criteria" by Marco Forgione and Dario Piga.
+This repository contains the Python code to reproduce the results of the paper "Model structures and fitting criteria for system identification with neural networks" by Marco Forgione and Dario Piga.
 
 The following fitting methods for State-Space (SS) and Input-Output (IO) neural dynamical models are implemented
 
