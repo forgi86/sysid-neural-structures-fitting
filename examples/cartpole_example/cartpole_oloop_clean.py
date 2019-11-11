@@ -1,60 +1,33 @@
-import numpy as np
-import scipy.sparse as sparse
-from ltisim import LinearStateSpaceSystem
-from cartpole_model import *
 from scipy.integrate import ode
-from scipy.interpolate import interp1d
 import time
 import control
 import control.matlab
-import numpy.random
 import pandas as pd
 import os
+import sys
+sys.path.append(os.path.join("..", ".."))
+from examples.cartpole_example.cartpole_dynamics import *
 
 Ts_faster_loop = 10e-3
-
-Ac_def = np.array([[0, 1, 0, 0],
-               [0, -b / M, -(g * m) / M, (ftheta * m) / M],
-               [0, 0, 0, 1],
-               [0, b / (M * l), (M * g + g * m) / (M * l), -(M * ftheta + ftheta * m) / (M * l)]])
-
-Bc_def = np.array([
-    [0.0],
-    [1.0 / M],
-    [0.0],
-    [-1 / (M * l)]
-])
-
-t_ref_vec = np.array([0.0, 5.0, 10.0, 20.0, 25.0, 30.0, 40.0, 100.0])
-p_ref_vec = np.array([0.0, 0.0,  0.8, 0.8,  0.0,  0.0,  0.8, 0.8])
-rp_fun = interp1d(t_ref_vec, p_ref_vec, kind='linear')
-
-
-def xref_fun_def(t):
-    return np.array([rp_fun(t), 0.0, 0.0, 0.0])
-
-Ts_slower_loop_def = 10e-3#Ts_fast
-
+Ts_slower_loop_def = 10e-3
 
 def to_mpipi(x):
+    """ Convert an angle to the range (-pi, pi)"""
     x_range = x - 2 * np.pi * ((x + np.pi) // (2 * np.pi))
     return x_range
 
 def to_02pi(x):
+    """ Convert an angle to the range (0, 2pi)"""
     x_range = x - 2 * np.pi * ((x) // (2 * np.pi))
     return x_range
 
 DEFAULTS_PENDULUM_MPC = {
-    'xref_fun': xref_fun_def,
     'uref':  np.array([0.0]), # N
     'std_npos': 0*0.001,  # m
     'std_nphi': 0*0.00005,  # rad
-    'std_dF': 1.5,  # N
+    'std_F': 1.5,  # N
     'w_F': 5.0,  # rad
     'len_sim': 80, #s
-
-    'Ac': Ac_def,
-    'Bc': Bc_def,
     'Ts_slower_loop': Ts_slower_loop_def,
     'Q_kal':  np.diag([0.1, 10, 0.1, 10]),
     'R_kal': 1*np.eye(2),
@@ -73,42 +46,28 @@ def get_default_parameters(sim_options):
     return default_keys
 
 
-def simulate_pendulum_MPC(sim_options):
-
+def simulate_pendulum_oloop(sim_options):
     seed_val = get_parameter(sim_options,'seed_val')
     if seed_val is not None:
         np.random.seed(seed_val)
 
-    Ac = get_parameter(sim_options, 'Ac')
-    Bc = get_parameter(sim_options, 'Bc')
-
-    Cc = np.array([[1., 0., 0., 0.],
-                   [0., 0., 1., 0.]])
-
-    Dc = np.zeros((2, 1))
-
-    [nx, nu] = Bc.shape  # number of states and number or inputs
-    ny = np.shape(Cc)[0]
+    nx = 4
+    ny = 2
+    nu = 1
 
     Ts_slower_loop = get_parameter(sim_options, 'Ts_slower_loop')
     ratio_Ts = int(Ts_slower_loop // Ts_faster_loop)
 
-    # Brutal forward euler discretization
-    Ad = np.eye(nx) + Ac*Ts_slower_loop
-    Bd = Bc*Ts_slower_loop
-    Cd = Cc
-    Dd = Dc
 
     # Standard deviation of the measurement noise on position and angle
-
     std_npos = get_parameter(sim_options, 'std_npos')
     std_nphi = get_parameter(sim_options, 'std_nphi')
 
-    # Force disturbance
-    std_dF = get_parameter(sim_options, 'std_dF')
+    # Force input
+    std_F = get_parameter(sim_options, 'std_F')
 
-    # Disturbance power spectrum
-    w_F = get_parameter(sim_options, 'w_F') # bandwidth of the force disturbance
+    # Input force power spectrum
+    w_F = get_parameter(sim_options, 'w_F') # bandwidth of the force input
     tau_F = 1 / w_F
     Hu = control.TransferFunction([1], [1 / w_F, 1])
     Hu = Hu * Hu * Hu
@@ -118,42 +77,26 @@ def simulate_pendulum_MPC(sim_options):
     t, y = control.impulse_response(Hud, t_imp)
     y = y[0]
     std_tmp = np.sqrt(np.sum(y ** 2))  # np.sqrt(trapz(y**2,t))
-    Hu = Hu / (std_tmp) * std_dF
+    Hu = Hu / (std_tmp) * std_F
 
-
+    # Input force signal
     N_skip = int(20 * tau_F // Ts_faster_loop) # skip initial samples to get a regime sample of d
     t_sim_d = get_parameter(sim_options, 'len_sim')  # simulation length (s)
     N_sim_d = int(t_sim_d // Ts_faster_loop)
     N_sim_d = N_sim_d + N_skip + 1
     e = np.random.randn(N_sim_d)
     te = np.arange(N_sim_d) * Ts_faster_loop
-    _, d, _ = control.forced_response(Hu, te, e)
-    d = d.ravel()
-    d = d[N_skip:]
-    ##angle_ref = d[N_skip:]
-    
+    _, F_in, _ = control.forced_response(Hu, te, e)
+    F_in = F_in.ravel()
+    F_in = F_in[N_skip:]
 
     # Initialize simulation system
     t0 = 0
     phi0 = 180*2*np.pi/360
     x0 = np.array([0, 0, phi0, 0]) # initial state
-#    system_dyn = ode(f_ODE_wrapped).set_integrator('vode', method='bdf') #    dopri5
     system_dyn = ode(f_ODE_wrapped).set_integrator('dopri5')
     system_dyn.set_initial_value(x0, t0)
     system_dyn.set_f_params(0.0)
-
-    #K_NUM = [0,   -35000000,  -105000000,   -70000000]
-    #K_DEN = [1,        2000,     1000000,           0]
-
-    K_NUM = [-2100, -10001, -100]
-    K_DEN = [1,   100,     0]
-    #K_NUM = [-300,       -1001,         -10]
-    #K_DEN = [1,    10,     0]
-
-    K = control.tf(K_NUM,K_DEN)
-    Kd_tf = control.c2d(K, Ts_slower_loop)
-    Kd_ss = control.ss(Kd_tf)
-    Kd = LinearStateSpaceSystem(A=Kd_ss.A, B=Kd_ss.B, C=Kd_ss.C, D=Kd_ss.D)
 
     # Simulate in closed loop
     len_sim = get_parameter(sim_options, 'len_sim')  # simulation length (s)
@@ -188,7 +131,7 @@ def simulate_pendulum_MPC(sim_options):
         idx_inner_controller = idx_fast // ratio_Ts
         run_inner_controller = (idx_fast % ratio_Ts) == 0
 
-        y_step = Cd.dot(x_step)  # y[i] from the system
+        y_step = x_step[[0, 2]]
         ymeas_step = np.copy(y_step)
         ymeas_step[0] += std_npos * np.random.randn()
         ymeas_step[1] += std_nphi * np.random.randn()
@@ -206,20 +149,17 @@ def simulate_pendulum_MPC(sim_options):
         # PID angle CONTROLLER
         ref_angle =  0.0 #angle_ref[idx_fast]
         error_angle = ref_angle - ymeas_step[1]
-        u_PID = Kd.output(error_angle)
+        u_PID = np.zeros(nu)
         u_PID[u_PID > 10.0] = 10.0
         u_PID[u_PID < -10.0] = -10.0
-        u_TOT = 0*u_PID + d[idx_fast]
+        u_TOT = 0*u_PID + F_in[idx_fast]
 
         # Ts_fast outputs
         t_vec_fast[idx_fast,:] = t_step
         x_vec_fast[idx_fast, :] = x_step #system_dyn.y
         u_vec_fast[idx_fast,:] = u_TOT
-        Fd_vec_fast[idx_fast,:] = d[idx_fast]
+        Fd_vec_fast[idx_fast,:] = F_in[idx_fast]
         ref_angle_vec_fast[idx_fast,:] = ref_angle
-
-        ## Update to step i+1
-        Kd.update(error_angle)
 
         # Controller simulation step at rate Ts_slower_loop
         if run_inner_controller:
@@ -230,8 +170,6 @@ def simulate_pendulum_MPC(sim_options):
         system_dyn.set_f_params(u_TOT)
         system_dyn.integrate(t_step + Ts_faster_loop)
         x_step = system_dyn.y
-        #x_step = x_step + f_ODE_jit(t_step, x_step, u_TOT)*Ts_fast
-        #x_step = x_step + f_ODE(0.0, x_step, u_TOT) * Ts_fast
         t_int_vec_fast[idx_fast,:] = time.perf_counter() - time_integrate_start
 
         # Time update
@@ -239,7 +177,7 @@ def simulate_pendulum_MPC(sim_options):
 
     simout = {'t': t_vec, 'x': x_vec, 'u': u_vec, 'y': y_vec, 'y_meas': y_meas_vec, 'x_ref': x_ref_vec,  'status': status_vec, 'Fd_fast': Fd_vec_fast,
               't_fast': t_vec_fast, 'x_fast': x_vec_fast, 'x_ref_fast': x_ref_vec_fast, 'u_fast': u_vec_fast, 'y_meas_fast': y_meas_vec_fast, 'emergency_fast': emergency_vec_fast,
-              'K': K, 'nsim': nsim, 'Ts_slower_loop': Ts_slower_loop, 't_calc': t_calc_vec, 'ref_angle_fast': ref_angle_vec_fast,
+              'nsim': nsim, 'Ts_slower_loop': Ts_slower_loop, 't_calc': t_calc_vec, 'ref_angle_fast': ref_angle_vec_fast,
               't_int_fast': t_int_vec_fast
               }
 
@@ -248,16 +186,16 @@ def simulate_pendulum_MPC(sim_options):
 
 if __name__ == '__main__':
 
+    # Set seed for reproducibility
+    np.random.seed(42)
+
     import matplotlib.pyplot as plt
-    import matplotlib
-
-
     plt.close('all')
     
     simopt = DEFAULTS_PENDULUM_MPC
 
     time_sim_start = time.perf_counter()
-    simout = simulate_pendulum_MPC(simopt)
+    simout = simulate_pendulum_oloop(simopt)
     time_sim = time.perf_counter() - time_sim_start
 
     t = simout['t']
@@ -319,4 +257,8 @@ if __name__ == '__main__':
 
     COL = COL_T + COL_X + COL_U + COL_Y + COL_D
     df_X = pd.DataFrame(X, columns=COL)
+
+
+    if not os.path.exists("data"):
+        os.makedirs("data")
     df_X.to_csv(os.path.join("data", "pendulum_data_oloop_id.csv"), index=False)

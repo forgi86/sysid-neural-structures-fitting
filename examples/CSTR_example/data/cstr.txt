@@ -1,0 +1,35 @@
+Contributed by:
+	Jairo ESPINOSA
+	ESAT-SISTA KULEUVEN
+	Kardinaal Mercierlaan 94
+B-3001 Heverlee Belgium
+	espinosa@esat.kuleuven.ac.be
+Description:
+	The Process is a model of a Continuous
+	Stirring Tank Reactor, where the reaction
+	is exothermic and the concentration is
+	controlled by regulating the coolant
+	flow.
+Sampling:
+	0.1 min
+Number:
+	7500
+Inputs:
+	q: Coolant Flow l/min
+Outputs:
+	Ca: Concentration mol/l
+	T: Temperature Kelvin degrees
+References:
+	J.D. Morningred, B.E.Paden, D.E. Seborg and D.A. Mellichamp "An adaptive nonlinear predictive controller" in. Proc. of the A.C.C. vol.2 1990 pp.1614-1619
+	G.Lightbody and G.W.Irwin. Nonlinear Control Structures Based on Embedded Neural System Models, IEEE Tran. on Neural Networks Vol.8 No.3 pp.553-567
+	J.Espinosa and J. Vandewalle, Predictive Control Using Fuzzy Models, Submitted to the 3rd. On-Line World Conference on Soft Computing in Engineering Design and Manufacturing.
+Properties:
+Columns:
+	Column 1: time-steps
+	Column 2: input q
+	Column 3: output Ca
+	Column 4: output T
+Category:
+	Process Industry Systems
+Where:
+  ftp://ftp.esat.kuleuven.ac.be/pub/SISTA/espinosa/datasets/cstr.dat

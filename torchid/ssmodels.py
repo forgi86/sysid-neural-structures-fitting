@@ -134,7 +134,7 @@ class CartPoleStateSpaceModel(nn.Module):
                                                           [0., 1.]]), requires_grad=False)
 
     def forward(self, X, U):
-        X_feat = torch.cat((X[..., [1, 3]], torch.sin(X[..., [2]]), torch.cos(X[..., [2]])), dim=-1) # build relevant features!
+        X_feat = torch.cat((X[..., [1, 3]], torch.sin(X[..., [2]]), torch.cos(X[..., [2]])), dim=-1) # takes p, w, sin(phi), cos(phi)
         XU = torch.cat((X_feat,U),-1)
         FX_TMP = self.net(XU)
         DX = (self.WL(FX_TMP) + self.AL(X))
@@ -172,8 +172,8 @@ class CartPoleDeepStateSpaceModel(nn.Module):
                                                           [0., 1.]]), requires_grad=False)
 
     def forward(self, X, U):
-        X_feat = torch.cat((X[..., [1, 3]], torch.sin(X[..., [2]]), torch.cos(X[..., [2]])), dim=-1)
-        XU = torch.cat((X_feat,U),-1)
+        X_feat = torch.cat((X[..., [1, 3]], torch.sin(X[..., [2]]), torch.cos(X[..., [2]])), dim=-1) # takes p, w, sin(phi), cos(phi)
+        XU = torch.cat((X_feat, U), -1)
         FX_TMP = self.net(XU)
         DX = (self.WL(FX_TMP) + self.AL(X))
         return DX

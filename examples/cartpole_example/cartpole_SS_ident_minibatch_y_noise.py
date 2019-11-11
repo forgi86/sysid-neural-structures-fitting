@@ -8,15 +8,20 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 sys.path.append(os.path.join(".."))
-from torchid.ssfitter import  NeuralStateSpaceSimulator
+from torchid.ssfitter import NeuralStateSpaceSimulator
 from torchid.ssmodels import CartPoleStateSpaceModel
 import scipy.signal as signal
 
-# In[Load data]
+
 if __name__ == '__main__':
 
+    # Set seed for reproducibility
+    np.random.seed(0)
+    torch.manual_seed(0)
+
+    # Overall paramaters
     len_fit = 80
-    seq_len = 32 # try 32
+    seq_len = 32
     test_freq = 50
     num_iter = 100000
     test_freq = 50
@@ -27,19 +32,23 @@ if __name__ == '__main__':
     std_noise_theta = add_noise * 0.004
     std_noise = np.array([std_noise_p, std_noise_theta])
 
+    # Column names in the dataset
     COL_T = ['time']
     COL_Y = ['p_meas', 'theta_meas']
     COL_X = ['p', 'v', 'theta', 'omega']
     COL_U = ['u']
     df_X = pd.read_csv(os.path.join("data", "pendulum_data_MPC_ref_id.csv"))
 
+    # Load dataset
     t = np.array(df_X[COL_T], dtype=np.float32)
-    y = np.array(df_X[COL_Y],dtype=np.float32)
-    x = np.array(df_X[COL_X],dtype=np.float32)
-    u = np.array(df_X[COL_U],dtype=np.float32)
-    y_meas = np.copy(y) + np.random.randn(*y.shape) * std_noise
-    Ts = np.float(t[1] - t[0])
+    y = np.array(df_X[COL_Y], dtype=np.float32)
+    x = np.array(df_X[COL_X], dtype=np.float32)
+    u = np.array(df_X[COL_U], dtype=np.float32)
 
+    # Add measurement noise
+    y_meas = np.copy(y) + np.random.randn(*y.shape) * std_noise
+
+    # Design a differentiator filter to estimate unmeasured velocities from noisy, measured positions
     Ts = np.float(t[1] - t[0])
     fs = 1/Ts       # Sample rate, Hz
     cutoff = 1.0    # Desired cutoff frequency, Hz
@@ -47,85 +56,90 @@ if __name__ == '__main__':
     numtaps = 64      # Size of the FIR filter.
     taps = signal.remez(numtaps, [0, cutoff, cutoff + trans_width, 0.5*fs], [2*np.pi*2*np.pi*10*1.5, 0], Hz=fs, type='differentiator')
 
-
-    #x_est = x
+    # Filter positions to estimate velocities
+    n_x = x.shape[-1] # 4
     x_est = np.zeros((y_meas.shape[0], 4), dtype=np.float32)
     x_est[:, 0] = y_meas[:, 0]
     x_est[:, 2] = y_meas[:, 1]
-    x_est[:, 1] = np.convolve(x_est[:, 0], taps, 'same')  # signal.lfilter(taps, 1, y_meas[:,0])*2*np.pi
-    x_est[:, 3] = np.convolve(x_est[:, 2], taps, 'same')  # signal.lfilter(taps, 1, y_meas[:,1])*2*np.pi
+    x_est[:, 1] = np.convolve(x_est[:, 0], taps, 'same')
+    x_est[:, 3] = np.convolve(x_est[:, 2], taps, 'same')
 
-    n_x = x.shape[-1]
-    ss_model = CartPoleStateSpaceModel(Ts, init_small=True)
-    nn_solution = NeuralStateSpaceSimulator(ss_model)
-    #model_name = "model_SS_64step_noise.pkl"
-    #model_name = "model_SS_150step_nonoise.pkl"
-    #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", model_name )))
-
+    # Get fit data
     n_fit = int(len_fit//Ts)
     time_fit = t[0:n_fit]
     u_fit = u[0:n_fit]
     x_est_fit = x_est[0:n_fit]
     y_meas_fit = y[0:n_fit]
     batch_size = n_fit//seq_len
-
     x_hidden_fit = torch.tensor(x_est_fit, requires_grad=True)  # this is an optimization variable!
 
+
+    # Setup neural model structure
+    ss_model = CartPoleStateSpaceModel(Ts, init_small=True)
+    nn_solution = NeuralStateSpaceSimulator(ss_model)
+
+    # Setup optimizer
     params = list(nn_solution.ss_model.parameters()) + [x_hidden_fit]
     optimizer = optim.Adam(params, lr=lr)
-    end = time.time()
 
-
+    # Batch extraction funtion
     def get_sequential_batch(seq_len):
+
+        # Select batch indexes
         num_train_samples = x_est_fit.shape[0]
         batch_size = num_train_samples//seq_len-1
         batch_start = np.arange(0, batch_size, dtype=np.int64) * seq_len
         batch_idx = batch_start[:,np.newaxis] + np.arange(seq_len) # batch all indices
 
+        # Extract batch data
         batch_x0_hidden = x_hidden_fit[batch_start, :]
         batch_t = torch.tensor(time_fit[batch_idx])
         batch_y_meas = torch.tensor(y_meas_fit[batch_idx])
         batch_u = torch.tensor(u_fit[batch_idx])
+
         return batch_t, batch_x0_hidden, batch_u, batch_y_meas
 
 
+    # Scale loss with respect to the initial one
     with torch.no_grad():
         batch_t, batch_x0_hidden, batch_u, batch_y_meas = get_sequential_batch(seq_len)
         batch_x_sim = nn_solution.f_sim_multistep(batch_x0_hidden, batch_u)
         err_init = batch_x_sim[:, :, [0, 2]] - batch_y_meas
-        scale_error = torch.sqrt(torch.mean((err_init)**2,dim=(0,1)))
+        scale_error = torch.sqrt(torch.mean(err_init**2,dim=(0,1)))
         
-# In[Fit model]
     LOSS = []
+    start_time = time.time()
+    # Training loop
     for itr in range(0, num_iter):
         optimizer.zero_grad()
 
+        # Simulate
         batch_t, batch_x0_hidden, batch_u, batch_y_meas = get_sequential_batch(seq_len)
         batch_x_sim = nn_solution.f_sim_multistep(batch_x0_hidden, batch_u)
+
+        # Compute fit loss
         err = batch_x_sim[:, :, [0, 2]] - batch_y_meas
         err_scaled = err/scale_error
         loss = torch.mean(err_scaled**2)
 
+        # Statistics
         LOSS.append(loss.item())
-
         if itr > 0 and itr % test_freq == 0:
-            with torch.no_grad():
-                print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
+            print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
 
+        # Optimize
         loss.backward()
         optimizer.step()
 
-        end = time.time()
+    train_time = time.time() - start_time
 
     # In[Save model parameters]
     if not os.path.exists("models"):
         os.makedirs("models")
-
     if add_noise:
         model_filename = f"model_SS_{seq_len}step_noise.pkl"
     else:
         model_filename = f"model_SS_{seq_len}step_nonoise.pkl"
-
     torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", model_filename))
 
 # In[Simulate model]

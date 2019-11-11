@@ -10,7 +10,9 @@ from examples.RLC_example.symbolic_RLC import fxu_ODE, fxu_ODE_mod
 
 if __name__ == '__main__':
 
+    # Set seed for reproducibility
     np.random.seed(42)
+
     # Input characteristics #
     len_sim = 5e-3
     Ts = 5e-7

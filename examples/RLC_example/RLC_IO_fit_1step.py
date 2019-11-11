@@ -76,7 +76,6 @@ if __name__ == '__main__':
 
     # Setup optimizer
     optimizer = optim.Adam(io_solution.io_model.parameters(), lr=lr)
-    end = time.time()
 
     LOSS = []
     start_time = time.time()
