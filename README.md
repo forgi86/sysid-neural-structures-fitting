@@ -1,27 +1,26 @@
-# System identification with neural networks: model structures and fitting criteria
+# Model structures and fitting criteria for system identification with neural networks
 
-This repository contains the Python code to reproduce the results of the paper "System identification with neural networks:
-model structures and fitting criteria" by Marco Forgione and Dario Piga.
+This repository contains the Python code to reproduce the results of the paper "Model structures and fitting criteria for system identification with neural networks" by Marco Forgione and Dario Piga.
 
 The following fitting methods for State-Space (SS) and Input-Output (IO) neural dynamical models are implemented
 
- * One-step prediction error minimization
- * Open-loop simulation error minimization
- * Multistep simulation error minimization
+ 1. One-step prediction error minimization
+ 2. Open-loop simulation error minimization
+ 3. Multi-step simulation error minimization
 
 
 # Folders:
+* torchid:  pytorch implementation of the fitting method above 
 * examples: examples of neural dynamical models fitting 
-* torchid:  pytorch implementation of the fitting methods
 * common:   definition of fitting metrics r-square, etc
 
-The examples reported in the examples/ folder are the following:
+The [examples](examples) are:
 
 * `` RLC_example``: nonlinear RLC circuit thoroughly discussed in the paper
 * `` CSTR_example``: CSTR system from the DaISy dataset https://homes.esat.kuleuven.be/~tokka/daisydata.html
-* `` cartpole_example``: cart-pole mechanical system (equations are the same used [here](https://github.com/forgi86/pyMPC/blob/master/examples/example_inverted_pendulum.ipynb)
+* `` cartpole_example``: cart-pole mechanical system. Equations are the same used [here](https://github.com/forgi86/pyMPC/blob/master/examples/example_inverted_pendulum.ipynb)
 
-For the nonlinear RLC example (folder examples/RLC_example), the main scripts are:
+For the [RLC example](examples/RLC_example), the main scripts are:
 
  *   ``symbolic_RLC.m``: Symbolic manipulation of the RLC model, constant definition
  * ``RLC_generate_id.py``:  generate the identification dataset 
