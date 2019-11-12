@@ -26,7 +26,7 @@ if __name__ == '__main__':
     num_iter = 100000
     test_freq = 50
     add_noise = True
-    lr = 1e-4 # try 4e-6
+    lr = 1e-4  # try 4e-6
 
     std_noise_p = add_noise * 0.02
     std_noise_theta = add_noise * 0.004
