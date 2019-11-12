@@ -23,6 +23,11 @@ class NeuralIOSimulator():
         PHI : Tensor. Size: (N, n_a + n_b)
               Measured IO regressor tensor
 
+        Returns
+        -------
+        Tensor. Size: (N, n_y)
+            One-step prediction of the output
+
         """
 
         Y_pred = self.io_model(PHI)
@@ -41,6 +46,11 @@ class NeuralIOSimulator():
 
         U : Tensor. Size: (N, n_u)
             Input sequence tensor
+
+        Returns
+        -------
+        Tensor. Size: (N, n_y)
+            Open-loop simulation of the output
 
         """
         N = np.shape(U)[0]
@@ -76,6 +86,11 @@ class NeuralIOSimulator():
 
         batch_u_seq: Tensor. Size: (q, n_b)
                  Initial regressor with past values of u for each subsequence in the minibatch
+
+        Returns
+        -------
+        Tensor. Size: (q, m, n_y)
+            Simulated output for all subsequences in the minibatch
 
         """
 

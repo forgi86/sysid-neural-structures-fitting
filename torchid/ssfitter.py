@@ -25,10 +25,15 @@ class NeuralStateSpaceSimulator():
         Parameters
         ----------
         X : Tensor. Size: (N, n_x)
-                State sequence tensor
+            State sequence tensor
 
         U : Tensor. Size: (N, n_u)
-                Input sequence tensor
+            Input sequence tensor
+
+        Returns
+        -------
+        Tensor. Size: (N, n_x)
+            One-step prediction over N steps
 
         """
 
@@ -50,6 +55,11 @@ class NeuralStateSpaceSimulator():
         U : Tensor. Size: (N, n_u)
             Input sequence tensor
 
+        Returns
+        -------
+        Tensor. Size: (N, n_x)
+            Open-loop model simulation over N steps
+
         """
 
         N = np.shape(u)[0]
@@ -64,7 +74,8 @@ class NeuralStateSpaceSimulator():
             dx = self.ss_model(xstep, ustep)
             xstep = xstep + dx
 
-        X = torch.stack(X_list, 0)#.squeeze(2)
+        X = torch.stack(X_list, 0)
+
         return X
 
     def f_sim_multistep(self, x0_batch, U_batch):
@@ -77,6 +88,11 @@ class NeuralStateSpaceSimulator():
 
         U_batch: Tensor. Size: (q, m, n_u)
             Input sequence for each subsequence in the minibatch
+
+        Returns
+        -------
+        Tensor. Size: (q, m, n_x)
+            Simulated state for all subsequences in the minibatch
 
         """
 
