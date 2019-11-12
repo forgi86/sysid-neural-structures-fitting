@@ -20,7 +20,7 @@ if __name__ == '__main__':
     torch.manual_seed(0)
 
     # Overall parameters
-    num_iter = 5000  # gradient-based optimization steps
+    num_iter = 10000  # gradient-based optimization steps
     test_freq = 50  # print message every test_freq iterations
     len_fit = 80  # number of seconds of the dataset used to fit
     lr = 1e-3  # learning rate
@@ -33,8 +33,9 @@ if __name__ == '__main__':
     COL_Y = ['p_meas', 'theta_meas']
     COL_X = ['p', 'v', 'theta', 'omega']
     COL_U = ['u']
-    df_X = pd.read_csv(os.path.join("data", "pendulum_data_oloop_id.csv"))
 
+    # Load dataset
+    df_X = pd.read_csv(os.path.join("data", "pendulum_data_oloop_id.csv"))
     t = np.array(df_X[COL_T], dtype=np.float32)
     y = np.array(df_X[COL_Y], dtype=np.float32)
     x = np.array(df_X[COL_X], dtype=np.float32)
@@ -167,15 +168,15 @@ if __name__ == '__main__':
         optimizer.step()
 
     train_time = time.time() - start_time
-
+    print(f"\nTrain time: {train_time:.2f}")
 
     if not os.path.exists("models"):
         os.makedirs("models")
 
     if add_noise:
-        model_filename = f"model_SS_{seq_len}step_noise_hidden.pkl"
+        model_filename = f"model_SS_{seq_len}step_noise.pkl"
     else:
-        model_filename = f"model_SS_{seq_len}step_nonoise_hidden.pkl"
+        model_filename = f"model_SS_{seq_len}step_nonoise.pkl"
 
     torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", model_filename))
 

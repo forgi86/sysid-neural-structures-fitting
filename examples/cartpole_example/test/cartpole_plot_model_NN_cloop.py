@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
-from cartpole_model import RAD_TO_DEG, DEG_TO_RAD
+from examples.cartpole_example.cartpole_dynamics import RAD_TO_DEG, DEG_TO_RAD
 
 if __name__ == '__main__':
 
