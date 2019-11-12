@@ -19,6 +19,7 @@ if __name__ == '__main__':
     np.random.seed(0)
     torch.manual_seed(0)
 
+    # Overall parameters
     t_fit = 2e-3 # fitting on t_fit ms of data
     n_a = 2 # autoregressive coefficients for y
     n_b = 2 # autoregressive coefficients for u

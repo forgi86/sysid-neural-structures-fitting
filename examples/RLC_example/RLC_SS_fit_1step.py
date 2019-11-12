@@ -18,7 +18,7 @@ if __name__ == '__main__':
     np.random.seed(0)
     torch.manual_seed(0)
 
-    # Overall paramaters
+    # Overall parameters
     t_fit = 2e-3 # fitting on t_fit ms of data
     lr = 1e-4 # learning rate
     num_iter = 40000 # gradient-based optimization steps

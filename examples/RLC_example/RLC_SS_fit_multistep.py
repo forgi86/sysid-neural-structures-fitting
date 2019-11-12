@@ -16,7 +16,7 @@ if __name__ == '__main__':
     np.random.seed(0)
     torch.manual_seed(0)
 
-    # Overall paramaters
+    # Overall parameters
     num_iter = 15000  # gradient-based optimization steps
     seq_len = 64  # subsequence length m
     t_fit = 2e-3 # fitting on t_fit ms of data
