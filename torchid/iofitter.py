@@ -4,38 +4,46 @@ import numpy as np
 
 
 class NeuralIOSimulator():
+    """ This class implements prediction/simulation methods for the IO model structure
+
+     Attributes
+     ----------
+     io_model: nn.Module
+               The neural IO model to be fitted
+     """
+
     def __init__(self, io_model):
         self.io_model = io_model
 
     def f_onestep(self, PHI):
-        """ One-step ahead prediction """
+        """ Naive one-step prediction
+
+        Parameters
+        ----------
+        PHI : Tensor. Size: (N, n_a + n_b)
+              Measured IO regressor tensor
+
+        """
+
         Y_pred = self.io_model(PHI)
         return Y_pred
-        pass
-
-    def f_sim_arr(self, y_seq, u_seq, U):
-        N = np.shape(U)[0]
-        Y = torch.empty((N, 1))
-
-        for i in range(N):
-            phi = torch.cat((y_seq, u_seq))
-            yi = self.io_model(phi)
-            Y[i, :] = yi
-
-            if i < N-1:
-                # y shift
-                y_seq[1:] = y_seq[0:-1]
-                y_seq[0] = yi
-
-                # u shift
-                u_seq[1:] = u_seq[0:-1]
-                u_seq[0] = U[i]
-
-        return Y
 
     def f_sim(self, y_seq, u_seq, U):
+        """ Open-loop simulation
+
+        Parameters
+        ----------
+        y_seq: Tensor. Size: (n_a)
+               Initial regressor with past values of y
+
+        u_seq: Tensor. Size: (n_b)
+               Initial regressor with past values of u
+
+        U : Tensor. Size: (N, n_u)
+            Input sequence tensor
+
+        """
         N = np.shape(U)[0]
-        #Y = torch.empty((N, 1))
         Y_list = []
 
         for i in range(N):
@@ -55,45 +63,32 @@ class NeuralIOSimulator():
         Y = torch.stack(Y_list, 0)
         return Y
 
-    def f_sim_minibatch(self, batch_u, batch_y_seq, batch_u_seq):
-
-        batch_size = batch_u.shape[0] # number of training samples in the batch
-        seq_len = batch_u.shape[1] # length of the training sequences
-        n_a = batch_y_seq.shape[1] # number of autoregressive terms on y
-        n_b = batch_u_seq.shape[1] # number of autoregressive terms on u
-
-
-        Y_pred = torch.empty((batch_size, seq_len, 1))
-        for i in range(seq_len):
-            phi = torch.cat((batch_y_seq, batch_u_seq), -1)
-            yi = self.io_model(phi)
-            Y_pred[:, i, :] = yi
-
-            # y shift
-            batch_y_seq[:, 1:] = batch_y_seq[:, 0:-1]
-            batch_y_seq[:, [0]] = yi[:]
-
-            # u shift
-            batch_u_seq[:, 1:] = batch_u_seq[:, 0:-1]
-            batch_u_seq[:, [0]] = batch_u[:, i]
-
-        return Y_pred
-
     def f_sim_multistep(self, batch_u, batch_y_seq, batch_u_seq):
-        """ Multistep simulation computation over a minibatch """
+        """ Multi-step simulation over (mini)batches
+
+        Parameters
+        ----------
+        batch_u: Tensor. Size: (q, m, n_u)
+                 Input sequence for each subsequence in the minibatch
+
+        batch_y_seq: Tensor. Size: (q, n_a)
+                 Initial regressor with past values of y for each subsequence in the minibatch
+
+        batch_u_seq: Tensor. Size: (q, n_b)
+                 Initial regressor with past values of u for each subsequence in the minibatch
+
+        """
+
         batch_size = batch_u.shape[0] # number of training samples in the batch
         seq_len = batch_u.shape[1] # length of the training sequences
         n_a = batch_y_seq.shape[1] # number of autoregressive terms on y
         n_b = batch_u_seq.shape[1] # number of autoregressive terms on u
 
-
-        #Y_pred = torch.empty((batch_size, seq_len, 1))
         Y_pred_list = []
         for i in range(seq_len):
             phi = torch.cat((batch_y_seq, batch_u_seq), -1)
             yi = self.io_model(phi)
             Y_pred_list += [yi]
-            #Y_pred[:, i, :] = yi
 
             # y shift
             batch_y_seq[:, 1:] = batch_y_seq[:, 0:-1]
@@ -105,5 +100,3 @@ class NeuralIOSimulator():
 
         Y_pred = torch.stack(Y_pred_list, 1)
         return Y_pred
-
-

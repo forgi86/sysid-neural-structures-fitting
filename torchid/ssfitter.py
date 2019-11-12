@@ -4,37 +4,54 @@ import numpy as np
  
         
 class NeuralStateSpaceSimulator():
+    """ This class implements prediction/simulation methods for the SS model structure
+
+     Attributes
+     ----------
+     ss_model: nn.Module
+               The neural SS model to be fitted
+     Ts: float
+         model sampling time
+
+     """
+
     def __init__(self, ss_model, Ts=1.0):
         self.ss_model = ss_model
         self.Ts = Ts
 
     def f_onestep(self, X, U):
-        """One-step prediction computation"""
+        """ Naive one-step prediction
+
+        Parameters
+        ----------
+        X : Tensor. Size: (N, n_x)
+                State sequence tensor
+
+        U : Tensor. Size: (N, n_u)
+                Input sequence tensor
+
+        """
+
         X_pred = torch.empty(X.shape)
-        X_pred[0,:] = X[0,:]
+        X_pred[0, :] = X[0, :]
         DX = self.ss_model(X[0:-1], U[0:-1])
-        X_pred[1:,:] = X[0:-1,:] + DX
+        X_pred[1:,:] = X[0:-1, :] + DX
+
         return X_pred
 
-    def f_ARX_consistency_loss(self, X_hidden, U):
-        DX = self.ss_model(X_hidden[0:-1], U[0:-1])
-        loss = torch.mean((X_hidden[1:,:] - (X_hidden[0:-1,:] + DX) ) **2)
-        return loss
-
-    def f_sim_arr(self, x0, u):
-        N = np.shape(u)[0]
-        nx = np.shape(x0)[0]
-
-        X = torch.empty((N,nx))
-        xstep = x0
-        for i in range(N):
-            X[i,:] = xstep
-            ustep = u[i]
-            dx = self.ss_model(xstep, ustep)
-            xstep = xstep + dx
-        return X
-
     def f_sim(self, x0, u):
+        """ Open-loop simulation
+
+        Parameters
+        ----------
+        x0 : Tensor. Size: (n_x)
+             Initial state
+
+        U : Tensor. Size: (N, n_u)
+            Input sequence tensor
+
+        """
+
         N = np.shape(u)[0]
         nx = np.shape(x0)[0]
 
@@ -50,27 +67,24 @@ class NeuralStateSpaceSimulator():
         X = torch.stack(X_list, 0)#.squeeze(2)
         return X
 
-    def f_sim_minibatch_arr(self, x0_batch, U_batch):
-        batch_size = x0_batch.shape[0]
-        n_x = x0_batch.shape[1]
-        seq_len = U_batch.shape[1]
-        
-        X_pred = torch.empty((batch_size, seq_len, n_x))
-        xstep = x0_batch
-        for i in range(seq_len):
-            X_pred[:,i,:] = xstep
-            ustep = U_batch[:,i,:]
-            dx = self.ss_model(xstep, ustep)
-            xstep = xstep + dx
-        return X_pred
-
     def f_sim_multistep(self, x0_batch, U_batch):
-        """ Multistep simulation computation over a minibatch """
+        """ Multi-step simulation over (mini)batches
+
+        Parameters
+        ----------
+        x0_batch: Tensor. Size: (q, n_x)
+             Initial state for each subsequence in the minibatch
+
+        U_batch: Tensor. Size: (q, m, n_u)
+            Input sequence for each subsequence in the minibatch
+
+        """
+
         batch_size = x0_batch.shape[0]
         n_x = x0_batch.shape[1]
         seq_len = U_batch.shape[1]
 
-        X_pred_list = []#X_pred = torch.empty((batch_size, seq_len, n_x))
+        X_pred_list = []
         xstep = x0_batch
         for i in range(seq_len):
             X_pred_list += [xstep] #X_pred[:, i, :] = xstep
@@ -81,79 +95,5 @@ class NeuralStateSpaceSimulator():
         X_pred = torch.stack(X_pred_list, 1)#.squeeze(2)
         return X_pred
 
-    def f_residual_fullyobserved(self, X_batch, U_batch):
-        X_increment = X_batch[:, -1, :] - X_batch[:, 0, :]
-
-
-    def f_sim_minibatch_transposed(self, x0_batch, U_batch):
-        batch_size = x0_batch.shape[0]
-        n_x = x0_batch.shape[1]
-        seq_len = U_batch.shape[0]
-
-        X_pred_list = []#X_pred = torch.empty((batch_size, seq_len, n_x))
-        xstep = x0_batch
-        for i in range(seq_len):
-            X_pred_list += [xstep] #X_pred[:, i, :] = xstep
-            ustep = U_batch[i, :, :]
-            dx = self.ss_model(xstep, ustep)
-            xstep = xstep + dx
-
-        X_pred = torch.stack(X_pred_list, 0)#.squeeze(2)
-        return X_pred
-
-    def f_ODE(self,t,x,u):
-        with torch.no_grad():
-            x = torch.tensor(x.reshape(1,-1).astype(np.float32))
-            u = torch.tensor(u.reshape(1,-1).astype(np.float32))
-            return np.array(self.ss_model(x,u)).ravel().astype(np.float64)/self.Ts
-
-
-
-class NeuralSumODE():
-    def __init__(self, ss_model_list):
-        self.ss_model_list = ss_model_list
-
-    def get_DX(self, X, U):
-        DX = torch.zeros(X.shape)
-        for model in self.ss_model_list:
-            DX += model(X,U)
-        return DX
-    
-    def f_ARX(self, X, U):
-        X_pred = torch.empty(X.shape)
-        X_pred[0,:] = X[0,:]
-        DX = self.get_DX(X[0:-1], U[0:-1])
-        X_pred[1:,:] = X[0:-1,:] + DX
-        return X_pred
-
-    def f_OE(self, x0, u):
-        N = np.shape(u)[0]
-        nx = np.shape(x0)[0]
-
-        X = torch.empty((N,nx))
-        xstep = x0
-        for i in range(N):
-            X[i,:] = xstep
-            ustep = u[i]
-            dx =  self.get_DX(xstep, ustep)
-            xstep = xstep + dx
-        return X
-
-    def f_OE_minibatch(self, x0_batch, U_batch):
-        len_batch = x0_batch.shape[0]
-        n_x = x0_batch.shape[1]
-        T_batch = U_batch.shape[1]
-        
-        X_pred = torch.empty((len_batch, T_batch, n_x))
-        xstep = x0_batch
-        for i in range(T_batch):
-            X_pred[:,i,:] = xstep
-            ustep = U_batch[:,i,:]
-            dx = self.get_DX(xstep, ustep)
-            xstep = xstep + dx
-        return X_pred
-
-    def f_ODE(self,t,x,u):
-        x = torch.tensor(x.reshape(1,-1).astype(np.float32))
-        u = torch.tensor(u.reshape(1,-1).astype(np.float32))
-        return np.array(self.nn_derivative(x,u)).ravel().astype(np.float64)
+#    def f_residual_fullyobserved(self, X_batch, U_batch):
+#        X_increment = X_batch[:, -1, :] - X_batch[:, 0, :]

@@ -4,6 +4,17 @@ import numpy as np
 
 
 class NeuralIOModel(nn.Module):
+    """ This class implements an IO neural model
+
+     Attributes
+     ----------
+     n_a : int.
+           number of autoregressive lags in y
+     n_b : int.
+           number of autoregressive lags in u
+     n_feat : int.
+           number of units in the hidden layer
+     """
     def __init__(self, n_a, n_b, n_feat=64, small_init=True):
         super(NeuralIOModel, self).__init__()
         self.n_a = n_a
@@ -17,8 +28,6 @@ class NeuralIOModel(nn.Module):
         self.net = nn.Sequential(
             nn.Linear(n_a + n_b, n_feat),  # 2 states, 1 input
             nn.ReLU(),
-#            nn.Linear(n_feat, n_feat),  # 2 states, 1 input
-#            nn.ReLU(),
             nn.Linear(n_feat, 1),
         )
 
@@ -26,7 +35,6 @@ class NeuralIOModel(nn.Module):
             for m in self.net.modules():
                 if isinstance(m, nn.Linear):
                     nn.init.normal_(m.weight, mean=0, std=1e-4)
-                    #nn.init.normal_(m.bias, mean=0, std=1e-3)
                     nn.init.constant_(m.bias, val=0)
 
     def forward(self, phi):
