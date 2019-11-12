@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     # Overall paramaters
     num_iter = 15000  # gradient-based optimization steps
-    seq_len = 64  # int(n_fit/10)
+    seq_len = 64  # subsequence length m
     t_fit = 2e-3 # fitting on t_fit ms of data
     alpha = 0.5 # fit/consistency trade-off constant
     lr = 1e-3 # learning rate

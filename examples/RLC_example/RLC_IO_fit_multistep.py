@@ -17,15 +17,15 @@ if __name__ == '__main__':
     np.random.seed(0)
     torch.manual_seed(0)
 
-    # Overall paramaters
-    num_iter = 15000 # number of iterations
-    seq_len = 32  # int(n_fit/10)
-    alpha = 0.5 # fit/consistency trade-off constant
-    lr = 1e-3 # learning rate
-    t_fit = 2e-3 # fit on 2 ms of data
-    test_freq = 100 # print message every test_freq iterations
-    n_a = 2 # autoregressive coefficients for y
-    n_b = 2 # autoregressive coefficients for u
+    # Overall parameters
+    num_iter = 15000  # number of iterations
+    seq_len = 32  # subsequence length m
+    alpha = 0.5  # fit/consistency trade-off constant
+    lr = 1e-3  # learning rate
+    t_fit = 2e-3  # fit on 2 ms of data
+    test_freq = 100  # print message every test_freq iterations
+    n_a = 2  # autoregressive coefficients for y
+    n_b = 2  # autoregressive coefficients for u
     add_noise = True
 
     # Column names in the dataset

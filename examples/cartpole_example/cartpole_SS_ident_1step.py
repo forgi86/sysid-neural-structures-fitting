@@ -8,7 +8,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 sys.path.append(os.path.join("..", ".."))
-from torchid.ssfitter import  NeuralStateSpaceSimulator
+from torchid.ssfitter import NeuralStateSpaceSimulator
 from torchid.ssmodels import CartPoleStateSpaceModel
 
 
@@ -18,11 +18,11 @@ if __name__ == '__main__':
     np.random.seed(0)
     torch.manual_seed(0)
 
-    # Overall paramaters
-    num_iter = 10000 # gradient-based optimization steps
-    test_freq = 100 # print message every test_freq iterations
-    len_fit = 80 # number of seconds of the dataset used to fit
-    lr = 5e-5 # learning rate
+    # Overall parameters
+    num_iter = 30000  # gradient-based optimization steps
+    test_freq = 100  # print message every test_freq iterations
+    len_fit = 80  # number of seconds of the dataset used to fit
+    lr = 5e-5  # learning rate
     add_noise = False
 
     # Column names in the dataset
