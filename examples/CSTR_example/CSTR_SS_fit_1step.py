@@ -16,7 +16,7 @@ if __name__ == '__main__':
     np.random.seed(0)
     torch.manual_seed(0)
 
-    # Overall paramaters
+    # Overall parameters
     num_iter = 10000
     lr=1e-4
     test_freq = 100

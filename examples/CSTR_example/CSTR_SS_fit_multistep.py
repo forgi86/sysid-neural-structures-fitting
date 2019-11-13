@@ -14,9 +14,14 @@ from torchid.ssmodels import NeuralStateSpaceModel
 
 if __name__ == '__main__':
 
+    # Set seed for reproducibility
+    np.random.seed(0)
+    torch.manual_seed(0)
+
+    # Overall parameters
     num_iter = 5000
     test_freq = 100
-    seq_len = 128
+    seq_len = 128 # subsequence length m
     lr = 1e-3
     add_noise = False
 
@@ -29,12 +34,12 @@ if __name__ == '__main__':
     # Load dataset
     df_X = pd.read_csv(os.path.join("data", "CSTR_data_id.csv"))
     time_data = np.array(df_X[COL_T], dtype=np.float32)
-    y = np.array(df_X[COL_Y],dtype=np.float32)
-    x = np.array(df_X[COL_X],dtype=np.float32)
-    u = np.array(df_X[COL_U],dtype=np.float32)
+    y = np.array(df_X[COL_Y], dtype=np.float32)
+    x = np.array(df_X[COL_X], dtype=np.float32)
+    u = np.array(df_X[COL_U], dtype=np.float32)
     Ts = time_data[1] - time_data[0]
 
-    # Add noise
+    # Add noise - no noise here
     x_noise = np.copy(x) #+ np.random.randn(*x.shape)*std_noise
     x_noise = x_noise.astype(np.float32)
 
@@ -68,7 +73,6 @@ if __name__ == '__main__':
     # Setup neural model structure
     ss_model = NeuralStateSpaceModel(n_x=2, n_u=1, n_feat=64) #NeuralStateSpaceModelLin(A_nominal*Ts, B_nominal*Ts)
     nn_solution = NeuralStateSpaceSimulator(ss_model)
-    #nn_solution.ss_model.load_state_dict(torch.load(os.path.join("models", "model_SS_1step_nonoise.pkl")))
 
     # Setup optimizer
     params = list(nn_solution.ss_model.parameters())
@@ -79,27 +83,30 @@ if __name__ == '__main__':
         batch_t, batch_x0, batch_u, batch_x = get_batch(batch_size, seq_len)
         batch_x_sim = nn_solution.f_sim_multistep(batch_x0, batch_u)
         err_init = batch_x_sim - batch_x
-        scale_error = torch.sqrt(torch.mean((err_init)**2,dim=(0,1)))
+        scale_error = torch.sqrt(torch.mean(err_init**2, dim=(0, 1)))
 
-    
     LOSS = []
     start_time = time.time()
     for itr in range(0, num_iter):
-
         optimizer.zero_grad()
+
+        # Simulate
         batch_t, batch_x0, batch_u, batch_x = get_batch(batch_size, seq_len)
         batch_x_sim = nn_solution.f_sim_multistep(batch_x0, batch_u)
+
+        # Compute fit loss
         err = batch_x_sim - batch_x
         err_scaled = err/scale_error
         loss_sc = torch.mean(err_scaled**2)
 
-        if itr % test_freq == 0:
-            with torch.no_grad():
-                loss_unsc = torch.mean(err**2)
-                print('Iter {:04d} | Loss {:.6f}, Scaled Loss {:.6f}'.format(itr, loss_unsc.item(), loss_sc.item()))
-
+        # Statistics
         LOSS.append(loss_sc.item())
+        if itr % test_freq == 0:
+            loss_unsc = torch.mean(err**2)
+            print('Iter {:04d} | Loss {:.6f}, Scaled Loss {:.6f}'.format(itr, loss_unsc.item(), loss_sc.item()))
         loss_sc.backward()
+
+        # Optimize
         optimizer.step()
 
     train_time = time.time() - start_time

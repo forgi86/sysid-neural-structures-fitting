@@ -16,59 +16,53 @@ from torchid.iomodels import NeuralIOModel
 
 if __name__ == '__main__':
 
+    # Set seed for reproducibility
     np.random.seed(0)
     torch.manual_seed(0)
 
+    # Overall parameters
+    n_a = 2 # autoregressive coefficients for y
+    n_b = 2 # autoregressive coefficients for u
+    seq_len = 32  # subsequence length m
+    lr = 1e-4
+    num_iter = 50000
+    test_freq = 100
+
+    # Column names
     COL_T = ['time']
     COL_Y = ['Ca']
     COL_X = ['Ca', 'T']
     COL_U = ['q']
 
-    #df_X = pd.read_csv(os.path.join("data", "cstr.dat"), header=None, sep="\t")
-    #df_X.columns = ['time', 'q', 'Ca', 'T', 'None']
-
-    #df_X['q'] = df_X['q']/100
-    #df_X['Ca'] = df_X['Ca']*10
-    #df_X['T'] = df_X['T']/400
-
+    # Load dataset
     df_X = pd.read_csv(os.path.join("data", "CSTR_data_id.csv"))
-
-
     t = np.array(df_X[COL_T], dtype=np.float32)
-    #y = np.array(df_X[COL_Y], dtype=np.float32)
     x = np.array(df_X[COL_X], dtype=np.float32)
     u = np.array(df_X[COL_U], dtype=np.float32)
-    y_var_idx = 0 # 0: voltage 1: current
-
+    y_var_idx = 0 # 0: Ca 1: T
     y = np.copy(x[:, [y_var_idx]])
-
     N = np.shape(y)[0]
     Ts = t[1] - t[0]
-    t_fit = t[-1]
-    n_fit = int(t_fit//Ts)#x.shape[0]
-    num_iter = 50000
-    test_freq = 100
 
-    n_a = 4 # autoregressive coefficients for y
-    n_b = 4 # autoregressive coefficients for u
-    n_max = np.max((n_a, n_b)) # delay
-
-    # Batch learning parameters
-    seq_len = 32  # int(n_fit/10) 32 seems to work :)
-    batch_size = (n_fit - n_a) // seq_len
-
-
-    x_noise = np.copy(x) 
+    # Add noise - no noise here
+    x_noise = np.copy(x)
     x_noise = x_noise.astype(np.float32)
     y_noise = x_noise[:,[y_var_idx]]
 
-    # Build fit data
+    # Get fit data
+    t_fit = t[-1]
+    n_fit = int(t_fit//Ts)#x.shape[0]
+    n_max = np.max((n_a, n_b)) # delay
     u_fit = u[0:n_fit]
     y_fit = y[0:n_fit]
     y_meas_fit = y_noise[0:n_fit]
     phi_fit_y = scipy.linalg.toeplitz(y_meas_fit, y_meas_fit[0:n_a])[n_max - 1:-1, :] # regressor 1
     phi_fit_u = scipy.linalg.toeplitz(u_fit, u_fit[0:n_a])[n_max - 1:-1, :]
     phi_fit = np.hstack((phi_fit_y, phi_fit_u))
+
+    # Batch learning parameters
+    batch_size = (n_fit - n_a) // seq_len
+
 
     # Neglect initial values
     y_fit = y_fit[n_max:,:]
@@ -82,15 +76,12 @@ if __name__ == '__main__':
     phi_fit_y_torch = torch.tensor(phi_fit_y)
     phi_fit_u_torch = torch.tensor(phi_fit_u)
 
-
-    # Initialize optimization
+    # Setup neural model structure
     io_model = NeuralIOModel(n_a=n_a, n_b=n_b, n_feat=64)
     io_solution = NeuralIOSimulator(io_model)
-    #io_solution.io_model.load_state_dict(torch.load(os.path.join("models", "model_IO_16step.pkl")))
-    optimizer = optim.Adam(io_solution.io_model.parameters(), lr=1e-5)
-    end = time.time()
-    loss_meter = RunningAverageMeter(0.97)
 
+    # Setup optimizer
+    optimizer = optim.Adam(io_solution.io_model.parameters(), lr=lr)
 
     def get_batch(batch_size, seq_len):
         num_train_samples = y_meas_fit_torch.shape[0]
@@ -125,8 +116,8 @@ if __name__ == '__main__':
         loss = torch.mean((err) ** 2)
         loss_scale = np.float32(loss)
 
-    ii = 0
     LOSS = []
+    start_time = time.time()
     for itr in range(0, num_iter):
         optimizer.zero_grad()
 
@@ -138,26 +129,24 @@ if __name__ == '__main__':
         err = batch_y_meas[:,0:,:] - batch_y_pred[:,0:,:]
         loss = torch.mean((err)**2)/loss_scale
 
+        # Statistics
+        if itr % test_freq == 0:
+            print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
+
         # Optimization step
         loss.backward()
         optimizer.step()
 
-        loss_meter.update(loss.item())
 
-        # Print message
-        if itr % test_freq == 0:
-            with torch.no_grad():
-                #y_pred_torch = io_solution.f_onestep(phi_fit_torch) #func(x_true_torch, u_torch)
-                #err = y_pred_torch - y_meas_fit_torch[n_max:, :]
-                #loss = torch.mean((err) ** 2)  # torch.mean(torch.sq(batch_x[:,1:,:] - batch_x_pred[:,1:,:]))
-                print('Iter {:04d} | Total Loss {:.6f}'.format(itr, loss.item()))
-                ii += 1
+
         LOSS.append(loss.item())
 
+    train_time = time.time() - start_time
+    print(f"\nTrain time: {train_time:.2f}")
 
+    # Save fitted model
     if not os.path.exists("models"):
         os.makedirs("models")
-    
     torch.save(io_solution.io_model.state_dict(), os.path.join("models", "model_IO_32step.pkl"))
 
 
