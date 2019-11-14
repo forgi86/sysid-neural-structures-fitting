@@ -23,7 +23,7 @@ if __name__ == '__main__':
     alpha = 0.5  # fit/consistency trade-off constant
     lr = 1e-3  # learning rate
     test_freq = 100  # print message every test_freq iterations
-    add_noise = False
+    add_noise = True
 
     # Column names in the dataset
     COL_T = ['time']
@@ -166,7 +166,9 @@ if __name__ == '__main__':
     with torch.no_grad():
         x_sim_torch_val = nn_solution.f_sim(x0_torch_val, u_torch_val)
 
-    # In[1]
+    # Plot
+    if not os.path.exists("fig"):
+        os.makedirs("fig")
 
     fig, ax = plt.subplots(3, 1, sharex=True)
     ax[0].plot(np.array(x_true_torch_val[:, 0]), label='True')

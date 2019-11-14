@@ -206,6 +206,9 @@ if __name__ == '__main__':
         os.makedirs("fig")
 
     # Plot the model simulation vs true noise-free values
+    if not os.path.exists("fig"):
+        os.makedirs("fig")
+
     y_val_sim = np.array(y_val_sim_torch)
     fig, ax = plt.subplots(2,1, sharex=True)
     ax[0].plot(y_val, 'b', label='True')

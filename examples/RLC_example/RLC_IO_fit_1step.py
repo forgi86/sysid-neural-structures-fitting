@@ -113,8 +113,6 @@ if __name__ == '__main__':
 
     torch.save(io_solution.io_model.state_dict(), os.path.join("models", model_filename))
 
-
-
     # In[Validate model]
     t_val_start = 0
     t_val_end = t[-1]
@@ -146,7 +144,9 @@ if __name__ == '__main__':
         err_val = y_val_sim_torch - y_meas_val_torch
         loss_val =  torch.mean((err_val)**2)
 
-    # In[Plot]
+    # Plot
+    if not os.path.exists("fig"):
+        os.makedirs("fig")
     y_val_sim = np.array(y_val_sim_torch)
     fig,ax = plt.subplots(2,1, sharex=True)
     ax[0].plot(y_val, 'b', label='True')

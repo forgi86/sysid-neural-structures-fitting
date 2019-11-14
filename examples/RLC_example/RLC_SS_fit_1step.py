@@ -109,32 +109,31 @@ if __name__ == '__main__':
 
     torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", model_filename))
 
+    # Simulate model
     x_0 = state_data[0, :]
-
     time_start = time.time()
     with torch.no_grad():
         x_sim = nn_solution.f_sim(torch.tensor(x_0), torch.tensor(input_data))
         loss = torch.mean(torch.abs(x_sim - x_fit_torch))
-    time_arr = time.time() - time_start
 
-    # In[Plot]
+    # Plot
+    if not os.path.exists("fig"):
+        os.makedirs("fig")
+
     x_sim = np.array(x_sim)
     fig, ax = plt.subplots(2,1,sharex=True)
     ax[0].plot(np.array(x_fit_torch[:, 0]), 'k+', label='True')
     ax[0].plot(np.array(x_est_torch[:, 0].detach()), 'b', label='Pred')
-    ax[0].plot(x_sim[:,0],'r', label='Sim')
+    ax[0].plot(x_sim[:, 0], 'r', label='Sim')
     ax[0].legend()
     ax[1].plot(np.array(x_fit_torch[:, 1]), 'k+', label='True')
     ax[1].plot(np.array(x_est_torch[:, 1].detach()), 'b', label='Pred')
-    ax[1].plot(x_sim[:,1],'r', label='Sim')
+    ax[1].plot(x_sim[:, 1], 'r', label='Sim')
     ax[1].legend()
     ax[0].grid(True)
     ax[1].grid(True)
 
-    if not os.path.exists("fig"):
-        os.makedirs("fig")
-
-    fig,ax = plt.subplots(1,1, figsize=(7.5,6))
+    fig, ax = plt.subplots(1, 1, figsize=(7.5, 6))
     ax.plot(LOSS)
     ax.grid(True)
     ax.set_ylabel("Loss (-)")

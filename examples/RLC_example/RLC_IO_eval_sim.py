@@ -24,6 +24,10 @@ if __name__ == '__main__':
 #    model_type = '1step_nonoise'
 #    model_type = '1step_noise'
 
+    # Create fig folder if it does not exist
+    if not os.path.exists("fig"):
+        os.makedirs("fig")
+
     # Column names in the dataset
     COL_T = ['time']
     COL_X = ['V_C', 'I_L']
@@ -94,7 +98,7 @@ if __name__ == '__main__':
     time_val_us = time_val*1e6
 
     if plot_input:
-        fig, ax = plt.subplots(2,1, sharex=True)
+        fig, ax = plt.subplots(2, 1, sharex=True)
     else:
         fig, ax = plt.subplots(1, 1, sharex=True)
         ax = [ax]
