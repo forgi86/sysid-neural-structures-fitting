@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/DLSysId.iml" filepath="$PROJECT_DIR$/.idea/DLSysId.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../sysid-neural-structures-fitting/.idea/sysid-neural-structures-fitting.iml" filepath="$PROJECT_DIR$/../sysid-neural-structures-fitting/.idea/sysid-neural-structures-fitting.iml" />
     </modules>
   </component>
 </project>

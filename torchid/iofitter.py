@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 
 
-class NeuralIOSimulator():
+class NeuralIOSimulator:
     """ This class implements prediction/simulation methods for the IO model structure
 
      Attributes

@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
  
         
-class NeuralStateSpaceSimulator():
+class NeuralStateSpaceSimulator:
     """ This class implements prediction/simulation methods for the SS model structure
 
      Attributes

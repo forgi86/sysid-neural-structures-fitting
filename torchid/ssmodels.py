@@ -9,8 +9,20 @@ import torch.nn as nn
 import numpy as np
 from torch.jit import Final
 
+
 class NeuralStateSpaceModel(nn.Module):
 
+    """ This class implements a state-space neural model
+
+     Attributes
+     ----------
+     n_x : int.
+           number of states
+     n_u : int.
+           number of inputs
+     n_feat : int.
+           number of units in the hidden layer
+     """
     n_x: Final[int]
     n_u: Final[int]
     n_feat: Final[int]
