@@ -100,16 +100,16 @@ class NeuralStateSpaceSimulator:
         n_x = x0_batch.shape[1]
         seq_len = U_batch.shape[1]
 
-        X_pred_list = []
+        X_sim_list = []
         xstep = x0_batch
         for i in range(seq_len):
-            X_pred_list += [xstep] #X_pred[:, i, :] = xstep
+            X_sim_list += [xstep] #X_sim[:, i, :] = xstep
             ustep = U_batch[:, i, :]
             dx = self.ss_model(xstep, ustep)
             xstep = xstep + dx
 
-        X_pred = torch.stack(X_pred_list, 1)#.squeeze(2)
-        return X_pred
+        X_sim = torch.stack(X_sim_list, 1)#.squeeze(2)
+        return X_sim
 
 #    def f_residual_fullyobserved(self, X_batch, U_batch):
 #        X_increment = X_batch[:, -1, :] - X_batch[:, 0, :]

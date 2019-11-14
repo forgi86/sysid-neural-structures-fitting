@@ -99,11 +99,11 @@ class NeuralIOSimulator:
         n_a = batch_y_seq.shape[1] # number of autoregressive terms on y
         n_b = batch_u_seq.shape[1] # number of autoregressive terms on u
 
-        Y_pred_list = []
+        Y_sim_list = []
         for i in range(seq_len):
             phi = torch.cat((batch_y_seq, batch_u_seq), -1)
             yi = self.io_model(phi)
-            Y_pred_list += [yi]
+            Y_sim_list += [yi]
 
             # y shift
             batch_y_seq[:, 1:] = batch_y_seq[:, 0:-1]
@@ -113,5 +113,5 @@ class NeuralIOSimulator:
             batch_u_seq[:, 1:] = batch_u_seq[:, 0:-1]
             batch_u_seq[:, [0]] = batch_u[:, i]
 
-        Y_pred = torch.stack(Y_pred_list, 1)
-        return Y_pred
+        Y_sim = torch.stack(Y_sim_list, 1)
+        return Y_sim

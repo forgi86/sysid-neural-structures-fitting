@@ -19,10 +19,10 @@ if __name__ == '__main__':
     # Overall parameters
     num_iter = 15000  # gradient-based optimization steps
     seq_len = 64  # subsequence length m
-    t_fit = 2e-3 # fitting on t_fit ms of data
-    alpha = 0.5 # fit/consistency trade-off constant
-    lr = 1e-3 # learning rate
-    test_freq = 100 # print message every test_freq iterations
+    t_fit = 2e-3  # fitting on t_fit ms of data
+    alpha = 0.5  # fit/consistency trade-off constant
+    lr = 1e-3  # learning rate
+    test_freq = 100  # print message every test_freq iterations
     add_noise = False
 
     # Column names in the dataset
@@ -80,13 +80,13 @@ if __name__ == '__main__':
         {'params': params_hidden, 'lr': 10*lr},
     ], lr=lr)
 
-    # Batch extraction funtion
+    # Batch extraction function
     def get_batch(batch_size, seq_len):
 
         # Select batch indexes
         num_train_samples = x_fit.shape[0]
-        batch_start = np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False) # batch start indices
-        batch_idx = batch_start[:, np.newaxis] + np.arange(seq_len) # batch samples indices
+        batch_start = np.random.choice(np.arange(num_train_samples - seq_len, dtype=np.int64), batch_size, replace=False)  # batch start indices
+        batch_idx = batch_start[:, np.newaxis] + np.arange(seq_len)  # batch samples indices
 
         # Extract batch data
         batch_t = torch.tensor(time_fit[batch_idx])
@@ -102,7 +102,7 @@ if __name__ == '__main__':
         batch_t, batch_x0_hidden, batch_u, batch_x, batch_x_hidden = get_batch(batch_size, seq_len)
         batch_x_sim = nn_solution.f_sim_multistep(batch_x0_hidden, batch_u)
         err_init = batch_x_sim - batch_x
-        scale_error = torch.sqrt(torch.mean((err_init) ** 2, dim=(0, 1)))
+        scale_error = torch.sqrt(torch.mean(err_init**2, dim=(0, 1)))
 
     LOSS = []
     start_time = time.time()
