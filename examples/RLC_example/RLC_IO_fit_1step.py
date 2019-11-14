@@ -103,9 +103,9 @@ if __name__ == '__main__':
     train_time = time.time() - start_time # 73 seconds
     print(f"\nTrain time: {train_time:.2f}")
 
+    # Save model
     if not os.path.exists("models"):
         os.makedirs("models")
-
     if add_noise:
         model_filename = "model_IO_1step_noise.pkl"
     else:

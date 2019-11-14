@@ -99,6 +99,7 @@ if __name__ == '__main__':
     train_time = time.time() - start_time # 114 seconds
     print(f"\nTrain time: {train_time:.2f}")
 
+    # Save model
     if not os.path.exists("models"):
         os.makedirs("models")
     if add_noise:
@@ -115,7 +116,6 @@ if __name__ == '__main__':
         x_sim = nn_solution.f_sim(torch.tensor(x_0), torch.tensor(input_data))
         loss = torch.mean(torch.abs(x_sim - x_fit_torch))
     time_arr = time.time() - time_start
-
 
     # In[Plot]
     x_sim = np.array(x_sim)

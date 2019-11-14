@@ -101,6 +101,9 @@ if __name__ == '__main__':
     else:
         model_filename = "model_SS_simerr_nonoise.pkl"
 
+    # Save model
+    if not os.path.exists("models"):
+        os.makedirs("models")
     torch.save(nn_solution.ss_model.state_dict(), os.path.join("models", model_filename))
 
     t_val = 5e-3

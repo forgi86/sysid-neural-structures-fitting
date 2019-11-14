@@ -141,6 +141,9 @@ if __name__ == '__main__':
     train_time = time.time() - start_time
     print(f"\nTrain time: {train_time:.2f}") # 182 seconds
 
+    # Save model
+    if not os.path.exists("models"):
+        os.makedirs("models")
     if add_noise:
         model_filename = f"model_SS_{seq_len}step_noise.pkl"
     else:
@@ -161,18 +164,18 @@ if __name__ == '__main__':
     x_true_torch_val = torch.from_numpy(state_data_val)
 
     with torch.no_grad():
-        x_pred_torch_val = nn_solution.f_sim(x0_torch_val, u_torch_val)
+        x_sim_torch_val = nn_solution.f_sim(x0_torch_val, u_torch_val)
 
     # In[1]
 
     fig, ax = plt.subplots(3, 1, sharex=True)
     ax[0].plot(np.array(x_true_torch_val[:, 0]), label='True')
-    ax[0].plot(np.array(x_pred_torch_val[:, 0]), label='Fit')
+    ax[0].plot(np.array(x_sim_torch_val[:, 0]), label='Fit')
     ax[0].legend()
     ax[0].grid(True)
 
     ax[1].plot(np.array(x_true_torch_val[:, 1]), label='True')
-    ax[1].plot(np.array(x_pred_torch_val[:, 1]), label='Fit')
+    ax[1].plot(np.array(x_sim_torch_val[:, 1]), label='Fit')
     ax[1].legend()
     ax[1].grid(True)
 

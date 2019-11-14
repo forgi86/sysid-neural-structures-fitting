@@ -169,7 +169,6 @@ if __name__ == '__main__':
 
     if not os.path.exists("models"):
         os.makedirs("models")
-
     if add_noise:
         model_filename = f"model_IO_{seq_len}step_noise.pkl"
     else:
