@@ -10,9 +10,9 @@ The following fitting methods for State-Space (SS) and Input-Output (IO) neural 
 
 
 # Folders:
-* torchid:  pytorch implementation of the fitting methods above
+* torchid:  pytorch implementation of the fitting methods 1,2,3
 * examples: examples of neural dynamical models fitting 
-* common:   definition of fitting metrics r-square, etc
+* common:   definition of performance index R-squared, etc.
 
 The [examples](examples) are:
 
