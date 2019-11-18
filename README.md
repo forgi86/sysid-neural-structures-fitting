@@ -10,14 +10,14 @@ The following fitting methods for State-Space (SS) and Input-Output (IO) neural 
 
 
 # Folders:
-* torchid:  pytorch implementation of the fitting method above 
+* torchid:  pytorch implementation of the fitting methods 1,2,3
 * examples: examples of neural dynamical models fitting 
-* common:   definition of fitting metrics r-square, etc
+* common:   definition of performance index R-squared, etc.
 
 The [examples](examples) are:
 
 * `` RLC_example``: nonlinear RLC circuit thoroughly discussed in the paper
-* `` CSTR_example``: CSTR system from the DaISy dataset https://homes.esat.kuleuven.be/~tokka/daisydata.html
+* `` CSTR_example``: CSTR system from the [DaISy](https://homes.esat.kuleuven.be/~tokka/daisydata.html) dataset 
 * `` cartpole_example``: cart-pole mechanical system. Equations are the same used [here](https://github.com/forgi86/pyMPC/blob/master/examples/example_inverted_pendulum.ipynb)
 
 For the [RLC example](examples/RLC_example), the main scripts are:
