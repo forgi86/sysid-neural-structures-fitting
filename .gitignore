@@ -1,3 +1,6 @@
-/RLC_example/models/
-/RLC_example/data
-/RLC_example/fig
+/examples/RLC_example/models/
+/examples/RLC_example/fig/
+/examples/CSTR_example/models/
+/examples/CSTR_example/fig/
+/examples/cartpole_example/fig/
+/examples/cartpole_example/models/
