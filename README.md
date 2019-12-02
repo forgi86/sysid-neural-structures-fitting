@@ -59,7 +59,7 @@ conda install pytorch torchvision cpuonly -c pytorch
 If you find this project useful, we encourage you to
 
 * Star this repository
-* Cite the [paper](Model structures and fitting criteria for systemidentification with neural networks) 
+* Cite the [paper](https://arxiv.org/pdf/1911.13034.pdf) 
 ```
 @misc{model2019,
 Author = {Forgione, Marco and Piga, Dario},
