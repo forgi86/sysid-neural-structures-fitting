@@ -63,7 +63,7 @@ If you find this project useful, we encourage you to
 ```
 @misc{model2019,
 Author = {Forgione, Marco and Piga, Dario},
-Title = {Model structures and fitting criteria for systemidentification with neural networks},
+Title = {Model structures and fitting criteria for system identification with neural networks},
 Year = {2019},
 Eprint = {arXiv:1911.13034
 }
