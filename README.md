@@ -58,7 +58,7 @@ conda install pytorch torchvision cpuonly -c pytorch
 
 If you find this project useful, we encourage you to
 
-* Star this repository
+:star:  Star this repository
 * Cite the [paper](https://arxiv.org/pdf/1911.13034.pdf) 
 ```
 @misc{model2019,
