@@ -86,6 +86,39 @@ class NeuralStateSpaceModelLin(nn.Module):
         return DX   
 
 
+class DeepNeuralStateSpaceModel(nn.Module):
+    n_x: Final[int]
+    n_u: Final[int]
+    n_feat: Final[int]
+
+    def __init__(self, n_x, n_u, n_feat=64, scale_dx=1.0, init_small=True):
+        super(DeepNeuralStateSpaceModel, self).__init__()
+        self.n_x = n_x
+        self.n_u = n_u
+        self.n_feat = n_feat
+        self.scale_dx = scale_dx
+
+        self.net = nn.Sequential(
+            nn.Linear(n_x + n_u, n_feat),  # 2 states, 1 input
+            nn.ReLU(),
+            nn.Linear(n_feat, n_feat),
+            nn.ReLU(),
+            nn.Linear(n_feat, n_x)
+        )
+
+        # Small initialization is better for multi-step methods
+        if init_small:
+            for m in self.net.modules():
+                if isinstance(m, nn.Linear):
+                    nn.init.normal_(m.weight, mean=0, std=1e-4)
+                    nn.init.constant_(m.bias, val=0)
+
+    def forward(self, in_x, in_u):
+        in_xu = torch.cat((in_x, in_u), -1)  # concatenate x and u over the last dimension to create the [xu] input
+        dx = self.net(in_xu)  # \dot x = f([xu])
+        dx = dx * self.scale_dx
+        return dx
+
 class StateSpaceModelLin(nn.Module):
     def __init__(self, AL, BL):
         super(StateSpaceModelLin, self).__init__()
@@ -169,4 +202,42 @@ class CartPoleDeepStateSpaceModel(nn.Module):
         XU = torch.cat((X_feat, U), -1)
         FX_TMP = self.net(XU)
         DX = (self.WL(FX_TMP) + self.AL(X))
+        return DX
+
+
+class CTSNeuralStateSpaceModel(nn.Module):
+    """ This class implements a state-space neural model with structure
+        x_{k+1} = NN_x(x_k, u_k)
+
+     Attributes
+     ----------
+     n_x : int.
+           number of states
+     n_u : int.
+           number of inputs
+     n_feat : int.
+           number of units in the hidden layer
+     """
+
+    def __init__(self, n_x, n_u, n_feat=64, ts=1.0, init_small=True):
+        super(CTSNeuralStateSpaceModel, self).__init__()
+        self.n_x = n_x
+        self.n_u = n_u
+        self.n_feat = n_feat
+        self.ts = ts
+        self.net = nn.Sequential(
+            nn.Linear(n_x + n_u, n_feat),  # 2 states, 1 input
+            nn.ReLU(),
+            nn.Linear(n_feat, n_x)
+        )
+
+        if init_small:
+            for m in self.net.modules():
+                if isinstance(m, nn.Linear):
+                    nn.init.normal_(m.weight, mean=0, std=1e-4)
+                    nn.init.constant_(m.bias, val=0)
+
+    def forward(self, X, U):
+        XU = torch.cat((X, U), -1)
+        DX = self.net(XU) * self.ts
         return DX

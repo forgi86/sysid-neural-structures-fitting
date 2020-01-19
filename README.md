@@ -20,6 +20,7 @@ The [examples](examples) are:
 * `` RLC_example``: nonlinear RLC circuit thoroughly discussed in the paper
 * `` CSTR_example``: CSTR system from the [DaISy](https://homes.esat.kuleuven.be/~tokka/daisydata.html) dataset 
 * `` cartpole_example``: cart-pole mechanical system. Equations are the same used [here](https://github.com/forgi86/pyMPC/blob/master/examples/example_inverted_pendulum.ipynb)
+* `` CTS_example``: Cascated Tanks System from the [Nonlinear System Identification Benchmark](http://www.nonlinearbenchmark.org/) website
 
 For the [RLC example](examples/RLC_example), the main scripts are:
 
