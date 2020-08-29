@@ -9,6 +9,11 @@ The following fitting methods for State-Space (SS) and Input-Output (IO) neural 
  2. Open-loop simulation error minimization
  3. Multi-step simulation error minimization
 
+# Block Diagram
+
+The following block diagram illustrates the proposed multi-step simulation error minimization approach:
+
+![Multi-step block diagram](scheme_full.png "Title")
 
 # Folders:
 * torchid:  pytorch implementation of the fitting methods 1,2,3
