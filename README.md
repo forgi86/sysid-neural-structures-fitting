@@ -11,7 +11,24 @@ The following fitting methods for State-Space (SS) and Input-Output (IO) neural 
 
 # Block Diagram
 
-The following block diagram illustrates the proposed multi-step simulation error minimization approach:
+The block diagram below illustrates the proposed multi-step simulation error minimization approach applied to a
+state-space model. Quantities in red are tunable optimization variable (so as the parameters of the state and output
+neural network mappings).
+ 
+At each iteration of the gradient-based optimization loop:
+
+1. A batch consisting of q length-m subsequences of measured input, measured output, and hidden state is extracted from the training 
+dataset (and from the tunable hidden state sequence)
+1. The system's simulated state and output subsequences are obtained by applying m-step-ahead simulation
+ to the input subsequences. The initial condition is taken as the first element of the hidden state sequence 
+1. The fit loss is computed as the discrepancy between measured and simulated output; the consistency 
+  loss is computed as the discrepancy between hidden and simulated state; the total loss is a defined as a weighted
+  sum of the fit and consistency loss
+1. Derivatives of the total loss w.r.t. the hidden state and the neural network parameters are computed via
+  back-propagation
+1. Using the derivatives computed at the previous step, a gradient-based optimization step is performed. The hidden state and neural network parameters are updated 
+  in the negative gradient direction, aiming to minimize the total loss
+
 
 ![Multi-step block diagram](scheme_full.png "Title")
 
@@ -39,7 +56,7 @@ For the [RLC example](examples/RLC_example), the main scripts are:
  *  ``RLC_IO_fit_1step.py``: IO model, one-step prediction error minimization
  *  ``RLC_IO_fit_multistep.py``: IO model, multistep simulation error minimization
  *  ``RLC_IO_eval_sim.py``: IO model, evaluate the simulation performance of the identified models, produce relevant plots  and model statistics
- *   ``RLC_OE_comparison.m``: Linear Output Error (OE) model fit in Matlab
+ *  ``RLC_OE_comparison.m``: Linear Output Error (OE) model fit in Matlab
   
 
 # Software requirements:
