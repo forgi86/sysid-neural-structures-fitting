@@ -1,0 +1,53 @@
+% does not look nice, try deleting the line with the fontenc.
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage[latin1]{inputenc}
+\usepackage{units}
+\usepackage{colortbl}
+\usepackage{multimedia}
+\usepackage{bm}
+\usepackage{subcaption}
+\usepackage{algorithm2e}
+\usepackage{algorithmic}
+
+\mode<presentation>
+{
+  \usetheme{Boadilla}
+  \useoutertheme{infolines}
+  \setbeamercovered{transparent} 
+}
+	
+
+\title[Neural System Identification]{\textsc{Model Structures and Fitting Criteria for System Identification with Neural Networks}}
+
+
+\author[]{Marco Forgione, Dario Piga}
+
+\institute[IDSIA]{IDSIA Dalle Molle Institute for Artificial Intelligence SUPSI-USI, Lugano, Switzerland} 
+
+
+\date[AICT 2020]{14th IEEE International Conference on Application of Information and Communication Technologies}
+
+
+\subject{System Identification, Deep Learning, Machine Learning, Regularization}
+
+
+%% MATH DEFINITIONS %%
+\newcommand{\So}{S_o} % true system
+\newcommand{\hidden}[1]{\overline{#1}}
+\newcommand{\nsamp}{N}
+\newcommand{\Yid}{Y}
+\newcommand{\Uid}{U}
+\newcommand{\Did}{{\mathcal{D}}}
+\newcommand{\tens}[1]{\bm{#1}}
+
+\newcommand{\batchsize}{q}
+\newcommand{\seqlen}{m}
+\newcommand{\nin}{n_u} 
+\newcommand{\ny}{n_y} 
+\newcommand{\nx}{n_x}
+
+\newcommand{\NN}{\mathcal{N}} % a feedforward neural network
+
+\newcommand{\norm}[1]{\left \lVert #1 \right \rVert}
+\DeclareMathOperator*\argmin{arg \, min}

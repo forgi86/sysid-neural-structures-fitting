@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import torch
+import matplotlib
 import matplotlib.pyplot as plt
 import os
 import sys
@@ -12,13 +13,16 @@ from common import metrics
 
 if __name__ == '__main__':
 
+    matplotlib.rc('font', **{'family': 'sans-serif', 'sans-serif': ['Helvetica'], 'size': 16})
+    matplotlib.rc('text', usetex=True)
+
     plot_input = False
 
     #dataset_type = 'id'
     dataset_type = 'val'
     #model_type = '1step_nonoise'
-    #model_type = '1step_noise'
-    model_type = '64step_noise'
+    model_type = '1step_noise'
+    #model_type = '64step_noise'
     #model_type = 'simerr_noise'
 
     # Column names in the dataset
@@ -110,6 +114,7 @@ if __name__ == '__main__':
         ax[2].set_ylabel("Input voltage $v_C$ (V)")
         ax[2].set_ylim([-400, 400])
 
+    plt.tight_layout()
     fig_name = f"RLC_SS_{dataset_type}_{model_type}.pdf"
     fig.savefig(os.path.join("fig", fig_name), bbox_inches='tight')
 
