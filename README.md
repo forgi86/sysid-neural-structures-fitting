@@ -30,7 +30,7 @@ dataset (and from the tunable hidden state sequence)
   in the negative gradient direction, aiming to minimize the total loss
 
 
-![Multi-step block diagram](scheme_full.png "Title")
+![Multi-step block diagram](scheme_full.png "Block diagram of the propsed approach")
 
 # Folders:
 * torchid:  pytorch implementation of the fitting methods 1,2,3
