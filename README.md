@@ -84,10 +84,12 @@ If you find this project useful, we encourage you to
 * Star this repository :star: 
 * Cite the [paper](https://arxiv.org/pdf/1911.13034.pdf) 
 ```
-@misc{model2019,
-Author = {Forgione, Marco and Piga, Dario},
-Title = {Model structures and fitting criteria for system identification with neural networks},
-Year = {2019},
-Eprint = {arXiv:1911.13034}
+@inproceedings{forgione2020model,
+  title={Model structures and fitting criteria for system identification
+  with neural networks},
+  author={Forgione, Marco and Piga, Dario},
+  booktitle={Proc. of the 14th IEEE International Conference Application
+  of Information and Communication Technologies, Tashkent, Uzbekistan},
+  year={2020}
 }
 ```
